@@ -9,7 +9,8 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,13 +20,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -76,13 +83,22 @@ fun Root(app: CasaApp, web: WebView, tab: Tab, onTab: (Tab) -> Unit) {
     // indietro senza altro da chiudere: l'app va in secondo piano (non si chiude,
     // cosi' la pagina del relay e il collegamento al clima restano pronti)
     BackHandler { act?.moveTaskToBack(true) }
+    var diag by remember { mutableStateOf<String?>(null) }
+    diag?.let { d ->
+        AlertDialog(onDismissRequest = { diag = null }, containerColor = pal.bg,
+            title = { Text("Misure della pagina", color = pal.text) },
+            text = { SelectionContainer { Text(d, color = pal.value, fontSize = 15.sp) } },
+            confirmButton = { TextButton(onClick = { diag = null }) { Text("Chiudi", color = pal.accent) } })
+    }
     Column(Modifier.fillMaxSize().background(pal.bg).statusBarsPadding()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
-            holder.SaveableStateProvider(tab.name) {
-                when (tab) {
-                    Tab.CASA -> CasaWeb(web)
-                    Tab.CLIMA -> App(app.ble, app.store)
-                    Tab.SCORC -> ShortcutsScreen(app.store, web)
+            CasaWeb(web, visible = tab == Tab.CASA)
+            if (tab != Tab.CASA) Box(Modifier.fillMaxSize().background(pal.bg)) {
+                holder.SaveableStateProvider(tab.name) {
+                    when (tab) {
+                        Tab.CLIMA -> App(app.ble, app.store)
+                        else -> ShortcutsScreen(app.store, web)
+                    }
                 }
             }
         }
@@ -90,9 +106,13 @@ fun Root(app: CasaApp, web: WebView, tab: Tab, onTab: (Tab) -> Unit) {
             Tab.entries.forEach { t ->
                 val on = t == tab
                 val col = if (on) pal.accent else pal.muted
-                Column(Modifier.weight(1f).fillMaxSize().clickable {
-                        // di nuovo su Casa: torna alla pagina iniziale del relay
-                        if (on && t == Tab.CASA) web.reloadStart() else onTab(t)
+                Column(Modifier.weight(1f).fillMaxSize().pointerInput(t, on) {
+                        detectTapGestures(
+                            // di nuovo su Casa: torna alla pagina iniziale del relay
+                            onTap = { if (on && t == Tab.CASA) web.reloadStart() else onTab(t) },
+                            // pressione lunga su Casa: misure della pagina, per capire problemi di impaginazione
+                            onLongPress = { if (t == Tab.CASA) web.evaluateJavascript(DIAG_JS) { r -> diag = r?.trim('"') } },
+                        )
                     }.padding(top = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally) {
                     SvgIcon(when (t) { Tab.CASA -> Icons.house; Tab.CLIMA -> Icons.cool; Tab.SCORC -> Icons.gate }, col, 24.dp)

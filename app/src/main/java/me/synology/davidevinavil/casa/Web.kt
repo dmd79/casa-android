@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.view.View
 import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
@@ -34,9 +35,20 @@ private const val WHO_JS = "(function(){try{return localStorage.getItem('gate_ut
 /** Una sola WebView per tutta la vita dell'Activity: cambiando scheda non si ricarica. */
 @SuppressLint("SetJavaScriptEnabled")
 fun makeWeb(ctx: Context, store: Store): WebView = WebView(ctx).apply {
+    // Altezza fissa = quella dello spazio sullo schermo. Senza questo, dentro
+    // Compose la WebView e' "wrap_content" e prende l'altezza dal contenuto:
+    // le pagine dei dispositivi, alte quanto la finestra, si vedono con una
+    // finestra bassa e larga (impaginazione orizzontale, quadrante sparito).
+    layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
     settings.javaScriptEnabled = true
     settings.domStorageEnabled = true
     settings.mediaPlaybackRequiresUserGesture = true
+    // come Chrome: rispetta il <meta viewport> delle pagine e non ingrandisce
+    // il testo con la dimensione caratteri di sistema (altrimenti le pagine
+    // dei dispositivi passano all'impaginazione larga e si tagliano)
+    settings.useWideViewPort = true
+    settings.loadWithOverviewMode = true
+    settings.textZoom = 100
     val cm = CookieManager.getInstance()
     cm.setAcceptCookie(true)
     cm.setAcceptThirdPartyCookies(this, true)
@@ -78,7 +90,22 @@ fun makeWeb(ctx: Context, store: Store): WebView = WebView(ctx).apply {
     }
     webChromeClient = WebChromeClient()
     setBackgroundColor(0xFF0D0D0D.toInt())
-    loadUrl(Relay.BASE + "/_start")
+    // La prima pagina si carica solo quando la WebView ha la sua misura vera:
+    // caricata prima (0x0) la Home del termostato calcola il quadrante su
+    // un'area vuota e resta impaginata male.
+    loadWhenSized()
+}
+
+private fun WebView.loadWhenSized() {
+    if (width > 0 && height > 0) { loadUrl(Relay.BASE + "/_start"); return }
+    addOnLayoutChangeListener(object : View.OnLayoutChangeListener {
+        override fun onLayoutChange(v: View, l: Int, t: Int, r: Int, b: Int, oldL: Int, oldT: Int, oldR: Int, oldB: Int) {
+            if (r - l <= 0 || b - t <= 0) return
+            v.removeOnLayoutChangeListener(this)
+            // dopo il layout, non durante
+            v.post { (v as WebView).loadUrl(Relay.BASE + "/_start") }
+        }
+    })
 }
 
 /** Da JavaScript ad Android. */
@@ -98,13 +125,22 @@ p{color:#b3afa8;font-size:17px;line-height:1.5}button{margin-top:20px;border:0;b
 <button onclick="location.href='${Relay.BASE}/_start'">Riprova</button></body></html>"""
 
 @Composable
-fun CasaWeb(web: WebView) {
+fun CasaWeb(web: WebView, visible: Boolean) {
     val act = LocalContext.current as? Activity
-    BackHandler { if (web.canGoBack()) web.goBack() else act?.moveTaskToBack(true) }
+    BackHandler(enabled = visible) { if (web.canGoBack()) web.goBack() else act?.moveTaskToBack(true) }
+    // Resta sempre al suo posto, con la sua misura: sulle altre schede e' solo
+    // nascosta. Cosi' la pagina non viene mai ridimensionata a zero (il
+    // quadrante del termostato non si rompe) e non si ricarica.
     AndroidView(modifier = Modifier.fillMaxSize(), factory = {
         (web.parent as? ViewGroup)?.removeView(web)
         web
-    })
+    }, update = { it.visibility = if (visible) View.VISIBLE else View.INVISIBLE })
 }
+
+/** Misure viste dalla pagina (pressione lunga su "Casa" in basso). */
+const val DIAG_JS = "(function(){var d=document.documentElement,c=getComputedStyle(d);return " +
+    "'pagina '+innerWidth+'x'+innerHeight+' dpr '+devicePixelRatio+' | verticale '+matchMedia('(orientation:portrait)').matches+" +
+    "' | bt-vh '+(c.getPropertyValue('--bt-vh')||'-')+' | body '+document.body.clientWidth+'x'+document.body.clientHeight+" +
+    "' | font '+parseFloat(c.fontSize)+' | '+location.pathname})()"
 
 fun WebView.reloadStart() = loadUrl(Relay.BASE + "/_start")
