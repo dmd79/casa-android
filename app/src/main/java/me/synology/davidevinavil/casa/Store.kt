@@ -75,6 +75,11 @@ class Store(ctx: Context) {
         }
     } catch (e: Exception) { emptyList() }
 
+    /** Ultimo elenco dei cancelli del relay (senza rete la scheda Accessi li mostra lo stesso). */
+    var relayGates: String
+        get() = p.getString("relayGates", "[]") ?: "[]"
+        set(v) = p.edit().putString("relayGates", v).apply()
+
     var tab: String
         get() = p.getString("tab", "CASA") ?: "CASA"
         set(v) = p.edit().putString("tab", v).apply()

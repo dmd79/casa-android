@@ -22,13 +22,14 @@ private val main = Handler(Looper.getMainLooper())
 /**
  * Apre un pulsante degli Accessi (fuori dal thread principale).
  * "bt:<indirizzo>": via Bluetooth. Gli altri via relay; se il relay non
- * risponde e lo stesso cancello (stesso nome) e' abbinato via Bluetooth,
- * si prova quello. null se riuscito, altrimenti il motivo.
+ * si raggiunge (comando di sicuro non partito) e lo stesso cancello (stesso
+ * nome) e' abbinato via Bluetooth, si prova quello. null se riuscito,
+ * altrimenti il motivo.
  */
 fun openGateBtn(app: CasaApp, b: GateBtn, cookie: String?, who: String): String? {
     if (b.dev.startsWith("bt:")) return runBlocking { app.gates.open(b.dev.removePrefix("bt:"), b.azione, who, 8000) }
     val err = Relay.open(cookie, b, who) ?: return null
-    if (err != "relay non raggiungibile") return err
+    if (err !in Relay.NOT_SENT) return err      // il comando potrebbe essere partito: niente secondo impulso
     val g = app.store.gates.value.firstOrNull { it.name.trim().equals(b.devName.trim(), ignoreCase = true) && b.azione in it.azioni }
         ?: return err
     return runBlocking { app.gates.open(g.address, b.azione, who, 8000) }?.let { err }

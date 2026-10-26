@@ -356,22 +356,36 @@ private fun GateCtl(gb: GateBle, store: Store, addr: String, setWho: (String) ->
     }
 }
 
+/** Simboli del canale: Wi-Fi (relay) e Bluetooth. */
+val ICO_WIFI = listOf(IconPart("M2 8.8a15 15 0 0 1 20 0"), IconPart("M5.5 12.6a10 10 0 0 1 13 0"), IconPart("M9 16.3a5 5 0 0 1 6 0"), IconPart("M11.9 20h.2"))
+val ICO_BT = listOf(IconPart("M7 7l10 10-5 5V2l5 5L7 17"))
+
+/**
+ * Pulsante di un accesso, come nella pagina del dispositivo. [ch]: simbolo
+ * del canale in alto a destra ("wifi", "bt", null = nessuno). [sub] cambia la
+ * seconda riga (per esempio il nome del dispositivo); [off] = non raggiungibile.
+ */
 @Composable
-private fun GateButton(modifier: Modifier, a: String, stato: String?, mark: String?, onClick: () -> Unit) {
-    val col = when { mark == "done" -> pal.ok; stato == "aperto" -> G_YEL; else -> G_BLUE }
-    val sub = when {
-        mark == "done" -> "inviato ✓"; mark == "busy" -> "invio…"
+fun GateButton(modifier: Modifier, a: String, stato: String?, mark: String?, ch: String? = null, sub: String? = null,
+               off: Boolean = false, onClick: () -> Unit) {
+    val col = when { off -> pal.muted; mark == "done" -> pal.ok; stato == "aperto" -> G_YEL; else -> G_BLUE }
+    val line = when {
+        mark == "done" -> "inviato ✓"; mark == "busy" -> "invio…"; off -> "non raggiungibile"
         stato == "aperto" -> "aperto"; stato == "chiuso" -> "chiuso"; else -> "impulso"
     }
-    Column(
-        modifier.clip(RoundedCornerShape(14.dp)).background(col.copy(alpha = .14f)).border(2.dp, col, RoundedCornerShape(14.dp))
-            .clickable(enabled = mark != "busy", onClick = onClick).alpha(if (mark == "busy") .6f else 1f)
-            .padding(top = 22.dp, bottom = 16.dp, start = 6.dp, end = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        SvgIcon(gateIcon(a), col, 42.dp, stroke = 1.6f)
-        Text(a.uppercase(), color = col, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 2.sp, maxLines = 1)
-        Text(sub, color = G_DIM, fontSize = 11.sp, letterSpacing = 1.sp)
+    Box(modifier.clip(RoundedCornerShape(14.dp)).background(col.copy(alpha = .14f)).border(2.dp, col, RoundedCornerShape(14.dp))
+        .clickable(enabled = mark != "busy", onClick = onClick).alpha(if (mark == "busy") .6f else 1f)) {
+        Column(
+            Modifier.fillMaxWidth().padding(top = 22.dp, bottom = 16.dp, start = 6.dp, end = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            SvgIcon(gateIcon(a), col, 42.dp, stroke = 1.6f)
+            Text(a.uppercase(), color = col, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 2.sp, maxLines = 1)
+            Text(if (sub != null && mark == null && !off) "$sub · $line" else line, color = G_DIM, fontSize = 11.sp, letterSpacing = 1.sp, maxLines = 1)
+        }
+        if (ch != null) Box(Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 9.dp)) {
+            SvgIcon(if (ch == "bt") ICO_BT else ICO_WIFI, col.copy(alpha = .85f), 14.dp, stroke = 2f)
+        }
     }
 }
 

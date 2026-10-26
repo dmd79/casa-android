@@ -12,6 +12,9 @@ data class GateBtn(val dev: String, val devName: String, val azione: String) {
     val label get() = azione.replaceFirstChar { it.uppercase() }
 }
 
+/** Cancello del relay con pulsanti e stato (/_gatedata). */
+data class RelayGate(val id: String, val name: String, val online: Boolean, val azioni: List<String>, val stati: Map<String, String>)
+
 /** Dispositivo del relay, come lo riassume /_list. */
 data class RelayDev(
     val id: String, val name: String, val type: String, val online: Boolean,
@@ -85,23 +88,73 @@ object Relay {
         return out
     }
 
-    /** Apre; null se riuscito, altrimenti il motivo. */
-    fun open(cookie: String?, b: GateBtn, who: String): String? = try {
-        val q = "d=" + enc(b.dev) + "&azione=" + enc(b.azione) + "&utente=" + enc(who.ifBlank { "App" }.take(15))
-        val c = conn("/_gateopen?$q", cookie, "POST")
-        c.doOutput = true
-        c.setFixedLengthStreamingMode(0)
-        c.outputStream.close()
-        val (code, body) = text(c)
-        val j = try { JSONObject(body) } catch (e: Exception) { JSONObject() }
-        when {
-            code == 401 -> "apri Casa ed entra"
-            j.optBoolean("ok") -> null
-            j.optString("err").startsWith("gia") -> "già in corso"
-            j.optString("err").isNotBlank() -> j.optString("err")
-            else -> "non riuscito ($code)"
+    /** Cancelli con pulsanti e stato; null se il relay non risponde o non si e' entrati. */
+    fun gateList(cookie: String?): List<RelayGate>? = try {
+        val (code, body) = text(conn("/_list", cookie))
+        if (code != 200 || !body.trimStart().startsWith("[")) null
+        else {
+            val list = JSONArray(body)
+            val out = mutableListOf<RelayGate>()
+            for (i in 0 until list.length()) {
+                val o = list.optJSONObject(i) ?: continue
+                if (!o.optBoolean("ok") || o.optString("type") != "gate") continue
+                val id = o.getString("id")
+                val g = try { JSONObject(text(conn("/_gatedata?d=$id", cookie)).second) } catch (e: Exception) { JSONObject() }
+                val az = g.optJSONObject("log")?.optJSONArray("azioni")
+                val st = g.optJSONObject("stati")
+                out += RelayGate(id,
+                    g.optString("name").takeIf { it.isNotBlank() && it != "null" } ?: o.optString("name").ifBlank { id },
+                    g.optBoolean("online", o.optBoolean("online")) && az != null,
+                    if (az == null) emptyList() else (0 until az.length()).map { az.getString(it) },
+                    buildMap { st?.keys()?.forEach { k -> put(k, st.optString(k)) } })
+            }
+            out
         }
-    } catch (e: Exception) { "relay non raggiungibile" }
+    } catch (e: Exception) { null }
+
+    /** Elenco dei cancelli salvato, per mostrarli anche senza rete. */
+    fun gatesJson(l: List<RelayGate>): String = JSONArray().apply {
+        l.forEach { g ->
+            put(JSONObject().put("id", g.id).put("n", g.name).put("z", JSONArray(g.azioni)))
+        }
+    }.toString()
+
+    fun parseGates(raw: String?): List<RelayGate> = try {
+        val a = JSONArray(raw ?: "[]")
+        (0 until a.length()).map { i ->
+            val o = a.getJSONObject(i)
+            val z = o.optJSONArray("z")
+            // dall'archivio: stato e collegamento non noti
+            RelayGate(o.getString("id"), o.optString("n"), false, if (z == null) emptyList() else (0 until z.length()).map { z.getString(it) }, emptyMap())
+        }
+    } catch (e: Exception) { emptyList() }
+
+    /** Messaggi di [open] per cui il comando di sicuro non e' arrivato al cancello. */
+    val NOT_SENT = setOf("relay non raggiungibile", "apri Casa ed entra")
+
+    /**
+     * Apre; null se riuscito, altrimenti il motivo. "relay non raggiungibile"
+     * solo se il collegamento non si e' nemmeno aperto: dopo, il comando
+     * potrebbe essere partito (un secondo impulso richiuderebbe il cancello).
+     */
+    fun open(cookie: String?, b: GateBtn, who: String): String? {
+        val q = "d=" + enc(b.dev) + "&azione=" + enc(b.azione) + "&utente=" + enc(who.ifBlank { "App" }.take(15))
+        val c = try {
+            conn("/_gateopen?$q", cookie, "POST").apply { doOutput = true; setFixedLengthStreamingMode(0); connect() }
+        } catch (e: Exception) { return "relay non raggiungibile" }
+        return try {
+            c.outputStream.close()
+            val (code, body) = text(c)
+            val j = try { JSONObject(body) } catch (e: Exception) { JSONObject() }
+            when {
+                code == 401 -> "apri Casa ed entra"
+                j.optBoolean("ok") -> null
+                j.optString("err").startsWith("gia") -> "già in corso"
+                j.optString("err").isNotBlank() -> j.optString("err")
+                else -> "non riuscito ($code)"
+            }
+        } catch (e: Exception) { "nessuna risposta dal relay" }
+    }
 
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
 }

@@ -88,7 +88,7 @@ fun ShortcutsScreen(store: Store, web: WebView) {
                 }
             }
         }
-        Note("Lo stesso pulsante vale per il riquadro n delle impostazioni rapide e per il widget.")
+        Note("Lo stesso pulsante vale per il riquadro n delle impostazioni rapide e per il widget. Se il relay non si raggiunge e il cancello è abbinato via Bluetooth, apre via Bluetooth.")
 
         Section("AGGIUNGI")
         RowCard("Riquadri nelle impostazioni rapide") { addTiles(ctx) }
@@ -105,8 +105,11 @@ fun ShortcutsScreen(store: Store, web: WebView) {
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
                     val l = gates
-                    val bt = btGateBtns(store)
-                    // via Bluetooth: anche senza internet, da vicino
+                    // via Bluetooth solo i cancelli che il relay non ha: per gli altri
+                    // il Bluetooth entra da solo quando il relay non si raggiunge
+                    val bt = btGateBtns(store).filter { b ->
+                        l == null || l.none { it.devName.trim().equals(b.devName.trim(), ignoreCase = true) && it.azione == b.azione }
+                    }
                     bt.forEach { b ->
                         Choice(b.label, b.devName + " · Bluetooth") { store.setSlot(n, b); refreshShortcuts(ctx); rev++; pick = 0 }
                     }

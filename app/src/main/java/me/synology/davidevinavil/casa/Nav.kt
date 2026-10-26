@@ -49,7 +49,7 @@ import kotlinx.coroutines.withContext
 import java.util.Locale
 
 /** Cosa occupa lo schermo sopra la barra. */
-enum class Pane { WEB, CLIMA, SCORC, GATE }
+enum class Pane { WEB, CLIMA, SCORC, GATE, ACC }
 
 /** Voci della barra: una per tipo di dispositivo. */
 enum class Cat(val label: String) { ALL("Tutti"), DASH("Plancia"), HEAT("Termostati"), AC("Clima"), GATE("Accessi"), SENS("Sensori"), MORE("Altro") }
@@ -92,7 +92,6 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     val curDev by nav.dev.collectAsState()
     val bts by store.devices.collectAsState()
     val btGates by store.gates.collectAsState()
-    val btStati by gb.stati.collectAsState()
     val savedOrder by store.barOrder.collectAsState()
     val ord = barOrder(savedOrder)
     val btAddr by ble.address.collectAsState()
@@ -103,7 +102,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
 
     val pageCat = webCat(url, devs.firstOrNull { it.id == curDev })
     LaunchedEffect(url) { pending = null }
-    val active = when (view) { Pane.CLIMA -> Cat.AC; Pane.SCORC -> Cat.MORE; Pane.GATE -> Cat.GATE; Pane.WEB -> pending ?: pageCat }
+    val active = when (view) { Pane.CLIMA -> Cat.AC; Pane.SCORC -> Cat.MORE; Pane.GATE, Pane.ACC -> Cat.GATE; Pane.WEB -> pending ?: pageCat }
 
     fun go(path: String, c: Cat) { pending = c; setView(Pane.WEB); web.loadUrl(Relay.BASE + path) }
     fun openDev(d: RelayDev) {
@@ -134,7 +133,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
         when (c) {
             Cat.ALL -> go("/_home", c)
             Cat.DASH -> go("/_plancia", c)
-            Cat.GATE -> if (btGates.isEmpty()) go("/_gates", c) else sheet = c
+            Cat.GATE -> setView(Pane.ACC)        // subito i pulsanti, relay o Bluetooth
             Cat.SENS -> go("/_sensors", c)
             Cat.HEAT -> if (heat.size == 1) openDev(heat[0]) else { refresh(true); sheet = c }
             Cat.AC -> when {
@@ -148,7 +147,13 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
 
     // indietro: da Clima BT o Scorciatoie si torna alle pagine; dalle pagine
     // (senza altro da chiudere) l'app va in secondo piano
-    BackHandler { if (view != Pane.WEB) setView(Pane.WEB) else act?.moveTaskToBack(true) }
+    BackHandler {
+        when (view) {
+            Pane.WEB -> act?.moveTaskToBack(true)
+            Pane.GATE -> setView(Pane.ACC)      // dai cancelli Bluetooth alla scheda Accessi
+            else -> setView(Pane.WEB)
+        }
+    }
 
     Column(Modifier.fillMaxSize().background(pal.bg).statusBarsPadding()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
@@ -158,6 +163,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
                     when (view) {
                         Pane.CLIMA -> App(ble, store, app.climaGo)
                         Pane.GATE -> GateApp(gb, store, app.gateGo, ::setWho)
+                        Pane.ACC -> AccessScreen(app, ::setWho, onHistory = { go("/_gates", Cat.GATE) }, onBt = { openGate("list") })
                         else -> ShortcutsScreen(store, web)
                     }
                 }
@@ -200,13 +206,6 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
                 selected = view == Pane.CLIMA && cur, onClick = pick { openBt(b.address) })
         } + Item("Aggiungi condizionatore Bluetooth", "cercalo qui vicino", Icons.bt, null,
             onClick = pick { app.climaGo.value = Scr.SCAN; setView(Pane.CLIMA) })
-        Cat.GATE -> (if (gates.isEmpty()) emptyList() else listOf(
-            Item("Tutti gli accessi", "via relay · storico, Apri come", Icons.gate, null, badge = "Wi-Fi",
-                selected = view == Pane.WEB && pageCat == Cat.GATE, onClick = pick { go("/_gates", Cat.GATE) })
-        )) + btGates.map { g ->
-            Item(g.name, gateSub(g, btStati[g.address]), Icons.gate, pal.accent, badge = "BT",
-                onClick = pick { openGate("dev:" + g.address) })
-        } + Item("Aggiungi cancello Bluetooth", "cercalo qui vicino", Icons.bt, null, onClick = pick { openGate("scan") })
         else -> buildList {
             // le voci del relay nell'ordine di Personalizza, poi quelle dell'app
             val rel: List<Pair<String, Item>> = listOfNotNull(
