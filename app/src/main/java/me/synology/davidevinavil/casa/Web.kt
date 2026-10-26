@@ -36,11 +36,16 @@ private const val START_JS =
     // aggiunti. Un MutationObserver vede la barra appena viene inserita e la
     // nasconde prima che lo schermo si ridisegni: nessun lampo. L'altezza
     // della pagina torna quella intera (senza lo spazio della barra).
-    "if(!window.__casaBar){window.__casaBar=1;var D=document.documentElement;" +
+    // Il relay, appena inserisce la barra, misura subito --bt-vh col suo
+    // fit() (barra ancora visibile: pagina piu' corta di ~56 px) e lo rifa'
+    // ogni volta che la ricrea: qui l'altezza si rimette giusta a ogni
+    // controllo, sull'<html> attuale (dopo la ricostruzione e' un altro).
+    "if(!window.__casaBar){window.__casaBar=1;" +
+    "var fit=function(){var h=innerHeight;if(h>0){var D=document.documentElement;if(D&&D.style.getPropertyValue('--bt-vh')!==h+'px')D.style.setProperty('--bt-vh',h+'px');}};" +
     "var F=function(){var b=document.getElementById('bt-bar');if(b&&b.style.display!=='none')b.style.setProperty('display','none','important');" +
-    "window.__btFit=function(){if(innerHeight>0)D.style.setProperty('--bt-vh',innerHeight+'px');};};" +
+    "window.__btFit=fit;fit();};" +
     "new MutationObserver(F).observe(document,{childList:true,subtree:true});" +
-    "F();window.__btFit();addEventListener('resize',function(){window.__btFit();});setInterval(F,3000);}" +
+    "F();addEventListener('resize',function(){window.__btFit();});setInterval(F,1000);}" +
     "if(window.CasaApp)navigator.share=function(d){d=d||{};CasaApp.share(d.title||'',d.url||'',d.text||'');return Promise.resolve();};"
 
 // pagina di un dispositivo ("/"): quale, dall'ultima pagina salvata dal relay
