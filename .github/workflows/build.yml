@@ -1,0 +1,29 @@
+# Compila l'APK di Casa: Actions → "Compila APK" → Run workflow (parte anche a ogni modifica),
+# poi in fondo all'esecuzione si scarica "Casa-apk".
+name: Compila APK
+on:
+  workflow_dispatch:
+  push:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      # l'SDK Android c'e' gia' sulle macchine di GitHub: niente setup-android
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+      - name: Compila
+        run: |
+          # funziona sia con i file nella radice sia dentro la cartella Casa
+          if [ -f Casa/settings.gradle.kts ]; then cd Casa; fi
+          gradle assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/Casa.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Casa-apk
+          path: Casa.apk

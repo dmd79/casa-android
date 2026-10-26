@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="horizontal" android:gravity="center"
+    android:background="@drawable/widget_bg" android:padding="8dp">
+    <TextView android:id="@+id/g1" style="@style/WidgetBtn" />
+    <TextView android:id="@+id/g2" style="@style/WidgetBtn" />
+    <TextView android:id="@+id/g3" style="@style/WidgetBtn" />
+    <TextView android:id="@+id/empty" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:gravity="center" android:text="@string/widget_empty" android:textColor="#FFB3AFA8"
+        android:textSize="14sp" android:visibility="gone" />
+</LinearLayout>

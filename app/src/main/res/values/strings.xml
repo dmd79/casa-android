@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Casa</string>
+    <string name="tile1">Accesso 1</string>
+    <string name="tile2">Accesso 2</string>
+    <string name="tile3">Accesso 3</string>
+    <string name="widget">Accessi</string>
+    <string name="widget_empty">Scegli gli accessi in Casa → Scorciatoie</string>
+</resources>
