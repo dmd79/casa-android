@@ -32,6 +32,22 @@ class Store(ctx: Context) {
         get() = p.getString("relayList", "[]") ?: "[]"
         set(v) = p.edit().putString("relayList", v).apply()
 
+    /** Ordine della barra scelto in Personalizza (chiavi del relay: all, dash, thermostat...). */
+    private val _barOrder = MutableStateFlow(parseOrder(p.getString("barOrder", "[]")))
+    val barOrder: StateFlow<List<String>> = _barOrder
+
+    fun setBarOrder(json: String?) {
+        val o = parseOrder(json)
+        if (o.isEmpty() || o == _barOrder.value) return
+        _barOrder.value = o
+        p.edit().putString("barOrder", JSONArray(o).toString()).apply()
+    }
+
+    private fun parseOrder(json: String?): List<String> = try {
+        val a = JSONArray(json ?: "[]")
+        (0 until a.length()).map { a.getString(it) }
+    } catch (e: Exception) { emptyList() }
+
     var tab: String
         get() = p.getString("tab", "CASA") ?: "CASA"
         set(v) = p.edit().putString("tab", v).apply()

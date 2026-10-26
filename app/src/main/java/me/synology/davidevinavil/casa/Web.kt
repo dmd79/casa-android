@@ -46,6 +46,10 @@ private const val START_JS =
     "window.__btFit=fit;fit();};" +
     "new MutationObserver(F).observe(document,{childList:true,subtree:true});" +
     "F();addEventListener('resize',function(){window.__btFit();});setInterval(F,1000);}" +
+    // Personalizza salva l'ordine della barra nel localStorage della pagina:
+    // appena cambia lo si passa alla barra nativa (che e' quella che si vede).
+    "if(window.CasaApp&&!Storage.prototype.__casa){Storage.prototype.__casa=1;var SI=Storage.prototype.setItem;" +
+    "Storage.prototype.setItem=function(k,v){SI.apply(this,arguments);if(k==='bt_bar_order')try{CasaApp.order(String(v))}catch(e){}};}" +
     "if(window.CasaApp)navigator.share=function(d){d=d||{};CasaApp.share(d.title||'',d.url||'',d.text||'');return Promise.resolve();};"
 
 // pagina di un dispositivo ("/"): quale, dall'ultima pagina salvata dal relay
@@ -63,6 +67,8 @@ class WebNav {
         Uri.parse(u).takeIf { it.path == "/_go" }?.getQueryParameter("d")?.let { dev.value = it.lowercase() }
     }
 }
+
+private const val ORDER_JS = "(function(){try{return localStorage.getItem('bt_bar_order')||''}catch(e){return ''}})()"
 
 private const val WHO_JS = "(function(){try{return localStorage.getItem('gate_utente')||''}catch(e){return ''}})()"
 
@@ -86,7 +92,7 @@ fun makeWeb(ctx: Context, store: Store, nav: WebNav): WebView = WebView(ctx).app
     val cm = CookieManager.getInstance()
     cm.setAcceptCookie(true)
     cm.setAcceptThirdPartyCookies(this, true)
-    addJavascriptInterface(Bridge(ctx.applicationContext), "CasaApp")
+    addJavascriptInterface(Bridge(ctx.applicationContext, store), "CasaApp")
     val early = WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
     if (early) WebViewCompat.addDocumentStartJavaScript(this, START_JS, setOf(Relay.BASE))
 
@@ -120,6 +126,8 @@ fun makeWeb(ctx: Context, store: Store, nav: WebNav): WebView = WebView(ctx).app
             v.evaluateJavascript(START_JS, null)   // anche dopo il caricamento (gia' fatto: non si ripete)
             if (url != null && Uri.parse(url).path == "/") v.evaluateJavascript(LAST_JS) { r -> nav.note(Relay.BASE + r?.trim('"').orEmpty()) }
             nav.onLoaded()
+            // ordine della barra salvato in Personalizza (anche quello di prima)
+            v.evaluateJavascript(ORDER_JS) { r -> runCatching { org.json.JSONArray("[$r]").getString(0) }.getOrNull()?.let { store.setBarOrder(it) } }
             // "Apri come" della pagina: lo usano anche riquadri e widget
             v.evaluateJavascript(WHO_JS) { r ->
                 val n = r?.trim('"').orEmpty()
@@ -153,7 +161,11 @@ private fun WebView.loadWhenSized() {
 }
 
 /** Da JavaScript ad Android. */
-class Bridge(private val ctx: Context) {
+class Bridge(private val ctx: Context, private val store: Store) {
+    /** Personalizza ha salvato un nuovo ordine della barra. */
+    @JavascriptInterface
+    fun order(json: String) = store.setBarOrder(json)
+
     @JavascriptInterface
     fun share(title: String, url: String, text: String) {
         val body = listOf(text, url).filter { it.isNotBlank() }.joinToString("\n")

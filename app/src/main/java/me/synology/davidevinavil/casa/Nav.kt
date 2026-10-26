@@ -90,6 +90,8 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     val url by nav.url.collectAsState()
     val curDev by nav.dev.collectAsState()
     val bts by store.devices.collectAsState()
+    val savedOrder by store.barOrder.collectAsState()
+    val ord = barOrder(savedOrder)
     val btAddr by ble.address.collectAsState()
     val btState by ble.state.collectAsState()
     val btLink by ble.link.collectAsState()
@@ -117,7 +119,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
             Cat.HEAT -> heat.isNotEmpty(); Cat.AC -> acs.isNotEmpty() || bts.isNotEmpty(); Cat.GATE -> gates.isNotEmpty()
             Cat.DASH -> devs.isNotEmpty(); else -> true
         }
-    }
+    }.sortedBy { c -> CAT_KEY[c]?.let { ord.indexOf(it) } ?: Int.MAX_VALUE }   // Altro resta in fondo
 
     fun tap(c: Cat) {
         when (c) {
@@ -185,9 +187,13 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
         } + Item("Aggiungi condizionatore Bluetooth", "cercalo qui vicino", Icons.bt, null,
             onClick = pick { app.climaGo.value = Scr.SCAN; setView(Pane.CLIMA) })
         else -> buildList {
-            if (sensors.isNotEmpty()) add(Item("Sensori", "${sensors.size} " + if (sensors.size == 1) "sensore" else "sensori", Icons.gauge, null, onClick = pick { go("/_sensors", Cat.MORE) }))
-            if (others.isNotEmpty()) add(Item("Altri dispositivi", "${others.size}", Icons.dots, null, onClick = pick { go("/_cat?t=other", Cat.MORE) }))
-            add(Item("Ospiti", "inviti e permessi", Icons.users, null, onClick = pick { go("/_guests", Cat.MORE) }))
+            // le voci del relay nell'ordine di Personalizza, poi quelle dell'app
+            val rel: List<Pair<String, Item>> = listOfNotNull(
+                if (sensors.isNotEmpty()) "sensors" to Item("Sensori", "${sensors.size} " + if (sensors.size == 1) "sensore" else "sensori", Icons.gauge, null, onClick = pick { go("/_sensors", Cat.MORE) }) else null,
+                if (others.isNotEmpty()) "other" to Item("Altri dispositivi", "${others.size}", Icons.dots, null, onClick = pick { go("/_cat?t=other", Cat.MORE) }) else null,
+                "guests" to Item("Ospiti", "inviti e permessi", Icons.users, null, onClick = pick { go("/_guests", Cat.MORE) }),
+            )
+            rel.sortedBy { ord.indexOf(it.first) }.forEach { add(it.second) }
             add(Item("Scorciatoie", "cancelli dalle impostazioni rapide e dal widget", Icons.gate, null, onClick = pick { setView(Pane.SCORC) }))
             add(Item("Condizionatori Bluetooth", "elenco, aggiungi, dimentica", Icons.bt, null, onClick = pick { app.climaGo.value = Scr.DEVICES; setView(Pane.CLIMA) }))
             add(Item("Personalizza", "pagina iniziale e ordine", Icons.gear, null, onClick = pick { go("/_custom", Cat.MORE) }))
@@ -223,6 +229,18 @@ private fun SheetRow(it: Item) {
                     .padding(horizontal = 8.dp, vertical = 2.dp))
         }
     }
+}
+
+/** Chiavi delle voci in Personalizza (relay). */
+private val DEF_ORDER = listOf("all", "dash", "thermostat", "ac", "gate", "other", "sensors", "guests")
+private val CAT_KEY = mapOf(Cat.ALL to "all", Cat.DASH to "dash", Cat.HEAT to "thermostat", Cat.AC to "ac", Cat.GATE to "gate")
+
+/** Ordine completo come lo calcola il relay: le voci note salvate, Plancia dopo Tutti se manca, poi le altre. */
+private fun barOrder(saved: List<String>): List<String> {
+    val o = saved.filter { it in DEF_ORDER }.distinct().toMutableList()
+    if (o.isNotEmpty() && "dash" !in o) o.add(o.indexOf("all") + 1, "dash")
+    DEF_ORDER.forEach { if (it !in o) o.add(it) }
+    return o
 }
 
 /** Categoria della pagina aperta nella WebView. */
