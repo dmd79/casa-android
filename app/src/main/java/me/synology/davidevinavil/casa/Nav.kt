@@ -52,7 +52,7 @@ import java.util.Locale
 enum class Pane { WEB, CLIMA, SCORC }
 
 /** Voci della barra: una per tipo di dispositivo. */
-enum class Cat(val label: String) { ALL("Tutti"), DASH("Plancia"), HEAT("Termostati"), AC("Clima"), GATE("Accessi"), MORE("Altro") }
+enum class Cat(val label: String) { ALL("Tutti"), DASH("Plancia"), HEAT("Termostati"), AC("Clima"), GATE("Accessi"), SENS("Sensori"), MORE("Altro") }
 
 /** Voce dei pannelli: un dispositivo del relay, un condizionatore Bluetooth o una pagina. */
 private class Item(
@@ -105,7 +105,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     fun go(path: String, c: Cat) { pending = c; setView(Pane.WEB); web.loadUrl(Relay.BASE + path) }
     fun openDev(d: RelayDev) {
         nav.dev.value = d.id
-        go("/_go?d=" + d.id, when (d.type) { "thermostat" -> Cat.HEAT; "ac" -> Cat.AC; "gate" -> Cat.GATE; else -> Cat.MORE })
+        go("/_go?d=" + d.id, when (d.type) { "thermostat" -> Cat.HEAT; "ac" -> Cat.AC; "gate" -> Cat.GATE; "sensor" -> Cat.SENS; else -> Cat.MORE })
     }
     fun openBt(a: String) { ble.connectTo(a); setView(Pane.CLIMA) }
 
@@ -116,7 +116,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     val others = devs.filter { it.type == "other" }
     val cats = Cat.entries.filter {
         when (it) {
-            Cat.HEAT -> heat.isNotEmpty(); Cat.AC -> acs.isNotEmpty() || bts.isNotEmpty(); Cat.GATE -> gates.isNotEmpty()
+            Cat.HEAT -> heat.isNotEmpty(); Cat.AC -> acs.isNotEmpty() || bts.isNotEmpty(); Cat.GATE -> gates.isNotEmpty(); Cat.SENS -> sensors.isNotEmpty()
             Cat.DASH -> devs.isNotEmpty(); else -> true
         }
     }.sortedBy { c -> CAT_KEY[c]?.let { ord.indexOf(it) } ?: Int.MAX_VALUE }   // Altro resta in fondo
@@ -126,6 +126,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
             Cat.ALL -> go("/_home", c)
             Cat.DASH -> go("/_plancia", c)
             Cat.GATE -> go("/_gates", c)
+            Cat.SENS -> go("/_sensors", c)
             Cat.HEAT -> if (heat.size == 1) openDev(heat[0]) else { refresh(true); sheet = c }
             Cat.AC -> when {
                 acs.size == 1 && bts.isEmpty() -> openDev(acs[0])
@@ -156,7 +157,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
                 Column(Modifier.weight(1f).fillMaxSize().clickable { tap(c) }.padding(top = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally) {
                     SvgIcon(catIcon(c), col, 23.dp)
-                    Text(c.label, color = col, fontSize = 11.sp, maxLines = 1)
+                    Text(c.label, color = col, fontSize = if (cats.size > 6) 10.sp else 11.sp, maxLines = 1, softWrap = false)
                 }
             }
         }
@@ -189,7 +190,6 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
         else -> buildList {
             // le voci del relay nell'ordine di Personalizza, poi quelle dell'app
             val rel: List<Pair<String, Item>> = listOfNotNull(
-                if (sensors.isNotEmpty()) "sensors" to Item("Sensori", "${sensors.size} " + if (sensors.size == 1) "sensore" else "sensori", Icons.gauge, null, onClick = pick { go("/_sensors", Cat.MORE) }) else null,
                 if (others.isNotEmpty()) "other" to Item("Altri dispositivi", "${others.size}", Icons.dots, null, onClick = pick { go("/_cat?t=other", Cat.MORE) }) else null,
                 "guests" to Item("Ospiti", "inviti e permessi", Icons.users, null, onClick = pick { go("/_guests", Cat.MORE) }),
             )
@@ -233,7 +233,7 @@ private fun SheetRow(it: Item) {
 
 /** Chiavi delle voci in Personalizza (relay). */
 private val DEF_ORDER = listOf("all", "dash", "thermostat", "ac", "gate", "other", "sensors", "guests")
-private val CAT_KEY = mapOf(Cat.ALL to "all", Cat.DASH to "dash", Cat.HEAT to "thermostat", Cat.AC to "ac", Cat.GATE to "gate")
+private val CAT_KEY = mapOf(Cat.ALL to "all", Cat.DASH to "dash", Cat.HEAT to "thermostat", Cat.AC to "ac", Cat.GATE to "gate", Cat.SENS to "sensors")
 
 /** Ordine completo come lo calcola il relay: le voci note salvate, Plancia dopo Tutti se manca, poi le altre. */
 private fun barOrder(saved: List<String>): List<String> {
@@ -252,8 +252,9 @@ private fun webCat(url: String, dev: RelayDev?): Cat? {
         "/_plancia" -> Cat.DASH
         "/_gates" -> Cat.GATE
         "/_cat" -> when (u.getQueryParameter("t")) { "thermostat" -> Cat.HEAT; "ac" -> Cat.AC; "gate" -> Cat.GATE; else -> Cat.MORE }
-        "/_sensors", "/_guests", "/_custom" -> Cat.MORE
-        "/" -> when (dev?.type) { "thermostat" -> Cat.HEAT; "ac" -> Cat.AC; "gate" -> Cat.GATE; null -> null; else -> Cat.MORE }
+        "/_sensors" -> Cat.SENS
+        "/_guests", "/_custom" -> Cat.MORE
+        "/" -> when (dev?.type) { "thermostat" -> Cat.HEAT; "ac" -> Cat.AC; "gate" -> Cat.GATE; "sensor" -> Cat.SENS; null -> null; else -> Cat.MORE }
         else -> null
     }
 }
@@ -272,5 +273,5 @@ private fun devSub(d: RelayDev): String {
 
 private fun catIcon(c: Cat) = when (c) {
     Cat.ALL -> Icons.house; Cat.DASH -> Icons.dash; Cat.HEAT -> Icons.flame
-    Cat.AC -> Icons.cool; Cat.GATE -> Icons.gate; Cat.MORE -> Icons.dots
+    Cat.AC -> Icons.cool; Cat.GATE -> Icons.gate; Cat.SENS -> Icons.gauge; Cat.MORE -> Icons.dots
 }
