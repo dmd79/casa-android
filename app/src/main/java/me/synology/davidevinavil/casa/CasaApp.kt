@@ -6,6 +6,8 @@ import android.app.Application
 class CasaApp : Application() {
     lateinit var store: Store
     lateinit var ble: Ble
+    /** Schermata di Clima BT chiesta dalla barra (per esempio la ricerca). */
+    val climaGo = kotlinx.coroutines.flow.MutableStateFlow<Scr?>(null)
 
     override fun onCreate() {
         super.onCreate()

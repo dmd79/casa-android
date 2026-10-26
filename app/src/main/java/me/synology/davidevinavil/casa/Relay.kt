@@ -12,6 +12,23 @@ data class GateBtn(val dev: String, val devName: String, val azione: String) {
     val label get() = azione.replaceFirstChar { it.uppercase() }
 }
 
+/** Dispositivo del relay, come lo riassume /_list. */
+data class RelayDev(
+    val id: String, val name: String, val type: String, val online: Boolean,
+    val cur: Double?, val tgt: Double?, val hum: Double?, val heat: Boolean, val mode: String,
+) {
+    companion object {
+        fun parse(o: JSONObject): RelayDev {
+            val s = o.optJSONObject("sum") ?: JSONObject()
+            fun num(k: String) = if (s.has(k) && !s.isNull(k)) s.optDouble(k).takeIf { !it.isNaN() } else null
+            val id = o.optString("id")
+            return RelayDev(id, o.optString("name").takeIf { it.isNotBlank() && it != "null" } ?: id,
+                o.optString("type").ifBlank { "other" }, o.optBoolean("online"),
+                num("cur"), num("tgt"), num("hum"), s.optBoolean("heat"), s.optString("mode"))
+        }
+    }
+}
+
 /**
  * Richieste al relay con la stessa sessione delle pagine (i cookie della
  * WebView): niente password nell'app. Da chiamare fuori dal thread principale;
@@ -38,6 +55,17 @@ object Relay {
         c.disconnect()
         return code to body
     }
+
+    /** Dispositivi entrati nell'app (JSON grezzo di /_list, null se non raggiungibile). */
+    fun listRaw(cookie: String?): String? = try {
+        val (code, body) = text(conn("/_list", cookie))
+        if (code == 200 && body.trimStart().startsWith("[")) body else null
+    } catch (e: Exception) { null }
+
+    fun parseList(raw: String?): List<RelayDev> = try {
+        val a = JSONArray(raw ?: "[]")
+        (0 until a.length()).mapNotNull { a.optJSONObject(it) }.filter { it.optBoolean("ok") }.map { RelayDev.parse(it) }
+    } catch (e: Exception) { emptyList() }
 
     /** Tutti i pulsanti degli Accessi dei dispositivi entrati nell'app. */
     fun gates(cookie: String?): List<GateBtn> {

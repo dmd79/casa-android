@@ -103,6 +103,11 @@ object Icons {
     val gear = listOf(IconPart(circle(12f, 12f, 3.2f)),
         IconPart("M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"))
     val bt = listOf(IconPart("M7 7l10 10-5 5V2l5 5L7 17"))
+    val flame = listOf(IconPart("M12 3c.5 3.5 5 5.5 5 10.5a5 5 0 0 1-10 0c0-2.5 1.5-3.8 2.2-5.8 1 1 1.8 2 2.1 3.3.9-2.4.7-5.2.7-8z"))
+    val dash = listOf(IconPart("M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z"))
+    val dots = listOf(IconPart(circle(5f, 12f, 1.8f), fill = true), IconPart(circle(12f, 12f, 1.8f), fill = true), IconPart(circle(19f, 12f, 1.8f), fill = true))
+    val gauge = listOf(IconPart("M10 4a2 2 0 1 1 4 0v9.5a4 4 0 1 1-4 0z"), IconPart("M12 17.5v-6"))
+    val users = listOf(IconPart(circle(9f, 8f, 3.5f)), IconPart("M2.5 20c.5-3.5 3.2-5.5 6.5-5.5s6 2 6.5 5.5"), IconPart("M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.8.8 2.8 2.7 3 5.2"))
     val house = listOf(IconPart("M3 11l9-8 9 8M5 9.5V21h14V9.5M10 21v-6h4v6"))
     val gate = listOf(IconPart("M3 21V6M21 21V6M3 9q4.5-3 9 0q4.5-3 9 0M7 8v13M12 9v12M17 8v13"))
     val cool = listOf(IconPart("M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7M9 4l3 2 3-2M9 20l3-2 3 2"))

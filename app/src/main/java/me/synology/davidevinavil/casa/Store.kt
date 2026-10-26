@@ -27,6 +27,11 @@ class Store(ctx: Context) {
         get() = p.getString("who", "") ?: ""
         set(v) = p.edit().putString("who", v.trim().take(15)).apply()
 
+    /** Ultimo elenco dei dispositivi del relay: la barra compare subito all'avvio. */
+    var relayList: String
+        get() = p.getString("relayList", "[]") ?: "[]"
+        set(v) = p.edit().putString("relayList", v).apply()
+
     var tab: String
         get() = p.getString("tab", "CASA") ?: "CASA"
         set(v) = p.edit().putString("tab", v).apply()

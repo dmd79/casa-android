@@ -1,23 +1,27 @@
 # Casa (app Android)
 
-Un'unica app per tutta la casa, con tre schede in basso:
+Un'unica app per tutta la casa, con **una sola barra in basso, per tipo di dispositivo**:
 
-| Scheda | Cosa fa |
+| Voce | Cosa fa |
 |---|---|
-| **Casa** | le pagine del relay (`https://davidevinavil.synology.me:8443`): dispositivi, termostati, climatizzatori, Accessi, Plancia, Sensori, Ospiti, aggiornamenti. Tutto come nell'app di prima, il relay non cambia |
-| **Clima BT** | i condizionatori via Bluetooth, dove non c'è il Wi-Fi, con ricollegamento automatico all'ultimo usato |
-| **Scorciatoie** | cancelli e garage dalle impostazioni rapide e da un widget, senza aprire l'app |
+| **Tutti** | l'elenco di tutti i dispositivi (pagina del relay) |
+| **Plancia** | la plancia del relay |
+| **Termostati** | uno solo: lo apre; più di uno: pannello con tutti, con stato e temperatura |
+| **Clima** | i condizionatori via relay (Wi-Fi) e via Bluetooth nello stesso pannello |
+| **Accessi** | cancelli e garage |
+| **Altro** | Sensori, Ospiti, Scorciatoie, Condizionatori Bluetooth, Personalizza |
 
-Sostituisce la TWA di Casa (`...twa`) e l'app Clima BT di prova (`...clima`):
-quando questa funziona, si possono disinstallare. Il pacchetto è
-`me.synology.davidevinavil.casa`.
+Le voci senza dispositivi non compaiono. Dentro la pagina di un dispositivo
+basta toccare di nuovo la sua voce per passare a un altro dello stesso tipo.
+La barra del relay dentro l'app è nascosta (nel browser e per gli ospiti
+resta com'è); la barra della pagina del dispositivo (Home, Avanzate…) è del
+firmware e resta.
 
-## Scheda Casa
+## Pagine del relay
 
 - È una WebView: non serve Chrome, quindi funziona anche su autoradio e
   tablet dove Chrome non installa le app (niente pagina "Installa l'app").
 - Il primo accesso si fa con la password come sempre; la sessione resta.
-- Toccando di nuovo **Casa** in basso si torna alla pagina iniziale.
 - **Indietro** torna alla pagina precedente; sulla prima l'app va in
   secondo piano (non si chiude).
 - Gli inviti degli ospiti (**Condividi**) aprono la condivisione di Android.
@@ -25,7 +29,7 @@ quando questa funziona, si possono disinstallare. Il pacchetto è
 ## Scorciatoie (Accessi)
 
 1. Nella scheda Casa entra nei dispositivi dei cancelli (se non l'hai già fatto).
-2. Scheda **Scorciatoie** → **Apri come**: il nome che compare nello storico
+2. **Altro → Scorciatoie** → **Apri come**: il nome che compare nello storico
    (si prende da solo da quello della pagina Accessi).
 3. **Accesso 1, 2, 3**: scegli quale pulsante (garage, cancello,
    cancellino...) va su ciascuno.

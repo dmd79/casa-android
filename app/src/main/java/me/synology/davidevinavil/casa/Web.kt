@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.CookieManager
@@ -22,19 +23,47 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
+import kotlinx.coroutines.flow.MutableStateFlow
 
 // Prima degli script della pagina:
 // - bt_web=1: la pagina non manda a "Installa l'app" (siamo gia' l'app);
-// - navigator.share: la WebView non ce l'ha, lo passa ad Android (inviti degli ospiti).
+// - navigator.share: la WebView non ce l'ha, lo passa ad Android (inviti degli ospiti);
+// - la barra dei dispositivi del relay si nasconde: nell'app c'e' quella nativa
+//   (nel browser e per gli ospiti resta com'e').
 private const val START_JS =
     "try{localStorage.setItem('bt_web','1')}catch(e){};" +
+    // La pagina del termostato ricostruisce il documento e toglie gli stili
+    // aggiunti. Un MutationObserver vede la barra appena viene inserita e la
+    // nasconde prima che lo schermo si ridisegni: nessun lampo. L'altezza
+    // della pagina torna quella intera (senza lo spazio della barra).
+    "if(!window.__casaBar){window.__casaBar=1;var D=document.documentElement;" +
+    "var F=function(){var b=document.getElementById('bt-bar');if(b&&b.style.display!=='none')b.style.setProperty('display','none','important');" +
+    "window.__btFit=function(){if(innerHeight>0)D.style.setProperty('--bt-vh',innerHeight+'px');};};" +
+    "new MutationObserver(F).observe(document,{childList:true,subtree:true});" +
+    "F();window.__btFit();addEventListener('resize',function(){window.__btFit();});setInterval(F,3000);}" +
     "if(window.CasaApp)navigator.share=function(d){d=d||{};CasaApp.share(d.title||'',d.url||'',d.text||'');return Promise.resolve();};"
+
+// pagina di un dispositivo ("/"): quale, dall'ultima pagina salvata dal relay
+private const val LAST_JS = "(function(){try{return localStorage.getItem('bt_last')||''}catch(e){return ''}})()"
+
+/** Dove si trova la WebView: la barra nativa evidenzia la categoria giusta. */
+class WebNav {
+    val url = MutableStateFlow("")
+    val dev = MutableStateFlow<String?>(null)     // dispositivo aperto (pagina "/")
+    /** Pagina finita di caricare: occasione per riaggiornare l'elenco. */
+    var onLoaded: () -> Unit = {}
+
+    fun note(u: String?) {
+        if (u == null || !u.startsWith(Relay.BASE)) return
+        Uri.parse(u).takeIf { it.path == "/_go" }?.getQueryParameter("d")?.let { dev.value = it.lowercase() }
+    }
+}
 
 private const val WHO_JS = "(function(){try{return localStorage.getItem('gate_utente')||''}catch(e){return ''}})()"
 
 /** Una sola WebView per tutta la vita dell'Activity: cambiando scheda non si ricarica. */
 @SuppressLint("SetJavaScriptEnabled")
-fun makeWeb(ctx: Context, store: Store): WebView = WebView(ctx).apply {
+fun makeWeb(ctx: Context, store: Store, nav: WebNav): WebView = WebView(ctx).apply {
     // Altezza fissa = quella dello spazio sullo schermo. Senza questo, dentro
     // Compose la WebView e' "wrap_content" e prende l'altezza dal contenuto:
     // le pagine dei dispositivi, alte quanto la finestra, si vedono con una
@@ -59,14 +88,20 @@ fun makeWeb(ctx: Context, store: Store): WebView = WebView(ctx).apply {
     webViewClient = object : WebViewClient() {
         override fun shouldOverrideUrlLoading(v: WebView, r: WebResourceRequest): Boolean {
             val u = r.url
-            if ("${u.scheme}://${u.authority}" == Relay.BASE) return false
+            if ("${u.scheme}://${u.authority}" == Relay.BASE) { nav.note(u.toString()); return false }
             // link esterni (o altre app): fuori dalla WebView
             try { ctx.startActivity(Intent(Intent.ACTION_VIEW, u).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (_: Exception) {}
             return true
         }
 
         override fun onPageStarted(v: WebView, url: String?, favicon: Bitmap?) {
+            nav.note(url)
             if (!early) v.evaluateJavascript(START_JS, null)
+        }
+
+        override fun doUpdateVisitedHistory(v: WebView, url: String?, isReload: Boolean) {
+            nav.note(url)
+            if (url != null) nav.url.value = url
         }
 
         override fun onPageFinished(v: WebView, url: String?) {
@@ -76,6 +111,10 @@ fun makeWeb(ctx: Context, store: Store): WebView = WebView(ctx).apply {
                 // senza script anticipati la prima volta puo' finire su "Installa l'app"
                 if (url?.contains("/_install") == true) { v.loadUrl(Relay.BASE + "/_start"); return }
             }
+            if (url != null) nav.url.value = url
+            v.evaluateJavascript(START_JS, null)   // anche dopo il caricamento (gia' fatto: non si ripete)
+            if (url != null && Uri.parse(url).path == "/") v.evaluateJavascript(LAST_JS) { r -> nav.note(Relay.BASE + r?.trim('"').orEmpty()) }
+            nav.onLoaded()
             // "Apri come" della pagina: lo usano anche riquadri e widget
             v.evaluateJavascript(WHO_JS) { r ->
                 val n = r?.trim('"').orEmpty()
@@ -136,11 +175,5 @@ fun CasaWeb(web: WebView, visible: Boolean) {
         web
     }, update = { it.visibility = if (visible) View.VISIBLE else View.INVISIBLE })
 }
-
-/** Misure viste dalla pagina (pressione lunga su "Casa" in basso). */
-const val DIAG_JS = "(function(){var d=document.documentElement,c=getComputedStyle(d);return " +
-    "'pagina '+innerWidth+'x'+innerHeight+' dpr '+devicePixelRatio+' | verticale '+matchMedia('(orientation:portrait)').matches+" +
-    "' | bt-vh '+(c.getPropertyValue('--bt-vh')||'-')+' | body '+document.body.clientWidth+'x'+document.body.clientHeight+" +
-    "' | font '+parseFloat(c.fontSize)+' | '+location.pathname})()"
 
 fun WebView.reloadStart() = loadUrl(Relay.BASE + "/_start")
