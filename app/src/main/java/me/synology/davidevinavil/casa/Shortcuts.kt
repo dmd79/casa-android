@@ -14,9 +14,29 @@ import android.service.quicksettings.TileService
 import android.view.View
 import android.widget.RemoteViews
 import android.widget.Toast
+import kotlinx.coroutines.runBlocking
 import kotlin.concurrent.thread
 
 private val main = Handler(Looper.getMainLooper())
+
+/**
+ * Apre un pulsante degli Accessi (fuori dal thread principale).
+ * "bt:<indirizzo>": via Bluetooth. Gli altri via relay; se il relay non
+ * risponde e lo stesso cancello (stesso nome) e' abbinato via Bluetooth,
+ * si prova quello. null se riuscito, altrimenti il motivo.
+ */
+fun openGateBtn(app: CasaApp, b: GateBtn, cookie: String?, who: String): String? {
+    if (b.dev.startsWith("bt:")) return runBlocking { app.gates.open(b.dev.removePrefix("bt:"), b.azione, who, 8000) }
+    val err = Relay.open(cookie, b, who) ?: return null
+    if (err != "relay non raggiungibile") return err
+    val g = app.store.gates.value.firstOrNull { it.name.trim().equals(b.devName.trim(), ignoreCase = true) && b.azione in it.azioni }
+        ?: return err
+    return runBlocking { app.gates.open(g.address, b.azione, who, 8000) }?.let { err }
+}
+
+/** Pulsanti dei cancelli Bluetooth abbinati, per le scorciatoie. */
+fun btGateBtns(store: Store): List<GateBtn> =
+    store.gates.value.flatMap { g -> g.azioni.map { GateBtn("bt:" + g.address, g.name, it) } }
 
 /** Dopo aver cambiato le scorciatoie: aggiorna riquadri e widget. */
 fun refreshShortcuts(ctx: Context) {
@@ -57,7 +77,7 @@ abstract class GateTile(private val n: Int) : TileService() {
         val cookie = Relay.cookie()
         val who = store.who
         thread {
-            val err = Relay.open(cookie, s, who)
+            val err = openGateBtn(application as CasaApp, s, cookie, who)
             main.post {
                 show(if (err == null) "inviato ✓" else err, active = err == null)
                 main.postDelayed({ show(null) }, 3000)
@@ -96,7 +116,7 @@ class GateWidget : AppWidgetProvider() {
         refreshAll(ctx, mapOf(n to "…"))
         val pr = goAsync()
         thread {
-            val err = Relay.open(cookie, s, who)
+            val err = openGateBtn(ctx.applicationContext as CasaApp, s, cookie, who)
             main.post {
                 refreshAll(ctx, mapOf(n to if (err == null) "✓" else "✕"))
                 Toast.makeText(ctx, if (err == null) "${s.label}: inviato" else "${s.label}: $err", Toast.LENGTH_SHORT).show()

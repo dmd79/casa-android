@@ -82,7 +82,7 @@ fun ShortcutsScreen(store: Store, web: WebView) {
         key(rev) {
             for (n in 1..3) {
                 val s = store.slot(n)
-                RowCard("Accesso $n", s?.let { it.label + " · " + it.devName } ?: "nessuno") {
+                RowCard("Accesso $n", s?.let { it.label + " · " + it.devName + if (it.dev.startsWith("bt:")) " (BT)" else "" } ?: "nessuno") {
                     pick = n
                     if (gates == null && !loading) load()
                 }
@@ -105,11 +105,16 @@ fun ShortcutsScreen(store: Store, web: WebView) {
             text = {
                 Column(Modifier.verticalScroll(rememberScrollState())) {
                     val l = gates
+                    val bt = btGateBtns(store)
+                    // via Bluetooth: anche senza internet, da vicino
+                    bt.forEach { b ->
+                        Choice(b.label, b.devName + " · Bluetooth") { store.setSlot(n, b); refreshShortcuts(ctx); rev++; pick = 0 }
+                    }
                     when {
                         loading || l == null -> Text("Leggo gli accessi dal relay…", color = pal.value)
-                        l.isEmpty() -> Text("Nessun accesso trovato. Nella scheda Casa entra nei dispositivi dei cancelli con la loro password, poi riprova.", color = pal.value)
+                        l.isEmpty() && bt.isEmpty() -> Text("Nessun accesso trovato. Nella scheda Casa entra nei dispositivi dei cancelli con la loro password, poi riprova.", color = pal.value)
                         else -> l.forEach { b ->
-                            Choice(b.label, b.devName) { store.setSlot(n, b); refreshShortcuts(ctx); rev++; pick = 0 }
+                            Choice(b.label, b.devName + " · relay") { store.setSlot(n, b); refreshShortcuts(ctx); rev++; pick = 0 }
                         }
                     }
                     if (store.slot(n) != null) Choice("Nessuno", "togli la scorciatoia") { store.setSlot(n, null); refreshShortcuts(ctx); rev++; pick = 0 }

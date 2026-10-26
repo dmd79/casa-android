@@ -1,0 +1,398 @@
+package me.synology.davidevinavil.casa
+
+import android.Manifest
+import android.bluetooth.BluetoothAdapter
+import android.content.Intent
+import android.os.Build
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+
+private enum class GScr { LIST, SCAN, PAIR, CTL }
+
+// colori della pagina del dispositivo (gate.css)
+private val G_BLUE = Color(0xFF00C6FF)
+private val G_YEL = Color(0xFFE7C12C)
+private val G_DIM = Color(0xFF8A93A3)
+
+// icone dei pulsanti, come gate.js (da chiusi)
+private fun dot(cx: Float, cy: Float, r: Float) = "M${cx - r} ${cy}a$r $r 0 1 0 ${2 * r} 0a$r $r 0 1 0 ${-2 * r} 0z"
+private val ICO_GARAGE = listOf(IconPart("M3 21V9l9-6 9 6v12"), IconPart("M6 21V11h12v10"), IconPart("M6 13.5h12M6 16h12M6 18.5h12M6 21h12"))
+private val ICO_CANCELLO = listOf(IconPart("M2.8 21V5.6M21.2 21V5.6M1.8 21h20.4"),
+    IconPart("M4.2 20.2V10.2Q8 7.4 11.2 7.8v12.4z"), IconPart("M7.7 8.6v11.6"),
+    IconPart("M19.8 20.2V10.2Q16 7.4 12.8 7.8v12.4z"), IconPart("M16.3 8.6v11.6"))
+private val ICO_CANCELLINO = listOf(IconPart("M5.5 21V7.5M18.5 21V7.5M3.5 21h17"), IconPart(dot(5.5f, 6f, 1.3f)), IconPart(dot(18.5f, 6f, 1.3f)),
+    IconPart("M7 20.5V11.2Q12 7 17 11.2v9.3z"), IconPart("M10.3 9.6v10.9M13.7 9.6v10.9"))
+
+fun gateIcon(azione: String): List<IconPart> = when (azione.lowercase()) {
+    "garage" -> ICO_GARAGE; "cancellino" -> ICO_CANCELLINO; else -> ICO_CANCELLO
+}
+
+private fun cap(s: String) = s.replaceFirstChar { it.uppercase() }
+
+/** Cancelli e garage via Bluetooth: elenco, ricerca, abbinamento e comandi. */
+@Composable
+fun GateApp(gb: GateBle, store: Store, go: MutableStateFlow<String?>, setWho: (String) -> Unit) {
+    val gates by store.gates.collectAsState()
+    var scr by rememberSaveable { mutableStateOf(GScr.LIST) }
+    var sel by rememberSaveable { mutableStateOf<String?>(null) }       // cancello sullo schermo
+    var pairAddr by rememberSaveable { mutableStateOf("") }
+    var pairName by rememberSaveable { mutableStateOf("") }
+    var perm by remember { mutableStateOf(gb.hasPermissions()) }
+    val snack = remember { SnackbarHostState() }
+    LaunchedEffect(Unit) { gb.toasts.collect { snack.showSnackbar(it) } }
+    // richieste dalla barra (un cancello, la ricerca, l'elenco)
+    LaunchedEffect(go) {
+        go.collect { r ->
+            if (r == null) return@collect
+            when {
+                r == "scan" -> scr = GScr.SCAN
+                r == "list" -> scr = GScr.LIST
+                r.startsWith("dev:") -> { sel = r.removePrefix("dev:"); scr = GScr.CTL }
+            }
+            go.value = null
+        }
+    }
+    if (scr == GScr.CTL && gates.none { it.address == sel }) scr = GScr.LIST
+
+    // indietro: ricerca e abbinamento tornano all'elenco; da elenco e
+    // cancello ci pensa la barra (torna alle pagine)
+    BackHandler(enabled = scr == GScr.SCAN || scr == GScr.PAIR) {
+        scr = if (scr == GScr.PAIR) GScr.SCAN else GScr.LIST
+    }
+
+    Box(Modifier.fillMaxSize().background(pal.bg)) {
+        Box(Modifier.fillMaxSize().padding(horizontal = 22.dp, vertical = 16.dp)) {
+            when {
+                !perm -> GatePermission { perm = gb.hasPermissions() }
+                scr == GScr.SCAN -> GateScan(gb, store, onBack = { scr = GScr.LIST }) { f ->
+                    if (gates.any { it.address == f.address }) { sel = f.address; scr = GScr.CTL }
+                    else { pairAddr = f.address; pairName = f.name; scr = GScr.PAIR }
+                }
+                scr == GScr.PAIR -> GatePair(gb, pairAddr, pairName, onBack = { scr = GScr.SCAN }) { sel = pairAddr; scr = GScr.CTL }
+                scr == GScr.CTL && sel != null -> GateCtl(gb, store, sel!!, setWho, onBack = { scr = GScr.LIST }) { scr = GScr.LIST }
+                else -> GateList(gb, store, onAdd = { scr = GScr.SCAN }) { sel = it; scr = GScr.CTL }
+            }
+        }
+        SnackbarHost(snack, Modifier.align(Alignment.BottomCenter))
+    }
+}
+
+// ── permesso ──────────────────────────────────────────────
+
+@Composable
+private fun GatePermission(onResult: () -> Unit) {
+    val perms = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
+        arrayOf(Manifest.permission.BLUETOOTH_CONNECT, Manifest.permission.BLUETOOTH_SCAN)
+    else arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+    val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { onResult() }
+    LaunchedEffect(Unit) { ask.launch(perms) }
+    Column(Modifier.fillMaxSize()) {
+        Title("Cancelli Bluetooth")
+        Sub("aprire da vicino, anche senza internet")
+        BigIcon(Icons.bt)
+        Text("Per trovare e aprire cancelli e garage serve il permesso «Dispositivi nelle vicinanze».",
+            color = pal.value, fontSize = 18.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(26.dp))
+        Btn("Consenti") { ask.launch(perms) }
+    }
+}
+
+@Composable
+private fun BigIcon(icon: List<IconPart>) {
+    Box(Modifier.fillMaxWidth().padding(top = 40.dp, bottom = 24.dp), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(130.dp).clip(CircleShape).background(pal.card).border(1.dp, pal.border, CircleShape),
+            contentAlignment = Alignment.Center) { SvgIcon(icon, pal.accent, 60.dp) }
+    }
+}
+
+// ── elenco ────────────────────────────────────────────────
+
+@Composable
+private fun GateList(gb: GateBle, store: Store, onAdd: () -> Unit, onPick: (String) -> Unit) {
+    val gates by store.gates.collectAsState()
+    val stati by gb.stati.collectAsState()
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Title("Cancelli Bluetooth")
+        Sub(if (gates.isEmpty()) "nessuno ancora: cercalo qui sotto" else "tocca per aprire")
+        Spacer(Modifier.height(20.dp))
+        gates.forEach { g ->
+            GateRow(g.name, gateSub(g, stati[g.address])) { onPick(g.address) }
+        }
+        Spacer(Modifier.height(18.dp))
+        Btn("Aggiungi cancello Bluetooth", onClick = onAdd)
+        Note("Da vicino apre anche senza internet e senza Wi-Fi. Ogni telefono si abbina una volta sola, con il codice mostrato dalla pagina del dispositivo.", center = true)
+    }
+}
+
+/** "garage aperto · cancellino chiuso", oppure i pulsanti. */
+fun gateSub(g: BtGate, st: Map<String, String>?): String =
+    st?.entries?.joinToString(" · ") { "${it.key} ${it.value}" }?.ifBlank { null }
+        ?: g.azioni.joinToString(" · ").ifBlank { "via Bluetooth" }
+
+@Composable
+private fun GateRow(title: String, sub: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)
+            .border(1.dp, pal.border, RoundedCornerShape(16.dp)).clickable(onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, color = pal.text, fontSize = 19.sp, maxLines = 1)
+            Text(sub, color = pal.muted, fontSize = 14.sp, maxLines = 1)
+        }
+        Text("›", color = pal.accent, fontSize = 28.sp)
+    }
+}
+
+// ── ricerca ───────────────────────────────────────────────
+
+@Composable
+private fun GateScan(gb: GateBle, store: Store, onBack: () -> Unit, onPick: (Found) -> Unit) {
+    val found by gb.found.collectAsState()
+    val scanning by gb.scanning.collectAsState()
+    val saved by store.gates.collectAsState()
+    LaunchedEffect(Unit) { gb.startScan() }
+    DisposableEffect(Unit) { onDispose { gb.stopScan() } }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Back("Aggiungi", onBack)
+        Sub(if (scanning) "cerco cancelli e garage vicini…" else "ricerca finita")
+        Spacer(Modifier.height(18.dp))
+        found.forEach { f ->
+            val known = saved.any { it.address == f.address }
+            Row(
+                Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)
+                    .border(1.dp, pal.border, RoundedCornerShape(16.dp)).clickable { onPick(f) }
+                    .padding(horizontal = 18.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(f.name, color = pal.text, fontSize = 19.sp, maxLines = 1)
+                    Text(if (known) "già abbinato" else f.address, color = pal.muted, fontSize = 14.sp)
+                }
+                SignalBars(f.rssi)
+            }
+        }
+        if (!scanning && found.isEmpty())
+            Note("Nessun cancello trovato. Il Bluetooth del dispositivo dev'essere acceso (pagina del dispositivo → Info) e tu a pochi metri.", center = true)
+        Spacer(Modifier.height(18.dp))
+        Btn("Cerca di nuovo", secondary = true, enabled = !scanning) { gb.startScan() }
+    }
+}
+
+// ── abbinamento ───────────────────────────────────────────
+
+@Composable
+private fun GatePair(gb: GateBle, addr: String, name: String, onBack: () -> Unit, onDone: () -> Unit) {
+    var busy by remember { mutableStateOf(false) }
+    var err by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Back("Abbina", onBack)
+        BigIcon(Icons.bt)
+        Text(name, color = pal.text, fontSize = 22.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(14.dp))
+        listOf(
+            "Apri la pagina del dispositivo → Info → «Abbina telefono»: compare un codice di 6 cifre, valido 3 minuti.",
+            "Tocca «Abbina» qui sotto.",
+            "Android chiede il codice: scrivi quello della pagina.",
+        ).forEachIndexed { i, s ->
+            Row(Modifier.padding(bottom = 8.dp)) {
+                Text("${i + 1}.", color = pal.value, fontSize = 16.sp, modifier = Modifier.padding(end = 8.dp))
+                Text(s, color = pal.value, fontSize = 16.sp, lineHeight = 22.sp)
+            }
+        }
+        Spacer(Modifier.height(14.dp))
+        Btn(if (busy) "In attesa del codice…" else "Abbina", enabled = !busy) {
+            busy = true; err = ""
+            scope.launch {
+                val r = gb.pair(addr, name)
+                busy = false
+                if (r == null) onDone() else err = r
+            }
+        }
+        if (err.isNotEmpty()) Text(err, color = pal.danger, fontSize = 15.sp, textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
+        Note("Fatto una volta, il telefono resta abbinato anche dopo riavvii e aggiornamenti del dispositivo.", center = true)
+    }
+}
+
+// ── comandi ───────────────────────────────────────────────
+
+@Composable
+private fun GateCtl(gb: GateBle, store: Store, addr: String, setWho: (String) -> Unit, onBack: () -> Unit, onForgot: () -> Unit) {
+    val gates by store.gates.collectAsState()
+    val g = gates.firstOrNull { it.address == addr }
+    DisposableEffect(addr) { gb.watch(addr); onDispose { gb.unwatch() } }
+    val link by gb.link.collectAsState()
+    val st by gb.state.collectAsState()
+    val log by gb.log.collectAsState()
+    val azioni = st?.azioni?.takeIf { it.isNotEmpty() } ?: g?.azioni ?: emptyList()
+    val name = g?.name ?: st?.name ?: "Cancello"
+    var who by remember { mutableStateOf(store.who) }
+    var askWho by remember { mutableStateOf(false) }
+    var after by remember { mutableStateOf<String?>(null) }      // azione da aprire dopo aver chiesto il nome
+    var forget by remember { mutableStateOf(false) }
+    val mark = remember { mutableStateMapOf<String, String>() }   // azione -> "busy" / "done"
+    val scope = rememberCoroutineScope()
+    val enable = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {}
+
+    fun fire(a: String) {
+        if (who.isBlank()) { after = a; askWho = true; return }
+        if (mark[a] == "busy") return
+        mark[a] = "busy"
+        scope.launch {
+            val err = gb.open(addr, a, who)
+            if (err == null) { mark[a] = "done"; delay(1800); mark.remove(a) }
+            else { mark.remove(a); gb.toasts.tryEmit("${cap(a)}: $err") }
+        }
+    }
+
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Back(name, onBack)
+        val (txt, col) = when (link) {
+            Link.CONNECTED -> "collegato via Bluetooth" to pal.ok
+            Link.BT_OFF -> "Bluetooth del telefono spento" to pal.danger
+            Link.NO_PERMISSION -> "manca il permesso Bluetooth" to pal.danger
+            else -> "cerco il dispositivo… avvicinati" to G_YEL
+        }
+        Row(Modifier.padding(top = 6.dp, bottom = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(8.dp).clip(CircleShape).background(col))
+            Text("  $txt", color = pal.value, fontSize = 14.sp)
+        }
+        if (link == Link.BT_OFF) {
+            Btn("Accendi il Bluetooth", secondary = true) { enable.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)) }
+            Spacer(Modifier.height(12.dp))
+        }
+        Row(
+            Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(12.dp)).background(pal.card)
+                .border(1.dp, pal.border, RoundedCornerShape(12.dp)).clickable { askWho = true }
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text("APRI COME", color = pal.muted, fontSize = 12.sp, letterSpacing = 1.sp)
+            Text(who.ifBlank { "scegli" }, color = if (who.isBlank()) G_YEL else G_BLUE, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        }
+        if (azioni.isEmpty()) Note("Leggo i pulsanti dal dispositivo…", center = true)
+        azioni.chunked(2).forEach { row ->
+            Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                row.forEach { a -> GateButton(Modifier.weight(1f), a, st?.stati?.get(a), mark[a]) { fire(a) } }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
+        if (log.isNotEmpty()) {
+            Section("ULTIME APERTURE")
+            log.take(8).forEach { e -> EventRow(e) }
+        }
+        Note("Funziona anche senza internet e senza Wi-Fi: basta essere vicino.")
+        Spacer(Modifier.height(24.dp))
+        Btn("Dimentica questo cancello", secondary = true) { forget = true }
+        Spacer(Modifier.height(16.dp))
+    }
+
+    if (askWho) Ask("Apri come", "Il tuo nome: compare nello storico delle aperture.", who, ok = "Salva",
+        onDismiss = { askWho = false; after = null }) { v ->
+        val n = v.trim().take(15)
+        askWho = false
+        if (n.isNotBlank()) {
+            who = n
+            setWho(n)
+            after?.let { after = null; fire(it) }
+        }
+    }
+    if (forget) Confirm("Dimenticare $name?", "Il telefono non lo aprirà più via Bluetooth finché non lo abbini di nuovo.",
+        "Dimentica", danger = true, onDismiss = { forget = false }) {
+        forget = false
+        gb.forget(addr)
+        onForgot()
+    }
+}
+
+@Composable
+private fun GateButton(modifier: Modifier, a: String, stato: String?, mark: String?, onClick: () -> Unit) {
+    val col = when { mark == "done" -> pal.ok; stato == "aperto" -> G_YEL; else -> G_BLUE }
+    val sub = when {
+        mark == "done" -> "inviato ✓"; mark == "busy" -> "invio…"
+        stato == "aperto" -> "aperto"; stato == "chiuso" -> "chiuso"; else -> "impulso"
+    }
+    Column(
+        modifier.clip(RoundedCornerShape(14.dp)).background(col.copy(alpha = .14f)).border(2.dp, col, RoundedCornerShape(14.dp))
+            .clickable(enabled = mark != "busy", onClick = onClick).alpha(if (mark == "busy") .6f else 1f)
+            .padding(top = 22.dp, bottom = 16.dp, start = 6.dp, end = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        SvgIcon(gateIcon(a), col, 42.dp, stroke = 1.6f)
+        Text(a.uppercase(), color = col, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 2.sp, maxLines = 1)
+        Text(sub, color = G_DIM, fontSize = 11.sp, letterSpacing = 1.sp)
+    }
+}
+
+@Composable
+private fun EventRow(e: GateEvent) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 9.dp), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween) {
+        Column(Modifier.weight(1f)) {
+            Text(cap(e.azione) + if (e.bypass) " (by-pass)" else "", color = pal.text, fontSize = 16.sp)
+            Text(listOf(e.canaleNome, e.utente).filter { it.isNotBlank() }.joinToString(" · "), color = pal.muted, fontSize = 13.sp)
+        }
+        Text(when_(e.t), color = pal.value, fontSize = 14.sp)
+    }
+}
+
+/** "23:41" oggi, "26/10 23:41" gli altri giorni. */
+private fun when_(t: Long): String {
+    if (t <= 0) return "ora non nota"
+    val d = Date(t * 1000)
+    val now = Calendar.getInstance()
+    val c = Calendar.getInstance().apply { time = d }
+    val today = now.get(Calendar.YEAR) == c.get(Calendar.YEAR) && now.get(Calendar.DAY_OF_YEAR) == c.get(Calendar.DAY_OF_YEAR)
+    return SimpleDateFormat(if (today) "HH:mm" else "dd/MM HH:mm", Locale.ITALY).format(d)
+}

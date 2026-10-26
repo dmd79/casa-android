@@ -48,6 +48,33 @@ class Store(ctx: Context) {
         (0 until a.length()).map { a.getString(it) }
     } catch (e: Exception) { emptyList() }
 
+    /** Cancelli e garage Bluetooth abbinati (indirizzo, nome, pulsanti). */
+    private val _gates = MutableStateFlow(loadGates())
+    val gates: StateFlow<List<BtGate>> = _gates
+
+    fun putGate(g: BtGate) {
+        val cur = _gates.value
+        saveGates(if (cur.any { it.address == g.address }) cur.map { if (it.address == g.address) g else it } else cur + g)
+    }
+
+    fun removeGate(address: String) = saveGates(_gates.value.filter { it.address != address })
+
+    private fun saveGates(list: List<BtGate>) {
+        _gates.value = list
+        val a = JSONArray()
+        list.forEach { a.put(JSONObject().put("a", it.address).put("n", it.name).put("z", JSONArray(it.azioni))) }
+        p.edit().putString("btGates", a.toString()).apply()
+    }
+
+    private fun loadGates(): List<BtGate> = try {
+        val a = JSONArray(p.getString("btGates", "[]"))
+        (0 until a.length()).map { i ->
+            val o = a.getJSONObject(i)
+            val z = o.optJSONArray("z")
+            BtGate(o.getString("a"), o.optString("n"), if (z == null) emptyList() else (0 until z.length()).map { z.getString(it) })
+        }
+    } catch (e: Exception) { emptyList() }
+
     var tab: String
         get() = p.getString("tab", "CASA") ?: "CASA"
         set(v) = p.edit().putString("tab", v).apply()

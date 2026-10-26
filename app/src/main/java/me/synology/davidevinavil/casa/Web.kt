@@ -92,7 +92,7 @@ fun makeWeb(ctx: Context, store: Store, nav: WebNav): WebView = WebView(ctx).app
     val cm = CookieManager.getInstance()
     cm.setAcceptCookie(true)
     cm.setAcceptThirdPartyCookies(this, true)
-    addJavascriptInterface(Bridge(ctx.applicationContext, store), "CasaApp")
+    addJavascriptInterface(Bridge(ctx.applicationContext, store, this), "CasaApp")
     val early = WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
     if (early) WebViewCompat.addDocumentStartJavaScript(this, START_JS, setOf(Relay.BASE))
 
@@ -161,7 +161,35 @@ private fun WebView.loadWhenSized() {
 }
 
 /** Da JavaScript ad Android. */
-class Bridge(private val ctx: Context, private val store: Store) {
+class Bridge(private val ctx: Context, private val store: Store, private val web: WebView) {
+    private val gb get() = (ctx as CasaApp).gates
+
+    /** Cancelli Bluetooth salvati nell'app, per la Plancia: [{addr,name,azioni,stati}]. */
+    @JavascriptInterface
+    fun btGates(): String {
+        val st = gb.stati.value
+        val a = org.json.JSONArray()
+        store.gates.value.forEach { g ->
+            val s = org.json.JSONObject()
+            st[g.address]?.forEach { (k, v) -> s.put(k, v) }
+            a.put(org.json.JSONObject().put("addr", g.address).put("name", g.name)
+                .put("azioni", org.json.JSONArray(g.azioni)).put("stati", s))
+        }
+        return a.toString()
+    }
+
+    /** Apertura dalla Plancia; la risposta torna con window.__btDone(id, {ok, err}). */
+    @JavascriptInterface
+    fun btOpen(id: String, addr: String, azione: String, who: String) {
+        gb.launch {
+            val err = open(addr, azione, who)
+            val r = org.json.JSONObject().put("ok", err == null)
+            if (err != null) r.put("err", if (err == "già in corso") "gia' in corso" else err)
+            val js = "window.__btDone&&window.__btDone(" + org.json.JSONObject.quote(id) + "," + r + ")"
+            web.post { web.evaluateJavascript(js, null) }
+        }
+    }
+
     /** Personalizza ha salvato un nuovo ordine della barra. */
     @JavascriptInterface
     fun order(json: String) = store.setBarOrder(json)
