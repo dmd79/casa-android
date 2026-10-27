@@ -121,13 +121,11 @@ fun makeWeb(ctx: Context, store: Store, nav: WebNav): WebView = WebView(ctx).app
             if (url != null) nav.url.value = url
         }
 
-        // prima schermata della pagina nuova pronta: si toglie la copertura
-        override fun onPageCommitVisible(v: WebView, url: String?) {
-            nav.busy.value = false
-        }
-
         override fun onPageFinished(v: WebView, url: String?) {
-            nav.busy.value = false
+            // Copertura via a pagina caricata, e un attimo dopo: il termostato
+            // ricostruisce la pagina appena carica, e togliendola alla prima
+            // schermata (ancora vuota) si vedeva un lampo.
+            v.postDelayed({ nav.busy.value = false }, 180)
             cm.flush()
             if (!early) {
                 v.evaluateJavascript(START_JS, null)

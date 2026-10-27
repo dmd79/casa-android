@@ -4,6 +4,10 @@ import android.app.Activity
 import android.net.Uri
 import android.webkit.WebView
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -110,7 +114,15 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     LaunchedEffect(url) { pending = null }
     val active = when (view) { Pane.CLIMA, Pane.CLIMI -> Cat.AC; Pane.SCORC -> Cat.MORE; Pane.GATE, Pane.ACC -> Cat.GATE; Pane.WEB -> pending ?: pageCat }
 
-    fun go(path: String, c: Cat) { pending = c; nav.busy.value = true; setView(Pane.WEB); web.loadUrl(Relay.BASE + path) }
+    // Copertura solo arrivando da una schermata dell'app (Clima, Accessi...):
+    // sotto c'e' rimasta un'altra pagina, che si vedrebbe per un attimo. Da
+    // pagina a pagina invece resta quella dove si era, come in un browser.
+    fun go(path: String, c: Cat) {
+        pending = c
+        if (view != Pane.WEB) nav.busy.value = true
+        setView(Pane.WEB)
+        web.loadUrl(Relay.BASE + path)
+    }
     val busy by nav.busy.collectAsState()
     // copertura al massimo 5 s (rete lenta o pagina che non arriva)
     LaunchedEffect(busy) { if (busy) { delay(5000); nav.busy.value = false } }
@@ -164,8 +176,12 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     Column(Modifier.fillMaxSize().background(pal.bg).statusBarsPadding()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             CasaWeb(web, visible = view == Pane.WEB)
-            // pagina nuova in arrivo: niente lampo di quella di prima
-            if (view == Pane.WEB && busy) Box(Modifier.fillMaxSize().background(pal.bg))
+            // pagina nuova in arrivo: niente lampo di quella di prima. Stesso
+            // nero delle pagine dei dispositivi, e se ne va in dissolvenza.
+            AnimatedVisibility(visible = view == Pane.WEB && busy, enter = EnterTransition.None,
+                exit = fadeOut(tween(200))) {
+                Box(Modifier.fillMaxSize().background(Color(0xFF0A0A0F)))
+            }
             if (view != Pane.WEB) Box(Modifier.fillMaxSize().background(pal.bg)) {
                 holder.SaveableStateProvider(view.name) {
                     when (view) {
