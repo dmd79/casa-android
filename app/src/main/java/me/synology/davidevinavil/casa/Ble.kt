@@ -51,7 +51,8 @@ object Uuids {
     val CCCD: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
 }
 
-enum class Link { NO_PERMISSION, BT_OFF, IDLE, SEARCHING, CONNECTED }
+/** UNPAIRED: collegato ma il telefono non e' abbinato (o il condizionatore l'ha dimenticato). */
+enum class Link { NO_PERMISSION, BT_OFF, IDLE, SEARCHING, CONNECTED, UNPAIRED }
 
 /**
  * Collegamento al condizionatore.
@@ -129,8 +130,16 @@ class Ble(private val ctx: Context, val store: Store) {
 
     // ── collegamento ─────────────────────────────────────
 
-    /** All'avvio o tornando in primo piano: ultimo condizionatore, senza toccare niente. */
+    /**
+     * Schermata Bluetooth del clima aperta. Come per i cancelli il collegamento
+     * c'e' solo mentre la si guarda: il condizionatore ha 2 posti e via relay
+     * (Wi-Fi) il Bluetooth non serve. La imposta la barra (Nav.kt).
+     */
+    @Volatile var active = false
+
+    /** Schermata aperta o app di nuovo in primo piano: ultimo condizionatore, senza toccare niente. */
     fun resume() {
+        if (!active) return
         if (!hasPermissions()) { link.value = Link.NO_PERMISSION; return }
         if (link.value == Link.NO_PERMISSION) link.value = Link.IDLE
         if (!wanted) {
@@ -281,9 +290,60 @@ class Ble(private val ctx: Context, val store: Store) {
         if (chState == null || chCmd == null) { g.disconnect(); return }
         if (rev != null) notify(g, rev)
         wasConnected = true
-        link.value = Link.CONNECTED
         address.value?.let { store.put(it, store.name(it).ifBlank { g.device.name ?: "" }) }
+        // Stato, comandi e info passano solo col telefono abbinato (codice a 6
+        // cifre): senza abbinamento si chiede di farlo, invece di leggere e far
+        // partire un abbinamento di Android che il condizionatore rifiuta.
+        if (g.device.bondState != BluetoothDevice.BOND_BONDED) { link.value = Link.UNPAIRED; return }
+        link.value = Link.CONNECTED
         readState()
+        if (state.value == null) { delay(1500); readState() }
+        // abbinato qui ma dimenticato dal condizionatore ("Dimentica telefoni")
+        if (state.value == null && gatt === g) link.value = Link.UNPAIRED
+    }
+
+    /**
+     * Abbina il telefono al condizionatore collegato: Android chiede il codice
+     * a 6 cifre mostrato dalla pagina web. null se riuscito, altrimenti il motivo.
+     */
+    suspend fun pair(): String? {
+        val a = address.value ?: return "nessun condizionatore scelto"
+        val ad = adapter?.takeIf { it.isEnabled } ?: return "accendi il Bluetooth del telefono"
+        val dev = try { ad.getRemoteDevice(a) } catch (e: Exception) { return "indirizzo non valido" }
+        // abbinamento rimasto solo sul telefono: si toglie e si rifa'
+        if (dev.bondState == BluetoothDevice.BOND_BONDED) {
+            try { dev.javaClass.getMethod("removeBond").invoke(dev) } catch (_: Exception) {}
+            delay(1500)
+        }
+        val done = CompletableDeferred<Int>()
+        val rx = object : BroadcastReceiver() {
+            override fun onReceive(c: Context, i: Intent) {
+                val d: BluetoothDevice? = if (Build.VERSION.SDK_INT >= 33)
+                    i.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
+                else @Suppress("DEPRECATION") i.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                if (d?.address != a) return
+                val s = i.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE, BluetoothDevice.BOND_NONE)
+                if (s == BluetoothDevice.BOND_BONDED || s == BluetoothDevice.BOND_NONE) done.complete(s)
+            }
+        }
+        ContextCompat.registerReceiver(ctx, rx, IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED), ContextCompat.RECEIVER_EXPORTED)
+        try {
+            if (!dev.createBond()) return "abbinamento non avviato, riprova"
+            // c'e' da scrivere il codice nella finestra di Android: tempo largo
+            val r = withTimeoutOrNull(150_000) { done.await() } ?: return "tempo scaduto"
+            if (r != BluetoothDevice.BOND_BONDED)
+                return "abbinamento rifiutato: premi prima «Abbina telefono» nella pagina web del condizionatore e scrivi il codice giusto"
+        } finally {
+            try { ctx.unregisterReceiver(rx) } catch (_: Exception) {}
+        }
+        delay(800)          // cifratura del collegamento appena abbinato
+        val g = gatt
+        if (g != null && chState != null) {
+            link.value = Link.CONNECTED
+            readState()
+        }
+        if (state.value == null) open()      // collegamento caduto nel frattempo: da capo
+        return null
     }
 
     // ── coda delle operazioni ────────────────────────────
@@ -322,6 +382,7 @@ class Ble(private val ctx: Context, val store: Store) {
     // ── stato e comandi ──────────────────────────────────
 
     suspend fun readState() {
+        if (link.value == Link.UNPAIRED) return
         val c = chState ?: return
         val b = read(c) ?: return
         val j = try { JSONObject(String(b)) } catch (e: Exception) { return }
@@ -342,7 +403,7 @@ class Ble(private val ctx: Context, val store: Store) {
             hold = System.currentTimeMillis() + 4000
             state.value = state.value?.let(apply)
         }
-        for (p in pieces("${pin.value}|$k=$v".toByteArray(Charsets.UTF_8))) {
+        for (p in pieces("$k=$v".toByteArray(Charsets.UTF_8))) {
             if (!write(c, p)) {
                 delay(300)
                 if (!write(c, p)) { toasts.tryEmit("Comando non inviato ($k)"); return false }
@@ -365,12 +426,14 @@ class Ble(private val ctx: Context, val store: Store) {
     }
 
     suspend fun readInfo() {
+        if (link.value != Link.CONNECTED) return
         val c = chInfo ?: return
         val b = read(c) ?: return
         try { info.value = AcInfo.parse(JSONObject(String(b))) } catch (_: Exception) {}
     }
 
     suspend fun readNets() {
+        if (link.value != Link.CONNECTED) return
         val c = chScan ?: return
         val b = read(c) ?: return
         val l = parseNets(String(b))

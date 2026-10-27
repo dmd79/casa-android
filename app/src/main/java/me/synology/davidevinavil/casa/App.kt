@@ -52,6 +52,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 
 enum class Scr { DEVICES, SCAN, CTL, SET, WIFI }
@@ -88,7 +89,7 @@ fun App(ble: Ble, store: Store, go: MutableStateFlow<Scr?>? = null) {
                 scr == Scr.SET && st != null -> SettingsScreen(ble, store, onBack = { scr = Scr.CTL },
                     onWifi = { scr = Scr.WIFI }, onForgot = { scr = Scr.DEVICES })
                 scr == Scr.WIFI && st != null -> WifiScreen(ble, onBack = { scr = Scr.SET })
-                link == Link.CONNECTED && pin.isEmpty() -> PinScreen(ble, store)
+                link == Link.UNPAIRED -> PairScreen(ble, store, onDevices = { scr = Scr.DEVICES })
                 st == null -> WaitScreen(ble, store, link, onDevices = { scr = Scr.DEVICES })
                 else -> ControlScreen(ble, st!!, link, onSettings = { scr = Scr.SET }, onDevices = { scr = Scr.DEVICES })
             }
@@ -147,6 +148,45 @@ fun WaitScreen(ble: Ble, store: Store, link: Link, onDevices: () -> Unit) {
         if (link == Link.BT_OFF) Btn("Accendi il Bluetooth") { enable.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)) }
         Spacer(Modifier.weight(1f))
         Btn("Altri condizionatori", secondary = true, onClick = onDevices)
+    }
+}
+
+// ── abbinamento (una volta per telefono) ──────────────────
+
+@Composable
+fun PairScreen(ble: Ble, store: Store, onDevices: () -> Unit) {
+    val addr by ble.address.collectAsState()
+    var busy by remember { mutableStateOf(false) }
+    var err by remember { mutableStateOf("") }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Title(store.name(addr).ifBlank { "Condizionatore" })
+        Sub("via Bluetooth, anche senza Wi-Fi")
+        BigBt()
+        listOf(
+            "Pagina web del condizionatore → WIFI → Bluetooth → «Abbina telefono»: compare un codice di 6 cifre, valido 3 minuti. Vale anche nei 3 minuti dopo l'accensione.",
+            "Tocca «Abbina» qui sotto.",
+            "Android chiede il codice: scrivi quello della pagina.",
+        ).forEachIndexed { i, s ->
+            Row(Modifier.padding(bottom = 8.dp)) {
+                Text("${i + 1}.", color = pal.value, fontSize = 16.sp, modifier = Modifier.padding(end = 8.dp))
+                Text(s, color = pal.value, fontSize = 16.sp, lineHeight = 22.sp)
+            }
+        }
+        Spacer(Modifier.height(14.dp))
+        Btn(if (busy) "In attesa del codice…" else "Abbina", enabled = !busy) {
+            busy = true; err = ""
+            scope.launch {
+                val r = ble.pair()
+                busy = false
+                if (r != null) err = r
+            }
+        }
+        if (err.isNotEmpty()) Text(err, color = pal.danger, fontSize = 15.sp, textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp))
+        Spacer(Modifier.height(12.dp))
+        Btn("Altri condizionatori", secondary = true, onClick = onDevices)
+        Note("Fatto una volta, il telefono resta abbinato anche dopo riavvii e aggiornamenti del condizionatore.", center = true)
     }
 }
 
@@ -237,58 +277,6 @@ fun Back(title: String, onBack: () -> Unit) {
     }
 }
 
-// ── PIN ───────────────────────────────────────────────────
-
-@Composable
-fun PinScreen(ble: Ble, store: Store) {
-    val addr by ble.address.collectAsState()
-    val st by ble.state.collectAsState()
-    var typed by remember { mutableStateOf("") }
-    var err by remember { mutableStateOf("") }
-    var busy by remember { mutableStateOf(false) }
-    fun key(k: String) {
-        if (busy) return
-        if (k == "⌫") { typed = typed.dropLast(1); return }
-        if (typed.length >= 4) return
-        typed += k
-        if (typed.length == 4) {
-            busy = true; err = ""
-            val p = typed
-            ble.launch {
-                val ok = tryPin(p)
-                busy = false
-                if (!ok) { typed = ""; err = "PIN sbagliato" }
-            }
-        }
-    }
-    Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
-        Title("PIN del condizionatore", Modifier.fillMaxWidth())
-        Sub((st?.name?.ifBlank { null } ?: store.name(addr)) + " · solo la prima volta", Modifier.fillMaxWidth())
-        Row(Modifier.padding(top = 50.dp, bottom = 40.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            (0..3).forEach { i ->
-                Box(Modifier.size(54.dp, 66.dp).clip(RoundedCornerShape(12.dp)).background(pal.card)
-                    .border(if (i == typed.length) 2.dp else 1.dp, if (i == typed.length) pal.accent else pal.border,
-                        RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
-                    Text(if (i < typed.length) "•" else "", color = pal.text, fontSize = 30.sp)
-                }
-            }
-        }
-        listOf(listOf("1", "2", "3"), listOf("4", "5", "6"), listOf("7", "8", "9"), listOf("", "0", "⌫")).forEach { r ->
-            Row(Modifier.padding(bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-                r.forEach { k ->
-                    if (k.isEmpty()) Spacer(Modifier.size(78.dp))
-                    else Box(Modifier.size(78.dp).clip(CircleShape).background(pal.card).border(1.dp, pal.border, CircleShape)
-                        .clickable { key(k) }, contentAlignment = Alignment.Center) {
-                        Text(k, color = pal.text, fontSize = 30.sp)
-                    }
-                }
-            }
-        }
-        Text(if (busy) "Verifico…" else err, color = if (busy) pal.muted else pal.danger, modifier = Modifier.padding(top = 8.dp))
-        Note("Lo trovi nelle impostazioni del condizionatore (PIN Bluetooth)", center = true)
-    }
-}
-
 // ── impostazioni ──────────────────────────────────────────
 
 @Composable
@@ -305,18 +293,7 @@ fun SettingsScreen(ble: Ble, store: Store, onBack: () -> Unit, onWifi: () -> Uni
         Section("RETE")
         RowCard("Wi-Fi", info?.let { if (it.wifi) "${it.ssid} · ${it.rssi} dBm" else "non collegato" } ?: "--") {
             if (ble.hasInfo) onWifi() }
-        Section("MODALITÀ DI COLLEGAMENTO")
-        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(pal.card)
-            .border(1.dp, pal.border, RoundedCornerShape(26.dp)).padding(4.dp)) {
-            listOf("bt" to "Bluetooth", "relay" to "Wi-Fi e relay").forEach { (m, l) ->
-                val on = (info?.mode ?: "bt") == m
-                Box(Modifier.weight(1f).clip(RoundedCornerShape(22.dp)).background(if (on) pal.sel else pal.card)
-                    .then(if (on) Modifier.border(2.dp, pal.accent, RoundedCornerShape(22.dp)) else Modifier)
-                    .clickable { if (m == "relay" && !on) dlg = "relay" }.padding(12.dp),
-                    contentAlignment = Alignment.Center) { Text(l, color = if (on) pal.accent else pal.muted, fontSize = 17.sp) }
-            }
-        }
-        Note("Bluetooth acceso, accesso remoto non disponibile. Il Wi-Fi, se configurato, serve per gli aggiornamenti e la pagina web. Senza Wi-Fi si accende l'hotspot «Haier Hotspot».")
+        Note("Wi-Fi, relay e Bluetooth insieme: da casa e da fuori via relay, da vicino anche senza internet via Bluetooth.")
         Section("INFO")
         val i = info
         val rows = if (i == null) listOf((if (ble.hasInfo) "Lettura…" else "Aggiorna il firmware per vedere le info") to "")
@@ -333,27 +310,13 @@ fun SettingsScreen(ble: Ble, store: Store, onBack: () -> Unit, onWifi: () -> Uni
                 }
             }
         }
-        Section("SICUREZZA E DISPOSITIVO")
-        RowCard("PIN Bluetooth", "••••") { dlg = "pin" }
+        Section("DISPOSITIVO")
         RowCard("Nome", st?.name ?: "--") { dlg = "name" }
         RowCard("Dimentica questo condizionatore") { dlg = "forget" }
         Note("App ${BuildConfig.VERSION_NAME}", Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 20.dp), center = true)
     }
 
     when (dlg) {
-        "relay" -> Confirm("Passare a Wi-Fi e relay?",
-            "Il Bluetooth si disattiva e il condizionatore si riavvia. L'app non potrà più collegarsi: per riattivare il Bluetooth, torna in modalità Bluetooth dalla pagina web del condizionatore." +
-                (if (info?.wifi == false) "\n\nIl condizionatore non è sul Wi-Fi: lo raggiungerai solo dall'hotspot «Haier Hotspot» (dopo 10 minuti senza Wi-Fi torna da solo in Bluetooth)." else ""),
-            "Disattiva BT", danger = true, onDismiss = { dlg = null }) {
-            dlg = null
-            ble.launch { send("conn", "relay"); toasts.emit("Il condizionatore si riavvia in modalità Wi-Fi e relay") }
-        }
-        "pin" -> Ask("Nuovo PIN Bluetooth", "4 cifre. Servirà anche sugli altri telefoni.", "", number = true, secret = true,
-            ok = "Salva", onDismiss = { dlg = null }) { v ->
-            dlg = null
-            if (!Regex("^[0-9]{4}$").matches(v)) { ble.toasts.tryEmit("PIN non valido: servono 4 cifre"); return@Ask }
-            ble.launch { if (send("pin", v)) { pin.value = v; addr?.let { store.setPin(it, v) }; toasts.emit("PIN cambiato") } }
-        }
         "name" -> Ask("Nome del condizionatore", "", st?.name ?: "", ok = "Salva", onDismiss = { dlg = null }) { v ->
             dlg = null
             val n = v.trim()

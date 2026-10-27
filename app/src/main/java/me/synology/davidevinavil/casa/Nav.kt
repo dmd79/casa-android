@@ -73,15 +73,23 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     // elenco dei dispositivi del relay: subito quello salvato, poi aggiornato
     var devs by remember { mutableStateOf(Relay.parseList(store.relayList)) }
     var lastLoad by remember { mutableStateOf(0L) }
+    var relayOk by remember { mutableStateOf(true) }      // l'ultima richiesta al relay ha risposto
     fun refresh(force: Boolean = false) {
         if (!force && System.currentTimeMillis() - lastLoad < 20_000) return
         lastLoad = System.currentTimeMillis()
         val cookie = Relay.cookie()
         scope.launch {
-            val raw = withContext(Dispatchers.IO) { Relay.listRaw(cookie) } ?: return@launch
+            val raw = withContext(Dispatchers.IO) { Relay.listRaw(cookie) }
+            relayOk = raw != null
+            if (raw == null) return@launch
             store.relayList = raw
             devs = Relay.parseList(raw)
         }
+    }
+    // Bluetooth del clima solo mentre se ne guarda la schermata (come i cancelli)
+    LaunchedEffect(view) {
+        ble.active = view == Pane.CLIMA
+        if (view == Pane.CLIMA) ble.resume() else ble.disconnect()
     }
     LaunchedEffect(Unit) {
         nav.onLoaded = { refresh() }
@@ -122,6 +130,13 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     val gates = devs.filter { it.type == "gate" }
     val sensors = devs.filter { it.type == "sensor" }
     val others = devs.filter { it.type == "other" }
+    // Clima: un condizionatore sul relay e in linea compare solo via relay;
+    // senza Wi-Fi (o relay irraggiungibile) compare il suo Bluetooth.
+    // Riconosciuti dal nome; i soli Bluetooth ci sono sempre.
+    fun same(a: String, b: String) = a.trim().equals(b.trim(), ignoreCase = true)
+    val climaOn = acs.filter { relayOk && it.online }
+    val climaRelay = acs.filter { d -> d in climaOn || bts.none { same(it.name, d.name) } }   // in linea, o senza Bluetooth
+    val climaBt = bts.filter { b -> climaOn.none { same(it.name, b.name) } }                 // il relay non lo copre
     val cats = Cat.entries.filter {
         when (it) {
             Cat.HEAT -> heat.isNotEmpty(); Cat.AC -> acs.isNotEmpty() || bts.isNotEmpty(); Cat.GATE -> gates.isNotEmpty() || btGates.isNotEmpty(); Cat.SENS -> sensors.isNotEmpty()
@@ -137,8 +152,8 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
             Cat.SENS -> go("/_sensors", c)
             Cat.HEAT -> if (heat.size == 1) openDev(heat[0]) else { refresh(true); sheet = c }
             Cat.AC -> when {
-                acs.size == 1 && bts.isEmpty() -> openDev(acs[0])
-                acs.isEmpty() && bts.size == 1 -> openBt(bts[0].address)
+                climaRelay.size == 1 && climaBt.isEmpty() -> openDev(climaRelay[0])
+                climaRelay.isEmpty() && climaBt.size == 1 -> openBt(climaBt[0].address)
                 else -> { refresh(true); sheet = c }
             }
             Cat.MORE -> sheet = c
@@ -190,10 +205,10 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
             Item(d.name, devSub(d), Icons.flame, if (d.heat) modeColor("heat") else null,
                 selected = view == Pane.WEB && pageCat == Cat.HEAT && curDev == d.id, onClick = pick { openDev(d) })
         }
-        Cat.AC -> acs.map { d ->
+        Cat.AC -> climaRelay.map { d ->
             Item(d.name, devSub(d), Icons.cool, if (d.online && d.mode in MODES) modeColor(d.mode) else null, badge = "Wi-Fi",
                 selected = view == Pane.WEB && pageCat == Cat.AC && curDev == d.id, onClick = pick { openDev(d) })
-        } + bts.map { b ->
+        } + climaBt.map { b ->
             val cur = b.address == btAddr
             val st = if (cur) btState else null
             val sub = when {
@@ -204,8 +219,8 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
             }
             Item(b.name, sub, Icons.cool, if (st != null && st.isOn) modeColor(st.mode) else null, badge = "BT",
                 selected = view == Pane.CLIMA && cur, onClick = pick { openBt(b.address) })
-        } + Item("Aggiungi condizionatore Bluetooth", "cercalo qui vicino", Icons.bt, null,
-            onClick = pick { app.climaGo.value = Scr.SCAN; setView(Pane.CLIMA) })
+        } + Item("Condizionatori Bluetooth", "elenco, aggiungi, dimentica", Icons.bt, null,
+            onClick = pick { app.climaGo.value = Scr.DEVICES; setView(Pane.CLIMA) })
         else -> buildList {
             // le voci del relay nell'ordine di Personalizza, poi quelle dell'app
             val rel: List<Pair<String, Item>> = listOfNotNull(
