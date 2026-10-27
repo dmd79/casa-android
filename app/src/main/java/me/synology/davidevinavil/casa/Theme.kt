@@ -5,7 +5,6 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -14,7 +13,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -64,12 +62,15 @@ fun modeLabel(m: String) = when (m) {
     "auto" -> "Auto"; "cool" -> "Freddo"; "heat" -> "Caldo"; "dry" -> "Deumid."; "fan" -> "Ventola"; else -> "Spento"
 }
 
+/**
+ * Sempre scuro, anche col telefono (o l'autoradio) in modalita' chiara: le
+ * pagine del relay e dei dispositivi sono scure e diversi colori dell'app
+ * (Clima, Accessi) sono pensati sul nero. In chiaro le scritte si leggevano male.
+ */
 @Composable
 fun ClimaTheme(content: @Composable () -> Unit) {
-    val dark = isSystemInDarkTheme()
-    val p = if (dark) DarkPal else LightPal
-    val scheme = if (dark) darkColorScheme(primary = p.accent, background = p.bg, surface = p.bg, onSurface = p.text)
-                 else lightColorScheme(primary = p.accent, background = p.bg, surface = p.bg, onSurface = p.text)
+    val p = DarkPal
+    val scheme = darkColorScheme(primary = p.accent, background = p.bg, surface = p.bg, onSurface = p.text)
     CompositionLocalProvider(LocalPal provides p) {
         MaterialTheme(colorScheme = scheme, content = content)
     }
