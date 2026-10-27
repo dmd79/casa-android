@@ -6,7 +6,8 @@ import org.json.JSONObject
 //   servizio 5e6b0001-...
 //   0002 stato (lettura, JSON)   0003 rev (notifica)   0004 comando (scrittura)
 //   0005 info (lettura, JSON)    0006 reti Wi-Fi viste (lettura, testo)
-//   comando = "PIN|chiave=valore", a pezzi da 18 byte (gli intermedi con "+")
+//   comando = "chiave=valore", a pezzi da 18 byte (gli intermedi con "+"); niente PIN:
+//   stato, comandi e info passano solo col telefono abbinato (codice a 6 cifre)
 
 val MODES = listOf("auto", "cool", "heat", "dry", "fan")
 val FANS = listOf("auto", "low", "medium", "high")

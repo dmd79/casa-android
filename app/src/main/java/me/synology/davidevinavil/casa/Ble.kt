@@ -77,8 +77,6 @@ class Ble(private val ctx: Context, val store: Store) {
     val nets = MutableStateFlow<List<WifiNet>>(emptyList())
     val found = MutableStateFlow<List<Found>>(emptyList())
     val scanning = MutableStateFlow(false)
-    /** PIN in uso; vuoto = da chiedere. */
-    val pin = MutableStateFlow("")
     /** Ultimo stato letto di ogni condizionatore (indirizzo -> stato e ora). */
     val snaps = MutableStateFlow(loadSnaps())
 
@@ -159,7 +157,6 @@ class Ble(private val ctx: Context, val store: Store) {
         stopScan()
         store.last = addr
         address.value = addr
-        pin.value = store.pin(addr)
         state.value = null
         info.value = null
         wasConnected = false
@@ -176,7 +173,7 @@ class Ble(private val ctx: Context, val store: Store) {
         if (link.value != Link.BT_OFF && link.value != Link.NO_PERMISSION) link.value = Link.IDLE
     }
 
-    /** Toglie il condizionatore: si scollega se era quello, via PIN e abbinamento del telefono. */
+    /** Toglie il condizionatore: si scollega se era quello, via anche l'abbinamento del telefono. */
     fun forget(addr: String) {
         if (address.value == addr) { disconnect(); address.value = null }
         store.forget(addr)
@@ -398,7 +395,7 @@ class Ble(private val ctx: Context, val store: Store) {
         if (s.isOn) store.lastMode = s.mode
     }
 
-    /** Invia "PIN|k=v". [apply] cambia subito lo stato mostrato. */
+    /** Invia "chiave=valore" (niente PIN: protegge l'abbinamento cifrato). [apply] cambia subito lo stato mostrato. */
     suspend fun send(k: String, v: String, apply: ((AcState) -> AcState)? = null): Boolean {
         val c = chCmd
         if (c == null) { toasts.tryEmit("Non collegato: comando non inviato"); return false }
@@ -417,17 +414,6 @@ class Ble(private val ctx: Context, val store: Store) {
     }
 
     fun launch(block: suspend Ble.() -> Unit): Job = scope.launch { block(this@Ble) }
-
-    /** Prova un PIN: true se il condizionatore lo accetta. */
-    suspend fun tryPin(p: String): Boolean {
-        pin.value = p
-        if (!send("ping", "1")) { pin.value = ""; return false }
-        delay(1300)
-        readState()
-        if (state.value?.last == "pin") { pin.value = ""; return false }
-        address.value?.let { store.setPin(it, p) }
-        return true
-    }
 
     suspend fun readInfo() {
         if (link.value != Link.CONNECTED) return

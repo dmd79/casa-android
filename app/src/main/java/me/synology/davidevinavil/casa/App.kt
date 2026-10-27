@@ -61,7 +61,6 @@ enum class Scr { DEVICES, SCAN, CTL, SET, WIFI }
 fun App(ble: Ble, store: Store, go: MutableStateFlow<Scr?>? = null) {
     val link by ble.link.collectAsState()
     val addr by ble.address.collectAsState()
-    val pin by ble.pin.collectAsState()
     val st by ble.state.collectAsState()
     var scr by rememberSaveable { mutableStateOf(if (store.last != null) Scr.CTL else Scr.DEVICES) }
     val snack = remember { SnackbarHostState() }
