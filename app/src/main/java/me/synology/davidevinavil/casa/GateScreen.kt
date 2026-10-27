@@ -216,7 +216,7 @@ private fun GateScan(gb: GateBle, store: Store, onBack: () -> Unit, onPick: (Fou
             }
         }
         if (!scanning && found.isEmpty())
-            Note("Nessun cancello trovato. Il Bluetooth del dispositivo dev'essere acceso (pagina del dispositivo → Info) e tu a pochi metri.", center = true)
+            Note("Nessun gate trovato. Con la rete a posto il gate non si annuncia in Bluetooth: apri prima l'abbinamento dalla sua pagina web (Rete → Bluetooth → «Abbina telefono») e resta a pochi metri.", center = true)
         Spacer(Modifier.height(18.dp))
         Btn("Cerca di nuovo", secondary = true, enabled = !scanning) { gb.startScan() }
     }
@@ -235,7 +235,7 @@ private fun GatePair(gb: GateBle, addr: String, name: String, onBack: () -> Unit
         Text(name, color = pal.text, fontSize = 22.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(14.dp))
         listOf(
-            "Apri la pagina del dispositivo → Info → «Abbina telefono»: compare un codice di 6 cifre, valido 3 minuti.",
+            "Pagina web del gate → Rete → Bluetooth → «Abbina telefono»: compare un codice di 6 cifre, valido 3 minuti. Senza Wi-Fi la pagina si apre collegandosi all'hotspot del gate.",
             "Tocca «Abbina» qui sotto.",
             "Android chiede il codice: scrivi quello della pagina.",
         ).forEachIndexed { i, s ->

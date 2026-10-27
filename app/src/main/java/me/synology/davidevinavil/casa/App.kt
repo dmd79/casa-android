@@ -164,7 +164,7 @@ fun PairScreen(ble: Ble, store: Store, onDevices: () -> Unit) {
         Sub("via Bluetooth, anche senza Wi-Fi")
         BigBt()
         listOf(
-            "Pagina web del condizionatore → WIFI → Bluetooth → «Abbina telefono»: compare un codice di 6 cifre, valido 3 minuti. Vale anche nei 3 minuti dopo l'accensione.",
+            "Pagina web del condizionatore → Rete → Bluetooth → «Abbina telefono»: compare un codice di 6 cifre, valido 3 minuti. Senza Wi-Fi la pagina si apre collegandosi all'hotspot del condizionatore.",
             "Tocca «Abbina» qui sotto.",
             "Android chiede il codice: scrivi quello della pagina.",
         ).forEachIndexed { i, s ->
@@ -250,7 +250,7 @@ fun ScanScreen(ble: Ble, store: Store, onBack: () -> Unit, onPick: (Found) -> Un
             }
         }
         if (!scanning && found.isEmpty())
-            Note("Nessun condizionatore trovato. Dev'essere in modalità Bluetooth e a pochi metri.", center = true)
+            Note("Nessun condizionatore trovato. Con la rete a posto il condizionatore non si annuncia in Bluetooth: apri prima l'abbinamento dalla sua pagina web (Rete → Bluetooth → «Abbina telefono») e resta a pochi metri.", center = true)
         Spacer(Modifier.height(18.dp))
         Btn("Cerca di nuovo", secondary = true, enabled = !scanning) { ble.startScan() }
     }

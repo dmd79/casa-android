@@ -59,6 +59,12 @@ private const val LAST_JS = "(function(){try{return localStorage.getItem('bt_las
 class WebNav {
     val url = MutableStateFlow("")
     val dev = MutableStateFlow<String?>(null)     // dispositivo aperto (pagina "/")
+    /**
+     * Pagina nuova chiesta dalla barra e non ancora disegnata: la WebView
+     * mostrerebbe per un attimo quella di prima (es. la home del termostato
+     * aprendo un condizionatore), quindi la si copre finche' non arriva.
+     */
+    val busy = MutableStateFlow(false)
     /** Pagina finita di caricare: occasione per riaggiornare l'elenco. */
     var onLoaded: () -> Unit = {}
 
@@ -115,7 +121,13 @@ fun makeWeb(ctx: Context, store: Store, nav: WebNav): WebView = WebView(ctx).app
             if (url != null) nav.url.value = url
         }
 
+        // prima schermata della pagina nuova pronta: si toglie la copertura
+        override fun onPageCommitVisible(v: WebView, url: String?) {
+            nav.busy.value = false
+        }
+
         override fun onPageFinished(v: WebView, url: String?) {
+            nav.busy.value = false
             cm.flush()
             if (!early) {
                 v.evaluateJavascript(START_JS, null)
@@ -137,6 +149,7 @@ fun makeWeb(ctx: Context, store: Store, nav: WebNav): WebView = WebView(ctx).app
 
         override fun onReceivedError(v: WebView, r: WebResourceRequest, e: WebResourceError) {
             if (!r.isForMainFrame) return
+            nav.busy.value = false
             v.loadDataWithBaseURL(null, offlinePage(), "text/html", "utf-8", null)
         }
     }

@@ -110,7 +110,10 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     LaunchedEffect(url) { pending = null }
     val active = when (view) { Pane.CLIMA, Pane.CLIMI -> Cat.AC; Pane.SCORC -> Cat.MORE; Pane.GATE, Pane.ACC -> Cat.GATE; Pane.WEB -> pending ?: pageCat }
 
-    fun go(path: String, c: Cat) { pending = c; setView(Pane.WEB); web.loadUrl(Relay.BASE + path) }
+    fun go(path: String, c: Cat) { pending = c; nav.busy.value = true; setView(Pane.WEB); web.loadUrl(Relay.BASE + path) }
+    val busy by nav.busy.collectAsState()
+    // copertura al massimo 5 s (rete lenta o pagina che non arriva)
+    LaunchedEffect(busy) { if (busy) { delay(5000); nav.busy.value = false } }
     fun openDev(d: RelayDev) {
         nav.dev.value = d.id
         go("/_go?d=" + d.id, when (d.type) { "thermostat" -> Cat.HEAT; "ac" -> Cat.AC; "gate" -> Cat.GATE; "sensor" -> Cat.SENS; else -> Cat.MORE })
@@ -161,6 +164,8 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     Column(Modifier.fillMaxSize().background(pal.bg).statusBarsPadding()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             CasaWeb(web, visible = view == Pane.WEB)
+            // pagina nuova in arrivo: niente lampo di quella di prima
+            if (view == Pane.WEB && busy) Box(Modifier.fillMaxSize().background(pal.bg))
             if (view != Pane.WEB) Box(Modifier.fillMaxSize().background(pal.bg)) {
                 holder.SaveableStateProvider(view.name) {
                     when (view) {
