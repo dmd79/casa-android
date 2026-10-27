@@ -135,7 +135,7 @@ private fun GatePermission(onResult: () -> Unit) {
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { onResult() }
     LaunchedEffect(Unit) { ask.launch(perms) }
     Column(Modifier.fillMaxSize()) {
-        Title("Cancelli Bluetooth")
+        Title("Gate Bluetooth")
         Sub("aprire da vicino, anche senza internet")
         BigIcon(Icons.bt)
         Text("Per trovare e aprire cancelli e garage serve il permesso «Dispositivi nelle vicinanze».",
@@ -165,14 +165,14 @@ private fun GateList(gb: GateBle, store: Store, onAdd: () -> Unit, onPick: (Stri
             "Dimentica", danger = true, onDismiss = { del = null }) { del = null; gb.forget(g.address) }
     }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Title("Cancelli Bluetooth")
+        Title("Gate Bluetooth")
         Sub(if (gates.isEmpty()) "nessuno ancora: cercalo qui sotto" else "tocca per aprire")
         Spacer(Modifier.height(20.dp))
         gates.forEach { g ->
             GateRow(g.name, gateSub(g, stati[g.address]), onDelete = { del = g }) { onPick(g.address) }
         }
         Spacer(Modifier.height(18.dp))
-        Btn("Aggiungi cancello Bluetooth", onClick = onAdd)
+        Btn("Aggiungi gate Bluetooth", onClick = onAdd)
         Note("Da vicino apre anche senza internet e senza Wi-Fi. Ogni telefono si abbina una volta sola, con il codice mostrato dalla pagina del dispositivo.", center = true)
     }
 }
@@ -374,6 +374,23 @@ fun DeviceRow(title: String, sub: String, subColor: Color? = null, selected: Boo
     }
 }
 
+/** Collegamento a un'altra schermata, con titolo e riga sotto. */
+@Composable
+fun LinkCard(title: String, sub: String, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)
+            .border(1.dp, pal.border, RoundedCornerShape(16.dp)).clickable(onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 13.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, color = pal.text, fontSize = 18.sp)
+            Text(sub, color = pal.muted, fontSize = 14.sp)
+        }
+        Text("›", color = pal.accent, fontSize = 26.sp)
+    }
+}
+
 /** Simboli del canale: Wi-Fi (relay) e Bluetooth. */
 val ICO_WIFI = listOf(IconPart("M2 8.8a15 15 0 0 1 20 0"), IconPart("M5.5 12.6a10 10 0 0 1 13 0"), IconPart("M9 16.3a5 5 0 0 1 6 0"), IconPart("M11.9 20h.2"))
 val ICO_BT = listOf(IconPart("M7 7l10 10-5 5V2l5 5L7 17"))
@@ -385,10 +402,10 @@ val ICO_BT = listOf(IconPart("M7 7l10 10-5 5V2l5 5L7 17"))
  */
 @Composable
 fun GateButton(modifier: Modifier, a: String, stato: String?, mark: String?, ch: String? = null, sub: String? = null,
-               off: Boolean = false, onClick: () -> Unit) {
+               off: Boolean = false, note: String? = null, onClick: () -> Unit) {
     val col = when { off -> pal.muted; mark == "done" -> pal.ok; stato == "aperto" -> G_YEL; else -> G_BLUE }
     val line = when {
-        mark == "done" -> "inviato ✓"; mark == "busy" -> "invio…"; off -> "non raggiungibile"
+        mark == "done" -> "inviato ✓"; mark == "busy" -> "invio…"; off -> "non raggiungibile"; note != null -> note
         stato == "aperto" -> "aperto"; stato == "chiuso" -> "chiuso"; else -> "impulso"
     }
     Box(modifier.clip(RoundedCornerShape(14.dp)).background(col.copy(alpha = .14f)).border(2.dp, col, RoundedCornerShape(14.dp))

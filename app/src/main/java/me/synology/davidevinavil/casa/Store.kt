@@ -80,6 +80,19 @@ class Store(ctx: Context) {
         get() = p.getString("relayGates", "[]") ?: "[]"
         set(v) = p.edit().putString("relayGates", v).apply()
 
+    /**
+     * Com'era il relay l'ultima volta: Accessi e Clima ripartono da qui
+     * (raggiungibile: Wi-Fi subito; no: Bluetooth subito finche' non risponde).
+     */
+    var relayUp: Boolean
+        get() = p.getBoolean("relayUp", true)
+        set(v) = p.edit().putBoolean("relayUp", v).apply()
+
+    /** Ultimo stato letto via Bluetooth di ogni condizionatore (pagina Clima). */
+    var acSnaps: String
+        get() = p.getString("acSnaps", "{}") ?: "{}"
+        set(v) = p.edit().putString("acSnaps", v).apply()
+
     var tab: String
         get() = p.getString("tab", "CASA") ?: "CASA"
         set(v) = p.edit().putString("tab", v).apply()

@@ -90,9 +90,14 @@ data class GateEvent(val t: Long, val canale: Int, val azione: String, val utent
     }
 }
 
-/** Un collegamento GATT al cancello, con le operazioni in coda (una alla volta). */
+/**
+ * Un collegamento GATT breve, con le operazioni in coda (una alla volta).
+ * Per i cancelli e, con [svc]/[rev] del clima, per leggere al volo un
+ * condizionatore (pagina Clima).
+ */
 @SuppressLint("MissingPermission")
-private class GateConn(private val ctx: Context, val dev: BluetoothDevice, private val scope: CoroutineScope) {
+internal class GateConn(private val ctx: Context, val dev: BluetoothDevice, private val scope: CoroutineScope,
+                        private val svc: UUID = GateUuids.SVC, private val rev: UUID = GateUuids.REV) {
     private var gatt: BluetoothGatt? = null
     private val lock = Mutex()
     @Volatile private var pending: CompletableDeferred<Any?>? = null
@@ -118,7 +123,7 @@ private class GateConn(private val ctx: Context, val dev: BluetoothDevice, priva
         }
 
         override fun onServicesDiscovered(g: BluetoothGatt, status: Int) {
-            val s = g.getService(GateUuids.SVC)
+            val s = g.getService(svc)
             if (s == null) { ready.complete(false); g.disconnect(); return }
             s.characteristics.forEach { chars[it.uuid] = it }
             alive = true
@@ -148,12 +153,12 @@ private class GateConn(private val ctx: Context, val dev: BluetoothDevice, priva
         }
 
         override fun onCharacteristicChanged(g: BluetoothGatt, c: BluetoothGattCharacteristic, value: ByteArray) {
-            if (c.uuid == GateUuids.REV) onRev?.invoke()
+            if (c.uuid == rev) onRev?.invoke()
         }
 
         @Deprecated("API < 33")
         override fun onCharacteristicChanged(g: BluetoothGatt, c: BluetoothGattCharacteristic) {
-            if (Build.VERSION.SDK_INT < 33 && c.uuid == GateUuids.REV) onRev?.invoke()
+            if (Build.VERSION.SDK_INT < 33 && c.uuid == rev) onRev?.invoke()
         }
     }
 
@@ -195,7 +200,7 @@ private class GateConn(private val ctx: Context, val dev: BluetoothDevice, priva
 
     @Suppress("DEPRECATION")
     suspend fun notifyRev() {
-        val c = chars[GateUuids.REV] ?: return
+        val c = chars[rev] ?: return
         val g = gatt ?: return
         g.setCharacteristicNotification(c, true)
         val d = c.getDescriptor(GateUuids.CCCD) ?: return
@@ -356,6 +361,27 @@ class GateBle(private val ctx: Context, private val store: Store) {
         5, 8, 15, 0x89 -> "abbinamento perso: abbinalo di nuovo"
         -1 -> "nessuna risposta"
         else -> "non riuscito ($st)"
+    }
+
+    /**
+     * Lettura breve (scheda Accessi): il cancello risponde? Aggiorna anche lo
+     * stato. Solo abbinati: niente abbinamenti a sorpresa.
+     */
+    suspend fun peek(addr: String, timeout: Long = 6000): Boolean {
+        if (!hasPermissions()) return false
+        if (watched == addr) return conn?.alive == true
+        return tempLock.withLock {
+            val ad = adapter?.takeIf { it.isEnabled } ?: return@withLock false
+            val dev = try { ad.getRemoteDevice(addr) } catch (e: Exception) { return@withLock false }
+            if (dev.bondState != BluetoothDevice.BOND_BONDED) return@withLock false
+            val c = GateConn(ctx, dev, scope)
+            try {
+                if (!c.connect(timeout)) return@withLock false
+                val s = GateState.parse(c.read(GateUuids.STATE)) ?: return@withLock false
+                keep(addr, s)
+                true
+            } finally { c.close() }
+        }
     }
 
     // ── abbinamento ───────────────────────────────────────

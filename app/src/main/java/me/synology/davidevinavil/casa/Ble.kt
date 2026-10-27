@@ -79,6 +79,9 @@ class Ble(private val ctx: Context, val store: Store) {
     val scanning = MutableStateFlow(false)
     /** PIN in uso; vuoto = da chiedere. */
     val pin = MutableStateFlow("")
+    /** Ultimo stato letto di ogni condizionatore (indirizzo -> stato e ora). */
+    val snaps = MutableStateFlow(loadSnaps())
+
     /** Avvisi da mostrare in basso. */
     val toasts = MutableSharedFlow<String>(extraBufferCapacity = 8)
 
@@ -390,6 +393,7 @@ class Ble(private val ctx: Context, val store: Store) {
         if (System.currentTimeMillis() < hold) local?.let { s = it(s) }
         state.value = s
         val a = address.value
+        if (a != null) keepSnap(a, s)
         if (a != null && s.name.isNotBlank()) store.put(a, s.name)
         if (s.isOn) store.lastMode = s.mode
     }
@@ -439,6 +443,56 @@ class Ble(private val ctx: Context, val store: Store) {
         val l = parseNets(String(b))
         if (l.isNotEmpty()) nets.value = l
     }
+
+    // ── lettura al volo (pagina Clima) ───────────────────
+
+    private val peekLock = Mutex()
+
+    /** Telefono abbinato a questo condizionatore. */
+    fun isBonded(addr: String): Boolean = try {
+        hasPermissions() && adapter?.getRemoteDevice(addr)?.bondState == BluetoothDevice.BOND_BONDED
+    } catch (e: Exception) { false }
+
+    /**
+     * Collegamento breve per leggere lo stato di un condizionatore abbinato e
+     * a portata, poi si stacca. Mai con la schermata Bluetooth aperta (li'
+     * c'e' gia' il collegamento vero). null se non risponde.
+     */
+    suspend fun peek(addr: String, timeout: Long = 6000): AcState? = peekLock.withLock {
+        if (active || !hasPermissions()) return@withLock null
+        val ad = adapter?.takeIf { it.isEnabled } ?: return@withLock null
+        val dev = try { ad.getRemoteDevice(addr) } catch (e: Exception) { return@withLock null }
+        if (dev.bondState != BluetoothDevice.BOND_BONDED) return@withLock null     // niente abbinamenti a sorpresa
+        val c = GateConn(ctx, dev, scope, Uuids.SVC, Uuids.REV)
+        try {
+            if (!c.connect(timeout)) return@withLock null
+            val b = c.read(Uuids.STATE) ?: return@withLock null
+            val s = try { AcState.parse(JSONObject(String(b))) } catch (e: Exception) { return@withLock null }
+            keepSnap(addr, s)
+            if (s.name.isNotBlank()) store.put(addr, s.name)
+            s
+        } finally { c.close() }
+    }
+
+    private fun keepSnap(addr: String, s: AcState) {
+        snaps.value = snaps.value + (addr to AcSnap(s.mode, s.current, s.target, System.currentTimeMillis()))
+        val o = JSONObject()
+        snaps.value.forEach { (k, v) ->
+            o.put(k, JSONObject().put("m", v.mode).put("c", v.current ?: JSONObject.NULL).put("g", v.target ?: JSONObject.NULL).put("t", v.t))
+        }
+        store.acSnaps = o.toString()
+    }
+
+    private fun loadSnaps(): Map<String, AcSnap> = try {
+        val o = JSONObject(store.acSnaps)
+        buildMap {
+            o.keys().forEach { k ->
+                val v = o.getJSONObject(k)
+                fun n(x: String) = if (v.isNull(x)) null else v.optDouble(x).takeIf { !it.isNaN() }
+                put(k, AcSnap(v.optString("m", "off"), n("c"), n("g"), v.optLong("t")))
+            }
+        }
+    } catch (e: Exception) { emptyMap() }
 
     // ── ricerca di condizionatori nuovi ──────────────────
 

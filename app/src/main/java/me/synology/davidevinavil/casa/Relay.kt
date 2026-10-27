@@ -45,9 +45,12 @@ object Relay {
     private fun conn(path: String, cookie: String?, method: String = "GET"): HttpURLConnection {
         val c = URL(BASE + path).openConnection() as HttpURLConnection
         c.requestMethod = method
-        c.connectTimeout = 6000
+        c.connectTimeout = 3000     // in casa e in rete mobile risponde molto prima: oltre, e' giu' davvero
         c.readTimeout = 8000
         c.setRequestProperty("Cache-Control", "no-store")
+        // niente collegamenti tenuti aperti: riaprendo l'app quello vecchio era
+        // gia' chiuso e la prima richiesta falliva ("relay non raggiungibile")
+        c.setRequestProperty("Connection", "close")
         if (!cookie.isNullOrBlank()) c.setRequestProperty("Cookie", cookie)
         return c
     }

@@ -57,7 +57,7 @@ fun AccessScreen(app: CasaApp, setWho: (String) -> Unit, onHistory: () -> Unit, 
     val store = app.store
     val gb = app.gates
     var relay by remember { mutableStateOf(Relay.parseGates(store.relayGates)) }
-    var relayOk by remember { mutableStateOf(true) }        // ultimo giro col relay riuscito
+    var relayOk by remember { mutableStateOf(store.relayUp) }   // si riparte da com'era l'ultima volta
     var loaded by remember { mutableStateOf(false) }
     val btGates by store.gates.collectAsState()
     val btStati by gb.stati.collectAsState()
@@ -68,15 +68,21 @@ fun AccessScreen(app: CasaApp, setWho: (String) -> Unit, onHistory: () -> Unit, 
     val snack = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // stato dal relay: subito e poi ogni 5 s (10 s se non risponde)
+    // Stato dal relay: subito e poi ogni 5 s. Da raggiungibile si passa al
+    // Bluetooth solo dopo due giri falliti (una richiesta sfortunata alla
+    // riapertura non basta); da non raggiungibile si torna al relay alla
+    // prima risposta.
     LaunchedEffect(Unit) {
+        var fails = 0
         while (true) {
-            val cookie = Relay.cookie()
-            val r = withContext(Dispatchers.IO) { Relay.gateList(cookie) }
-            if (r != null) { relay = r; store.relayGates = Relay.gatesJson(r) }
-            relayOk = r != null
+            val cookie = Relay.cookie()          // sul thread principale, come il resto dell'app
+            var r = withContext(Dispatchers.IO) { Relay.gateList(cookie) }
+            if (r == null && relayOk) { delay(1500); r = withContext(Dispatchers.IO) { Relay.gateList(cookie) } }
+            if (r != null) { relay = r; store.relayGates = Relay.gatesJson(r); fails = 0; relayOk = true }
+            else if (++fails >= 2 || !relayOk) relayOk = false
+            store.relayUp = relayOk
             loaded = true
-            delay(if (r != null) 5000 else 10_000)
+            delay(if (r != null) 5000 else 3000)
         }
     }
 
@@ -96,10 +102,24 @@ fun AccessScreen(app: CasaApp, setWho: (String) -> Unit, onHistory: () -> Unit, 
     // stesso pulsante su piu' dispositivi (due "cancello"): sotto c'e' anche il nome
     val twice = accs.groupBy { it.azione.lowercase() }.filter { it.value.size > 1 }.keys
 
+    // Bluetooth: lettura breve dei gate su cui si apre via Bluetooth, uno per
+    // volta, poi ogni minuto. null = non ancora letto, false = non risponde.
+    val reach = remember { mutableStateMapOf<String, Boolean>() }
+
     fun channel(x: Acc): String? = when {
         x.relay != null && relayOk && x.relay.online -> "wifi"
         x.bt != null -> "bt"
         else -> null
+    }
+
+    val btWanted = accs.filter { channel(it) == "bt" }.mapNotNull { it.bt?.address }.distinct()
+    LaunchedEffect(btWanted.joinToString()) {
+        if (btWanted.isEmpty()) return@LaunchedEffect
+        delay(600)
+        while (true) {
+            btWanted.forEach { a -> reach[a] = gb.peek(a) }
+            delay(60_000)
+        }
     }
 
     fun fire(x: Acc) {
@@ -114,10 +134,13 @@ fun AccessScreen(app: CasaApp, setWho: (String) -> Unit, onHistory: () -> Unit, 
                       else gb.open(x.bt!!.address, x.azione, who)
             // relay non raggiunto (comando di sicuro non partito): Bluetooth
             if (ch == "wifi" && err != null && err in Relay.NOT_SENT && x.bt != null) {
-                relayOk = false
+                relayOk = false; store.relayUp = false
                 if (gb.open(x.bt.address, x.azione, who) == null) err = null
             }
-            if (err == null) { mark[x.key] = "done"; delay(1800); mark.remove(x.key) }
+            if (err == null) {
+                if (ch == "bt") x.bt?.let { reach[it.address] = true }
+                mark[x.key] = "done"; delay(1800); mark.remove(x.key)
+            }
             else { mark.remove(x.key); snack.showSnackbar("${x.azione.replaceFirstChar { it.uppercase() }}: $err") }
         }
     }
@@ -148,9 +171,12 @@ fun AccessScreen(app: CasaApp, setWho: (String) -> Unit, onHistory: () -> Unit, 
                 Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     row.forEach { x ->
                         val ch = channel(x)
-                        val stato = if (ch == "wifi") x.relay?.stati?.get(x.azione) else x.bt?.let { btStati[it.address]?.get(x.azione) }
+                        // Bluetooth: stato solo se ha appena risposto, altrimenti "cerco…" / "non raggiungibile"
+                        val r = if (ch == "bt") x.bt?.let { reach[it.address] } else true
+                        val stato = if (ch == "wifi") x.relay?.stati?.get(x.azione) else if (r == true) x.bt?.let { btStati[it.address]?.get(x.azione) } else null
                         GateButton(Modifier.weight(1f), x.azione, stato, mark[x.key], ch = ch ?: "wifi",
-                            sub = if (x.azione.lowercase() in twice) x.dev else null, off = ch == null) { fire(x) }
+                            sub = if (x.azione.lowercase() in twice) x.dev else null, off = ch == null || r == false,
+                            note = if (ch == "bt" && r == null) "cerco…" else null) { fire(x) }
                     }
                     if (row.size == 1) Spacer(Modifier.weight(1f))
                 }
@@ -163,7 +189,7 @@ fun AccessScreen(app: CasaApp, setWho: (String) -> Unit, onHistory: () -> Unit, 
             }
             Spacer(Modifier.height(8.dp))
             RowCard("Storico delle aperture", onClick = onHistory)
-            RowCard("Cancelli Bluetooth", onClick = onBt)
+            LinkCard("Gate Bluetooth", "elenco, aggiungi, dimentica", onClick = onBt)
             Spacer(Modifier.height(16.dp))
         }
         SnackbarHost(snack, Modifier.align(Alignment.BottomCenter))

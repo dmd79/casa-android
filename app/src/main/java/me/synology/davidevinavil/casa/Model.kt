@@ -93,6 +93,9 @@ fun parseNets(t: String): List<WifiNet> {
     return out.values.sortedByDescending { it.rssi }
 }
 
+/** Ultimo stato letto di un condizionatore Bluetooth e quando (ms). */
+data class AcSnap(val mode: String, val current: Double?, val target: Double?, val t: Long)
+
 /** Condizionatore trovato cercando. */
 data class Found(val address: String, val name: String, val rssi: Int)
 
