@@ -124,7 +124,7 @@ class BtPairer(private val ctx: Context, private val store: Store, private val b
         // 2. ricerca: il dispositivo accende il Bluetooth dopo aver risposto
         gb.stopScan(); ble.stopScan()
         val svc = if (type == "gate") GateUuids.SVC else Uuids.SVC
-        val dev = find(svc, name) ?: return fail("Non trovo $name in Bluetooth: avvicinati e riprova.$later")
+        val (dev, advName) = find(svc, name) ?: return fail("Non trovo $name in Bluetooth: avvicinati e riprova.$later")
         ui.value = ui.value?.copy(step = 2)
 
         // 3. abbinamento
@@ -159,9 +159,15 @@ class BtPairer(private val ctx: Context, private val store: Store, private val b
         ContextCompat.registerReceiver(ctx, rxBond, IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED), ContextCompat.RECEIVER_EXPORTED)
         ContextCompat.registerReceiver(ctx, rxPin, IntentFilter(BluetoothDevice.ACTION_PAIRING_REQUEST).apply { priority = IntentFilter.SYSTEM_HIGH_PRIORITY - 1 },
             ContextCompat.RECEIVER_EXPORTED)
-        val c = GateConn(ctx, dev, scope, svc, if (type == "gate") GateUuids.REV else Uuids.REV)
+        // il primo collegamento subito dopo la ricerca a volte non va (errore 133 di Android): si riprova
+        var c = GateConn(ctx, dev, scope, svc, if (type == "gate") GateUuids.REV else Uuids.REV)
         try {
-            if (!c.connect(12_000)) return fail("$name non risponde in Bluetooth: avvicinati e riprova.$later")
+            var ok = false
+            for (t in 1..3) {
+                if (t > 1) { c.close(); delay(1500); c = GateConn(ctx, dev, scope, svc, if (type == "gate") GateUuids.REV else Uuids.REV) }
+                if (c.connect(12_000)) { ok = true; break }
+            }
+            if (!ok) return fail("Trovato «$advName» (${dev.address}) ma non accetta il collegamento: avvicinati e riprova.$later")
             if (!dev.createBond()) return fail("Abbinamento non avviato: riprova.$later")
             val r = withTimeoutOrNull(150_000) { bonded.await() } ?: return fail("Tempo scaduto: il codice non è stato scritto.$later")
             if (r != BluetoothDevice.BOND_BONDED) return fail("Abbinamento rifiutato: codice sbagliato o finestra chiusa.$later")
@@ -189,30 +195,26 @@ class BtPairer(private val ctx: Context, private val store: Store, private val b
 
     /**
      * Cerca il dispositivo col servizio [svc] e lo stesso nome (anche tagliato
-     * nell'annuncio). Con la rete gli altri hanno il Bluetooth spento: se dopo
-     * 15 s c'e' un solo dispositivo nuovo, e' lui.
+     * nell'annuncio, dai 20 caratteri). Solo per nome: un dispositivo senza
+     * rete ha il Bluetooth acceso e non va preso al suo posto. Il dispositivo
+     * accende il Bluetooth qualche secondo dopo aver dato il codice: 45 s.
      */
-    private suspend fun find(svc: java.util.UUID, name: String): BluetoothDevice? {
+    private suspend fun find(svc: java.util.UUID, name: String): Pair<BluetoothDevice, String>? {
         val sc = adapter?.takeIf { it.isEnabled }?.bluetoothLeScanner ?: return null
         val want = normName(name)
-        val seen = LinkedHashMap<String, Pair<BluetoothDevice, String>>()
-        val hit = CompletableDeferred<BluetoothDevice>()
+        val hit = CompletableDeferred<Pair<BluetoothDevice, String>>()
         val cb = object : ScanCallback() {
             override fun onScanResult(t: Int, r: ScanResult) {
-                val n = normName(r.scanRecord?.deviceName ?: r.device.name ?: "")
-                synchronized(seen) { seen[r.device.address] = r.device to n }
-                if (n.isNotEmpty() && (n == want || want.startsWith(n) || n.startsWith(want))) hit.complete(r.device)
+                val raw = r.scanRecord?.deviceName ?: r.device.name ?: return
+                val n = normName(raw)
+                if (n == want || (n.length >= 20 && want.startsWith(n))) hit.complete(r.device to raw)
             }
         }
         val f = ScanFilter.Builder().setServiceUuid(ParcelUuid(svc)).build()
         val st = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
         try { sc.startScan(listOf(f), st, cb) } catch (e: Exception) { return null }
         try {
-            withTimeoutOrNull(15_000) { hit.await() }?.let { return it }
-            val known = (store.gates.value.map { it.address } + store.devices.value.map { it.address }).toSet()
-            val fresh = synchronized(seen) { seen.values.filter { it.first.address !in known } }
-            if (fresh.size == 1) return fresh[0].first
-            return withTimeoutOrNull(25_000) { hit.await() }
+            return withTimeoutOrNull(45_000) { hit.await() }
         } finally {
             try { sc.stopScan(cb) } catch (_: Exception) {}
         }
