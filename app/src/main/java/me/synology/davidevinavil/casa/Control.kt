@@ -64,6 +64,9 @@ fun ControlScreen(ble: Ble, st: AcState, link: Link, onSettings: () -> Unit, onD
     val mc = modeColor(st.mode)
     var tmrDlg by remember { mutableStateOf(false) }
     // il comando parte nella coda del collegamento: non si perde cambiando schermata
+    // [apply] mostra subito il valore scelto e lo tiene per 4 s anche sopra le
+    // letture: deve mettere un valore fisso, deciso al tocco. "Il successivo
+    // di quello letto" saltava un passo appena arrivava lo stato vero.
     fun cmd(k: String, v: String, apply: ((AcState) -> AcState)? = null) { ble.launch { send(k, v, apply) } }
 
     Column(Modifier.fillMaxSize()) {
@@ -97,7 +100,7 @@ fun ControlScreen(ble: Ble, st: AcState, link: Link, onSettings: () -> Unit, onD
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 val pc = if (on) mc else pal.danger
                 Box(Modifier.size(100.dp).clip(CircleShape).background(pc.copy(alpha = .25f)).border(2.dp, pc, CircleShape)
-                    .clickable { cmd("power", "1") { it.copy(mode = if (it.isOn) "off" else ble.store.lastMode) } },
+                    .clickable { val m = if (st.isOn) "off" else ble.store.lastMode; cmd("power", "1") { it.copy(mode = m) } },
                     contentAlignment = Alignment.Center) { SvgIcon(Icons.power, pc, 46.dp, stroke = 2.2f) }
                 Text(if (on) "Acceso" else "Spento", color = pal.text, fontSize = 17.sp, modifier = Modifier.padding(top = 6.dp))
             }
@@ -131,21 +134,21 @@ fun ControlScreen(ble: Ble, st: AcState, link: Link, onSettings: () -> Unit, onD
         // ── ventola, alette, timer ──
         Row(Modifier.fillMaxWidth().padding(top = 26.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             val fi = FANS.indexOf(st.fan)
-            Chip(Modifier.weight(1f), onTap = { cmd("fan", FANS.after(st.fan)) { it.copy(fan = FANS.after(it.fan)) } }) {
+            Chip(Modifier.weight(1f), onTap = { val f = FANS.after(st.fan); cmd("fan", f) { it.copy(fan = f) } }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     SvgIcon(Icons.fan(pal.card), if (on) pal.value else pal.muted, 26.dp)
                     Text(" " + (if (fi <= 0) "A" else "$fi"), color = pal.value, fontSize = 20.sp, fontWeight = FontWeight.Medium)
                 }
             }
-            Chip(Modifier.weight(1f), onTap = { cmd("vswing", VSWINGS.after(st.vswing)) { it.copy(vswing = VSWINGS.after(it.vswing)) } }) {
+            Chip(Modifier.weight(1f), onTap = { val v = VSWINGS.after(st.vswing); cmd("vswing", v) { it.copy(vswing = v) } }) {
                 SwingIcon(true, st.vswing, on)
             }
             Chip(Modifier.weight(1f), visible = st.hasHswing,
-                onTap = { cmd("hswing", HSWINGS.after(st.hswing)) { it.copy(hswing = HSWINGS.after(it.hswing)) } }) {
+                onTap = { val h = HSWINGS.after(st.hswing); cmd("hswing", h) { it.copy(hswing = h) } }) {
                 SwingIcon(false, st.hswing, on)
             }
             Chip(Modifier.weight(1f), active = st.timer, onLong = { tmrDlg = true },
-                onTap = { cmd("timer", if (st.timer) "off" else "on") { it.copy(timer = !it.timer, timerLeft = if (it.timer) 0 else it.timerDur) } }) {
+                onTap = { val t = !st.timer; cmd("timer", if (t) "on" else "off") { it.copy(timer = t, timerLeft = if (t) it.timerDur else 0) } }) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     val c = if (st.timer) pal.accent else pal.muted
                     Text("Timer", color = c, fontSize = 13.sp)
