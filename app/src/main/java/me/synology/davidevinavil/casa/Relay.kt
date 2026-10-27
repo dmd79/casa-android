@@ -109,7 +109,7 @@ object Relay {
                     g.optString("name").takeIf { it.isNotBlank() && it != "null" } ?: o.optString("name").ifBlank { id },
                     g.optBoolean("online", o.optBoolean("online")) && az != null,
                     if (az == null) emptyList() else (0 until az.length()).map { az.getString(it) },
-                    buildMap { st?.keys()?.forEach { k -> put(k, st.optString(k)) } })
+                    buildMap { st?.let { o -> o.keys().forEach { k -> put(k, o.optString(k)) } } })
             }
             out
         }
@@ -136,7 +136,7 @@ object Relay {
             val s = o.optJSONObject("s")
             RelayGate(o.getString("id"), o.optString("n"), o.optBoolean("o"),
                 if (z == null) emptyList() else (0 until z.length()).map { z.getString(it) },
-                buildMap { s?.keys()?.forEach { k -> put(k, s.optString(k)) } })
+                buildMap { s?.let { o -> o.keys().forEach { k -> put(k, o.optString(k)) } } })
         }
     } catch (e: Exception) { emptyList() }
 

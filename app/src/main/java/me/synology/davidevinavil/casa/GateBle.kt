@@ -65,7 +65,7 @@ data class GateState(val name: String, val azioni: List<String>, val stati: Map<
             GateState(
                 j.optString("n"),
                 if (a == null) emptyList() else (0 until a.length()).map { a.getString(it) },
-                buildMap { s?.keys()?.forEach { k -> put(k, s.optString(k)) } },
+                buildMap { s?.let { o -> o.keys().forEach { k -> put(k, o.optString(k)) } } },
                 j.optLong("t"),
             )
         } catch (e: Exception) { null }

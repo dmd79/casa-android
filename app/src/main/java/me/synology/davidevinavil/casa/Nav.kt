@@ -176,12 +176,8 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     Column(Modifier.fillMaxSize().background(pal.bg).statusBarsPadding()) {
         Box(Modifier.weight(1f).fillMaxWidth()) {
             CasaWeb(web, visible = view == Pane.WEB)
-            // pagina nuova in arrivo: niente lampo di quella di prima. Stesso
-            // nero delle pagine dei dispositivi, e se ne va in dissolvenza.
-            AnimatedVisibility(visible = view == Pane.WEB && busy, enter = EnterTransition.None,
-                exit = fadeOut(tween(200))) {
-                Box(Modifier.fillMaxSize().background(Color(0xFF0A0A0F)))
-            }
+            // pagina nuova in arrivo: niente lampo di quella di prima
+            PageCover(view == Pane.WEB && busy)
             if (view != Pane.WEB) Box(Modifier.fillMaxSize().background(pal.bg)) {
                 holder.SaveableStateProvider(view.name) {
                     when (view) {
@@ -258,6 +254,19 @@ private fun SheetRow(it: Item) {
                 modifier = Modifier.clip(RoundedCornerShape(10.dp)).border(1.dp, pal.border, RoundedCornerShape(10.dp))
                     .padding(horizontal = 8.dp, vertical = 2.dp))
         }
+    }
+}
+
+/**
+ * Copertura sopra la WebView mentre arriva la pagina nuova: stesso nero delle
+ * pagine dei dispositivi, se ne va in dissolvenza. Funzione a parte: dentro la
+ * colonna della barra AnimatedVisibility prenderebbe la versione della colonna
+ * (non chiamabile da li').
+ */
+@Composable
+private fun PageCover(visible: Boolean) {
+    AnimatedVisibility(visible = visible, enter = EnterTransition.None, exit = fadeOut(tween(200))) {
+        Box(Modifier.fillMaxSize().background(Color(0xFF0A0A0F)))
     }
 }
 
