@@ -174,6 +174,30 @@ private fun WebView.loadWhenSized() {
 /** Da JavaScript ad Android. */
 class Bridge(private val ctx: Context, private val store: Store, private val web: WebView) {
     private val gb get() = (ctx as CasaApp).gates
+    private val pairer get() = (ctx as CasaApp).pairer
+
+    init {
+        // abbinato o dimenticato: la lista del relay ridisegna simboli e tasti
+        pairer.notify = { web.post { web.evaluateJavascript("window.__btPairedChanged&&window.__btPairedChanged()", null) } }
+    }
+
+    /** Dispositivi abbinati in Bluetooth nell'app, per nome: {"ac":[...],"gate":[...]}. */
+    @JavascriptInterface
+    fun btPaired(): String = pairer.pairedJson()
+
+    /** "Abbina Bluetooth" nella lista del relay ([type] "ac" o "gate"). */
+    @JavascriptInterface
+    fun btPair(id: String, type: String, name: String) {
+        if (type != "ac" && type != "gate") return
+        pairer.start(id, type, name, Relay.cookie())
+    }
+
+    /** "Dimentica Bluetooth": prima la conferma. */
+    @JavascriptInterface
+    fun btForget(type: String, name: String) {
+        if (type != "ac" && type != "gate") return
+        pairer.forgetAsk.value = type to name
+    }
 
     /** Cancelli Bluetooth salvati nell'app, per la Plancia: [{addr,name,azioni,stati}]. */
     @JavascriptInterface

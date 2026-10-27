@@ -12,12 +12,15 @@ class CasaApp : Application() {
     val gateGo = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
     /** Schermata di Clima BT chiesta dalla barra (per esempio la ricerca). */
     val climaGo = kotlinx.coroutines.flow.MutableStateFlow<Scr?>(null)
+    /** "Abbina / Dimentica Bluetooth" dalla lista del relay. */
+    lateinit var pairer: BtPairer
 
     override fun onCreate() {
         super.onCreate()
         store = Store(this)
         ble = Ble(this, store)
         gates = GateBle(this, store)
+        pairer = BtPairer(this, store, ble, gates)
         ble.resume()
     }
 }

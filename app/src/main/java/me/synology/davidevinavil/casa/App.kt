@@ -198,7 +198,7 @@ fun DevicesScreen(ble: Ble, store: Store, onAdd: () -> Unit, onPick: (String) ->
     val link by ble.link.collectAsState()
     var del by remember { mutableStateOf<Saved?>(null) }
     del?.let { d ->
-        Confirm("Dimenticare ${d.name}?", "Va tolto dall'elenco, insieme al PIN salvato. Potrai aggiungerlo di nuovo cercandolo.",
+        Confirm("Dimenticare ${d.name}?", "Va tolto dall'elenco e dagli abbinamenti del telefono. Potrai aggiungerlo di nuovo cercandolo.",
             "Dimentica", danger = true, onDismiss = { del = null }) { del = null; ble.forget(d.address) }
     }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {

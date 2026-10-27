@@ -204,6 +204,9 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
         }
     }
 
+    // "Abbina / Dimentica Bluetooth" chiesti dalla lista del relay
+    BtPairDialogs(app.pairer)
+
     val open = sheet ?: return
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     fun pick(f: () -> Unit) = { sheet = null; f() }

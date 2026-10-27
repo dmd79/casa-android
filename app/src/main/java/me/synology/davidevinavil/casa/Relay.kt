@@ -167,5 +167,29 @@ object Relay {
         } catch (e: Exception) { "nessuna risposta dal relay" }
     }
 
+    /**
+     * "Abbina Bluetooth": il dispositivo apre l'abbinamento e risponde col
+     * codice di 6 cifre. (codice, null) se arrivato; (null, motivo) altrimenti,
+     * (null, null) se non risponde entro 10 s (3 per collegarsi, 7 per la risposta).
+     */
+    fun btPair(cookie: String?, dev: String): Pair<String?, String?> {
+        val c = try {
+            conn("/_btpair?d=" + enc(dev), cookie, "POST").apply { readTimeout = 7000; doOutput = true; setFixedLengthStreamingMode(0); connect() }
+        } catch (e: Exception) { return null to "relay non raggiungibile" }
+        return try {
+            c.outputStream.close()
+            val (code, body) = text(c)
+            val j = try { JSONObject(body) } catch (e: Exception) { JSONObject() }
+            val k = j.optString("codice").filter { it.isDigit() }
+            when {
+                code == 401 -> null to "apri Casa ed entra di nuovo"
+                j.optBoolean("ok") && k.length == 6 -> k to null
+                j.optString("err").isNotBlank() -> null to j.optString("err")
+                else -> null to "risposta senza codice ($code)"
+            }
+        } catch (e: java.net.SocketTimeoutException) { null to null }
+        catch (e: Exception) { null to "nessuna risposta" }
+    }
+
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
 }
