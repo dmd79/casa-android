@@ -157,6 +157,11 @@ fun DevicesScreen(ble: Ble, store: Store, onAdd: () -> Unit, onPick: (String) ->
     val list by store.devices.collectAsState()
     val addr by ble.address.collectAsState()
     val link by ble.link.collectAsState()
+    var del by remember { mutableStateOf<Saved?>(null) }
+    del?.let { d ->
+        Confirm("Dimenticare ${d.name}?", "Va tolto dall'elenco, insieme al PIN salvato. Potrai aggiungerlo di nuovo cercandolo.",
+            "Dimentica", danger = true, onDismiss = { del = null }) { del = null; ble.forget(d.address) }
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Title("Condizionatori")
         Sub(if (list.isEmpty()) "nessuno ancora: cercalo qui sotto" else "tocca per collegarti")
@@ -169,19 +174,8 @@ fun DevicesScreen(ble: Ble, store: Store, onAdd: () -> Unit, onPick: (String) ->
                 link == Link.BT_OFF -> "Bluetooth spento"
                 else -> "in ricerca…"
             }
-            Row(
-                Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(16.dp))
-                    .background(if (cur) pal.sel else pal.card)
-                    .border(if (cur) 2.dp else 1.dp, if (cur) pal.accent else pal.border, RoundedCornerShape(16.dp))
-                    .clickable { onPick(d.address) }.padding(horizontal = 18.dp, vertical = 14.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Column {
-                    Text(d.name, color = pal.text, fontSize = 19.sp)
-                    Text(sub, color = if (cur && link == Link.CONNECTED) pal.ok else pal.muted, fontSize = 14.sp)
-                }
-                Text("›", color = pal.accent, fontSize = 28.sp)
-            }
+            DeviceRow(d.name, sub, subColor = if (cur && link == Link.CONNECTED) pal.ok else null, selected = cur,
+                onDelete = { del = d }) { onPick(d.address) }
         }
         Spacer(Modifier.height(18.dp))
         Btn("Aggiungi condizionatore", onClick = onAdd)
@@ -370,9 +364,7 @@ fun SettingsScreen(ble: Ble, store: Store, onBack: () -> Unit, onWifi: () -> Uni
             "Dimentica", danger = true, onDismiss = { dlg = null }) {
             dlg = null
             val a = addr
-            ble.disconnect()
-            ble.address.value = null
-            if (a != null) store.forget(a)
+            if (a != null) ble.forget(a) else { ble.disconnect(); ble.address.value = null }
             onForgot()
         }
     }

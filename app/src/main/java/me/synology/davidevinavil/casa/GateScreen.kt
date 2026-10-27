@@ -159,12 +159,17 @@ private fun BigIcon(icon: List<IconPart>) {
 private fun GateList(gb: GateBle, store: Store, onAdd: () -> Unit, onPick: (String) -> Unit) {
     val gates by store.gates.collectAsState()
     val stati by gb.stati.collectAsState()
+    var del by remember { mutableStateOf<BtGate?>(null) }
+    del?.let { g ->
+        Confirm("Dimenticare ${g.name}?", "Il telefono non lo aprirà più via Bluetooth finché non lo abbini di nuovo. Le scorciatoie che lo usavano si liberano.",
+            "Dimentica", danger = true, onDismiss = { del = null }) { del = null; gb.forget(g.address) }
+    }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Title("Cancelli Bluetooth")
         Sub(if (gates.isEmpty()) "nessuno ancora: cercalo qui sotto" else "tocca per aprire")
         Spacer(Modifier.height(20.dp))
         gates.forEach { g ->
-            GateRow(g.name, gateSub(g, stati[g.address])) { onPick(g.address) }
+            GateRow(g.name, gateSub(g, stati[g.address]), onDelete = { del = g }) { onPick(g.address) }
         }
         Spacer(Modifier.height(18.dp))
         Btn("Aggiungi cancello Bluetooth", onClick = onAdd)
@@ -178,19 +183,8 @@ fun gateSub(g: BtGate, st: Map<String, String>?): String =
         ?: g.azioni.joinToString(" · ").ifBlank { "via Bluetooth" }
 
 @Composable
-private fun GateRow(title: String, sub: String, onClick: () -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)
-            .border(1.dp, pal.border, RoundedCornerShape(16.dp)).clickable(onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(title, color = pal.text, fontSize = 19.sp, maxLines = 1)
-            Text(sub, color = pal.muted, fontSize = 14.sp, maxLines = 1)
-        }
-        Text("›", color = pal.accent, fontSize = 28.sp)
-    }
+private fun GateRow(title: String, sub: String, onDelete: () -> Unit, onClick: () -> Unit) {
+    DeviceRow(title, sub, onDelete = onDelete, onClick = onClick)
 }
 
 // ── ricerca ───────────────────────────────────────────────
@@ -353,6 +347,30 @@ private fun GateCtl(gb: GateBle, store: Store, addr: String, setWho: (String) ->
         forget = false
         gb.forget(addr)
         onForgot()
+    }
+}
+
+val ICO_TRASH = listOf(IconPart("M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v6M14 11v6"))
+
+/**
+ * Riga di un dispositivo Bluetooth salvato: tocco per aprirlo, cestino per
+ * dimenticarlo (anche se non e' a portata). [selected]: quello collegato.
+ */
+@Composable
+fun DeviceRow(title: String, sub: String, subColor: Color? = null, selected: Boolean = false, onDelete: () -> Unit, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(16.dp))
+            .background(if (selected) pal.sel else pal.card)
+            .border(if (selected) 2.dp else 1.dp, if (selected) pal.accent else pal.border, RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick).padding(start = 18.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, color = pal.text, fontSize = 19.sp, maxLines = 1)
+            Text(sub, color = subColor ?: pal.muted, fontSize = 14.sp, maxLines = 1)
+        }
+        Box(Modifier.clip(CircleShape).clickable(onClick = onDelete).padding(10.dp)) { SvgIcon(ICO_TRASH, pal.value, 22.dp) }
+        Text("›", color = pal.accent, fontSize = 28.sp, modifier = Modifier.padding(start = 2.dp, end = 4.dp))
     }
 }
 

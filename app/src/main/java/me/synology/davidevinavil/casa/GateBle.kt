@@ -402,11 +402,14 @@ class GateBle(private val ctx: Context, private val store: Store) {
         }
     }
 
-    /** Toglie il cancello dall'app e l'abbinamento dal telefono. */
+    /** Toglie il cancello dall'app, dalle scorciatoie che lo usavano e l'abbinamento dal telefono. */
     fun forget(addr: String) {
         if (watched == addr) unwatch()
         store.removeGate(addr)
         stati.value = stati.value - addr
+        var slots = false
+        for (n in 1..3) if (store.slot(n)?.dev == "bt:$addr") { store.setSlot(n, null); slots = true }
+        if (slots) refreshShortcuts(ctx)
         try {
             val d = adapter?.getRemoteDevice(addr) ?: return
             d.javaClass.getMethod("removeBond").invoke(d)

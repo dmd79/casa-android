@@ -164,6 +164,16 @@ class Ble(private val ctx: Context, val store: Store) {
         if (link.value != Link.BT_OFF && link.value != Link.NO_PERMISSION) link.value = Link.IDLE
     }
 
+    /** Toglie il condizionatore: si scollega se era quello, via PIN e abbinamento del telefono. */
+    fun forget(addr: String) {
+        if (address.value == addr) { disconnect(); address.value = null }
+        store.forget(addr)
+        try {
+            val d = adapter?.getRemoteDevice(addr) ?: return
+            if (d.bondState != BluetoothDevice.BOND_NONE) d.javaClass.getMethod("removeBond").invoke(d)
+        } catch (_: Exception) {}
+    }
+
     private fun open() {
         val a = address.value ?: return
         if (!hasPermissions()) { link.value = Link.NO_PERMISSION; return }
