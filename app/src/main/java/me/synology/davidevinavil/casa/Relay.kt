@@ -112,10 +112,16 @@ object Relay {
         }
     } catch (e: Exception) { null }
 
-    /** Elenco dei cancelli salvato, per mostrarli anche senza rete. */
+    /**
+     * Elenco dei cancelli salvato, con collegamento e stato dell'ultima
+     * lettura: riaprendo la scheda si riparte da li' (niente Bluetooth per
+     * un attimo finche' il relay non risponde) e senza rete si vedono lo stesso.
+     */
     fun gatesJson(l: List<RelayGate>): String = JSONArray().apply {
         l.forEach { g ->
-            put(JSONObject().put("id", g.id).put("n", g.name).put("z", JSONArray(g.azioni)))
+            val s = JSONObject()
+            g.stati.forEach { (k, v) -> s.put(k, v) }
+            put(JSONObject().put("id", g.id).put("n", g.name).put("o", g.online).put("z", JSONArray(g.azioni)).put("s", s))
         }
     }.toString()
 
@@ -124,8 +130,10 @@ object Relay {
         (0 until a.length()).map { i ->
             val o = a.getJSONObject(i)
             val z = o.optJSONArray("z")
-            // dall'archivio: stato e collegamento non noti
-            RelayGate(o.getString("id"), o.optString("n"), false, if (z == null) emptyList() else (0 until z.length()).map { z.getString(it) }, emptyMap())
+            val s = o.optJSONObject("s")
+            RelayGate(o.getString("id"), o.optString("n"), o.optBoolean("o"),
+                if (z == null) emptyList() else (0 until z.length()).map { z.getString(it) },
+                buildMap { s?.keys()?.forEach { k -> put(k, s.optString(k)) } })
         }
     } catch (e: Exception) { emptyList() }
 
