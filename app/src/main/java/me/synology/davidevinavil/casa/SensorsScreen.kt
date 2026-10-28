@@ -179,9 +179,9 @@ private fun SensorsMain(app: CasaApp, openRelay: (RelayDev) -> Unit, onCharts: (
             }
         }
         if (list.isNotEmpty()) Row(Modifier.padding(top = 2.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            SvgIcon(ICO_WIFI, pal.muted, 13.dp, stroke = 2f)
+            SvgIcon(ICO_WIFI, CH_WIFI, 13.dp, stroke = 2f)
             Text(" via relay    ", color = pal.muted, fontSize = 12.sp)
-            SvgIcon(ICO_BT, pal.muted, 13.dp, stroke = 2f)
+            SvgIcon(ICO_BT, CH_BT, 13.dp, stroke = 2f)
             Text(" via Bluetooth", color = pal.muted, fontSize = 12.sp)
         }
         Spacer(Modifier.height(8.dp))
@@ -205,13 +205,13 @@ private fun SensorCard(modifier: Modifier, name: String, t: Double?, h: Double?,
             SvgIcon(ICO_THERMO, if (off) pal.muted else Color(0xFF00C6FF), 16.dp)
             Text(" $name", color = Color(0xFFC9D1D4), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
                 overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-            SvgIcon(if (ch == "bt") ICO_BT else ICO_WIFI, Color(0xFF8A93A3), 14.dp, stroke = 2f)
+            SvgIcon(if (ch == "bt") ICO_BT else ICO_WIFI, chColor(ch, off), 14.dp, stroke = 2f)
         }
         Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.Bottom) {
-            Text(if (off) "--" else f1(t), color = if (off) pal.muted else pal.text, fontSize = 32.sp, fontWeight = FontWeight.Light)
+            Text(if (off) "--" else d2(t), color = if (off) pal.muted else pal.text, fontSize = 30.sp, fontWeight = FontWeight.Light, maxLines = 1, softWrap = false)
             Text(" °C", color = Color(0xFF8A9599), fontSize = 13.sp, modifier = Modifier.padding(bottom = 5.dp))
         }
-        Text("${if (off) "--" else f1(h)} %", color = pal.value, fontSize = 16.sp)
+        Text("${if (off) "--" else d2(h)} %", color = if (off) pal.muted else HUM_BLUE, fontSize = 16.sp, maxLines = 1, softWrap = false)
         Text(status ?: if (ch == "bt") "da vicino, Bluetooth" else "via relay", color = pal.muted, fontSize = 11.sp,
             letterSpacing = .5.sp, modifier = Modifier.padding(top = 6.dp))
     }
@@ -234,7 +234,7 @@ private fun SensorList(app: CasaApp, onBack: () -> Unit, onAdd: () -> Unit, onPi
         Spacer(Modifier.height(18.dp))
         list.forEach { s ->
             val v = stati[s.address]
-            DeviceRow(s.name, v?.let { "${f1(it.t)} °C · ${f0(it.h)} %" } ?: "tocca per leggere", onDelete = { del = s }) { onPick(s.address) }
+            DeviceRow(s.name, v?.let { "${d2(it.t)} °C · ${d2(it.h)} %" } ?: "tocca per leggere", onDelete = { del = s }) { onPick(s.address) }
         }
         Spacer(Modifier.height(16.dp))
         Btn("Aggiungi sensore Bluetooth", onClick = onAdd)
@@ -338,9 +338,9 @@ private fun SensorDetail(app: CasaApp, addr: String, onBack: () -> Unit, onUpdat
                 color = pal.muted, fontSize = 13.sp)
         }
         Row(verticalAlignment = Alignment.Bottom) {
-            Text(f1(s?.t), color = pal.text, fontSize = 48.sp, fontWeight = FontWeight.Light)
+            Text(d2(s?.t), color = pal.text, fontSize = 44.sp, fontWeight = FontWeight.Light)
             Text(" °C   ", color = Color(0xFF8A9599), fontSize = 15.sp, modifier = Modifier.padding(bottom = 9.dp))
-            Text("${f0(s?.h)} %", color = pal.value, fontSize = 22.sp, modifier = Modifier.padding(bottom = 6.dp))
+            Text("${d2(s?.h)} %", color = HUM_BLUE, fontSize = 20.sp, modifier = Modifier.padding(bottom = 6.dp))
         }
         if (s != null) {
             Column(Modifier.fillMaxWidth().padding(top = 10.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)

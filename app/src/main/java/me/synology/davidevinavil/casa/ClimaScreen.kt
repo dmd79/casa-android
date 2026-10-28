@@ -154,9 +154,9 @@ fun ClimaScreen(app: CasaApp, openRelay: (RelayDev) -> Unit, openBt: (String) ->
             }
         }
         if (list.isNotEmpty()) Row(Modifier.padding(top = 2.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            SvgIcon(ICO_WIFI, pal.muted, 13.dp, stroke = 2f)
+            SvgIcon(ICO_WIFI, CH_WIFI, 13.dp, stroke = 2f)
             Text(" via relay    ", color = pal.muted, fontSize = 12.sp)
-            SvgIcon(ICO_BT, pal.muted, 13.dp, stroke = 2f)
+            SvgIcon(ICO_BT, CH_BT, 13.dp, stroke = 2f)
             Text(" via Bluetooth", color = pal.muted, fontSize = 12.sp)
         }
         Spacer(Modifier.height(8.dp))
@@ -188,8 +188,8 @@ private fun AcCard(modifier: Modifier, name: String, cur: Double?, tgt: Double?,
             Text(name, color = Color(0xFFC9D1D4), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
                 overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             // temperatura da un sensore: termometro accanto al canale (quale sensore: tocco lungo)
-            if (src != null) Box(Modifier.padding(end = 4.dp)) { SvgIcon(listOf(IconPart("M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z")), Color(0xFF8A93A3), 14.dp, stroke = 2f) }
-            SvgIcon(if (ch == "bt") ICO_BT else ICO_WIFI, Color(0xFF8A93A3), 14.dp, stroke = 2f)
+            if (src != null) Box(Modifier.padding(end = 4.dp)) { SvgIcon(listOf(IconPart("M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z")), CH_SENS, 14.dp, stroke = 2f) }
+            SvgIcon(if (ch == "bt") ICO_BT else ICO_WIFI, chColor(ch, status != null), 14.dp, stroke = 2f)
         }
         Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.Bottom) {
             Text(if (status != null) "--" else d2(cur), color = pal.text, fontSize = 30.sp, fontWeight = FontWeight.Light,
@@ -200,7 +200,7 @@ private fun AcCard(modifier: Modifier, name: String, cur: Double?, tgt: Double?,
         Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text((if (status != null) null else t0(tgt))?.let { "→ $it °C" } ?: " ", color = Color(0xFF8A9599), fontSize = 13.sp,
                 maxLines = 1, softWrap = false, modifier = Modifier.weight(1f))
-            if (src != null && status == null) Text("${d2(hum)} %", color = pal.value, fontSize = 13.sp, maxLines = 1, softWrap = false)
+            if (src != null && status == null) Text("${d2(hum)} %", color = HUM_BLUE, fontSize = 13.sp, maxLines = 1, softWrap = false)
         }
 
         Box(Modifier.padding(top = 14.dp)) {
@@ -209,3 +209,11 @@ private fun AcCard(modifier: Modifier, name: String, cur: Double?, tgt: Double?,
         }
     }
 }
+
+// Colori dei simboli (Clima e Sensori): relay verde, Bluetooth blu, sensore
+// scelto giallo, umidita' azzurra come sul termostato; grigio se non raggiungibile
+val CH_WIFI = Color(0xFF39D19C)
+val CH_BT = Color(0xFF4F8CFF)
+val CH_SENS = Color(0xFFE7C12C)
+val HUM_BLUE = Color(0xFF00C6FF)
+fun chColor(ch: String, off: Boolean) = if (off) Color(0xFF5A6266) else if (ch == "bt") CH_BT else CH_WIFI
