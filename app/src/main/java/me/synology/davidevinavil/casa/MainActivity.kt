@@ -46,7 +46,13 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        app.fg = true
         app.ble.resume()   // tornando in primo piano: ricollega subito il clima se serve
+    }
+
+    override fun onStop() {
+        app.fg = false
+        super.onStop()
     }
 
     override fun onDestroy() {

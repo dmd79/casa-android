@@ -14,6 +14,12 @@ class CasaApp : Application() {
     val climaGo = kotlinx.coroutines.flow.MutableStateFlow<Scr?>(null)
     /** "Abbina / Dimentica Bluetooth" dalla lista del relay. */
     lateinit var pairer: BtPairer
+    /**
+     * App sullo schermo. In secondo piano Android blocca la rete: le
+     * richieste al relay fallirebbero e Clima/Accessi lo crederebbero giu'
+     * (riaprendo si vedeva il Bluetooth per qualche secondo).
+     */
+    @Volatile var fg = false
 
     override fun onCreate() {
         super.onCreate()

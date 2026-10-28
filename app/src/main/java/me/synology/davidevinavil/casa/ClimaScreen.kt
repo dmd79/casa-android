@@ -73,9 +73,11 @@ fun ClimaScreen(app: CasaApp, openRelay: (RelayDev) -> Unit, openBt: (String) ->
     LaunchedEffect(Unit) {
         var fails = 0
         while (true) {
+            if (!app.fg) { delay(1000); continue }      // in secondo piano niente rete: non conta
             val cookie = Relay.cookie()
             var raw = withContext(Dispatchers.IO) { Relay.listRaw(cookie) }
             if (raw == null && relayOk) { delay(1500); raw = withContext(Dispatchers.IO) { Relay.listRaw(cookie) } }
+            if (raw == null && !app.fg) continue        // andata in secondo piano durante la richiesta
             if (raw != null) { store.relayList = raw; devs = Relay.parseList(raw).filter { it.type == "ac" }; fails = 0; relayOk = true }
             else if (++fails >= 2 || !relayOk) relayOk = false
             store.relayUp = relayOk

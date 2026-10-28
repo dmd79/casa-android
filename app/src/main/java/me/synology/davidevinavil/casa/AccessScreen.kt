@@ -75,9 +75,11 @@ fun AccessScreen(app: CasaApp, setWho: (String) -> Unit, onHistory: () -> Unit, 
     LaunchedEffect(Unit) {
         var fails = 0
         while (true) {
+            if (!app.fg) { delay(1000); continue }      // in secondo piano niente rete: non conta
             val cookie = Relay.cookie()          // sul thread principale, come il resto dell'app
             var r = withContext(Dispatchers.IO) { Relay.gateList(cookie) }
             if (r == null && relayOk) { delay(1500); r = withContext(Dispatchers.IO) { Relay.gateList(cookie) } }
+            if (r == null && !app.fg) continue          // andata in secondo piano durante la richiesta
             if (r != null) { relay = r; store.relayGates = Relay.gatesJson(r); fails = 0; relayOk = true }
             else if (++fails >= 2 || !relayOk) relayOk = false
             store.relayUp = relayOk
