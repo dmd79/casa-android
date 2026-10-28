@@ -1,6 +1,11 @@
 package me.synology.davidevinavil.casa
 
 import android.Manifest
+import android.bluetooth.BluetoothManager
+import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanFilter
+import android.bluetooth.le.ScanResult
+import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.content.Intent
 import android.net.ConnectivityManager
@@ -8,6 +13,7 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
 import android.os.Build
+import android.os.ParcelUuid
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -34,6 +40,8 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,6 +62,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
@@ -141,7 +150,56 @@ object Hotspot {
     }
 }
 
-private enum class St { HOTSPOT, MODE, WIFI, RELAY, WORK, DONE }
+/** Dispositivo da configurare trovato in Bluetooth: il codice e' nel suo annuncio. */
+data class SetupDev(val addr: String, val name: String, val type: String, val code: String)
+
+/**
+ * Ricerca dei dispositivi da configurare (primo avvio): annunciano il loro
+ * servizio e, nei dati del produttore 0xFFFF, 'C' e il codice di
+ * abbinamento in 3 byte. Quelli gia' configurati non lo annunciano.
+ */
+class SetupScan(private val ctx: Context) {
+    val found = MutableStateFlow<List<SetupDev>>(emptyList())
+    private val types = mapOf(SensorUuids.SVC to "sensor", Uuids.SVC to "ac", GateUuids.SVC to "gate")
+    private val cb = object : ScanCallback() {
+        override fun onScanResult(t: Int, r: ScanResult) {
+            val rec = r.scanRecord ?: return
+            val m = rec.getManufacturerSpecificData(0xFFFF)
+            val a = r.device.address
+            if (m == null || m.size < 4 || m[0] != 'C'.code.toByte()) {
+                found.value = found.value.filter { it.addr != a }      // configurato nel frattempo
+                return
+            }
+            val pk = ((m[1].toInt() and 0xFF) shl 16) or ((m[2].toInt() and 0xFF) shl 8) or (m[3].toInt() and 0xFF)
+            if (pk !in 100000..999999) return
+            val type = rec.serviceUuids.orEmpty().firstNotNullOfOrNull { types[it.uuid] } ?: return
+            val old = found.value.firstOrNull { it.addr == a }
+            val n = rec.deviceName?.takeIf { it.isNotBlank() } ?: old?.name ?: when (type) {
+                "sensor" -> "Ext-sensor"; "gate" -> "Cancello"; else -> "Condizionatore" }
+            val d = SetupDev(a, n, type, pk.toString())
+            if (d != old) found.value = found.value.filter { it.addr != a } + d
+        }
+    }
+    @Volatile private var on = false
+
+    fun start() {
+        if (on) return
+        val sc = ctx.getSystemService(BluetoothManager::class.java)?.adapter?.takeIf { it.isEnabled }?.bluetoothLeScanner ?: return
+        val f = types.keys.map { ScanFilter.Builder().setServiceUuid(ParcelUuid(it)).build() }
+        val st = ScanSettings.Builder().setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY).build()
+        try { sc.startScan(f, st, cb); on = true } catch (_: Exception) {}
+    }
+
+    fun stop() {
+        if (!on) return
+        on = false
+        try { ctx.getSystemService(BluetoothManager::class.java)?.adapter?.bluetoothLeScanner?.stopScan(cb) } catch (_: Exception) {}
+    }
+}
+
+private enum class St { FIND, HOTSPOT, MODE, WIFI, RELAY, WORK, DONE }
+
+private val ICO_GATE_DEV = listOf(IconPart("M3 21V9l9-6 9 6v12"), IconPart("M6 21V11h12v10"))
 
 /** Rete Wi-Fi o Solo ESP-NOW (solo sensori esterni). */
 private val ICO_RADIO = listOf(IconPart("M12 10a2 2 0 1 1 0 4a2 2 0 1 1 0-4z"), IconPart("M16.2 7.8a6 6 0 0 1 0 8.4"),
@@ -149,7 +207,9 @@ private val ICO_RADIO = listOf(IconPart("M12 10a2 2 0 1 1 0 4a2 2 0 1 1 0-4z"), 
 
 /**
  * "Nuovo dispositivo" (condizionatore, gate o sensore esterno col firmware
- * col Bluetooth). Prima l'hotspot del dispositivo (che dice cos'e'), poi:
+ * col Bluetooth). Prima la ricerca in Bluetooth dei dispositivi da
+ * configurare: codice dall'annuncio, abbinamento e impostazioni tutto via
+ * Bluetooth. Se non si trova, l'hotspot del dispositivo (che dice cos'e'), poi:
  *  - sensore esterno: Wi-Fi o Solo ESP-NOW;
  *  - Wi-Fi di casa e password del relay (non in Solo ESP-NOW);
  *  - impostazioni e abbinamento Bluetooth, infine l'ingresso nel relay
@@ -160,7 +220,7 @@ private val ICO_RADIO = listOf(IconPart("M12 10a2 2 0 1 1 0 4a2 2 0 1 1 0-4z"), 
 fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
-    var st by remember { mutableStateOf(St.HOTSPOT) }
+    var st by remember { mutableStateOf(St.FIND) }
     var ssid by remember { mutableStateOf("") }
     var fromPhone by remember { mutableStateOf(false) }
     var ghz5 by remember { mutableStateOf(false) }
@@ -180,9 +240,14 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
     var hook by remember { mutableStateOf<SensorState?>(null) }
     var hookGiveUp by remember { mutableStateOf(false) }
     var job by remember { mutableStateOf<Job?>(null) }
+    var bt by remember { mutableStateOf<SetupDev?>(null) }     // trovato in Bluetooth (null: dall'hotspot)
+    var permTick by remember { mutableStateOf(0) }
+    val finder = remember { SetupScan(ctx.applicationContext) }
+    val found by finder.found.collectAsState()
 
     val perms = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         Hotspot.phoneWifi(ctx)?.let { (s, f) -> if (ssid.isBlank()) { ssid = s; fromPhone = true; ghz5 = f } }
+        permTick++
     }
     LaunchedEffect(Unit) {
         val need = buildList {
@@ -197,16 +262,73 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
         job?.cancel()
         st = when (st) {
             St.RELAY -> St.WIFI
-            St.WIFI -> if (sensor) St.MODE else St.HOTSPOT
-            St.MODE -> St.HOTSPOT
+            St.WIFI -> if (sensor) St.MODE else if (bt != null) St.FIND else St.HOTSPOT
+            St.MODE -> if (bt != null) St.FIND else St.HOTSPOT
+            St.HOTSPOT -> St.FIND
             else -> { onClose(); st }
         }
     }
     BackHandler { back() }
     fun afterHotspot() { st = if (sensor) St.MODE else St.WIFI }
 
+    // Trovato in Bluetooth: abbinamento col codice dell'annuncio, poi sullo
+    // stesso collegamento Wi-Fi e password del relay (o Solo ESP-NOW)
+    fun workBt(f: SetupDev) {
+        st = St.WORK; step = 0; err = null; relayIn = false; btAddr = null; hook = null; hookGiveUp = false; code = null
+        job = scope.launch {
+            val s = ssid.trim()
+            val cmd = when {
+                f.type == "sensor" && espnow -> "modo=espnow"
+                f.type == "sensor" -> "modo=wifi\t$s\t$wpass\t$rpw"
+                f.type == "gate" -> "setup\t$s\t$wpass\t$rpw"
+                else -> "setup=$s\t$wpass\t$rpw"
+            }
+            val cmdUuid = when (f.type) { "sensor" -> SensorUuids.CMD; "gate" -> GateUuids.CMD; else -> Uuids.CMD }
+            var rid = ""
+            val e = app.pairer.bond(f.type, f.name, f.code, addr = f.addr, after = { c ->
+                step = 1
+                // codice del relay, per entrare nel relay appena il dispositivo e' in rete
+                rid = try {
+                    when (f.type) {
+                        "sensor" -> SensorState.parse(c.read(SensorUuids.STATE))?.id.orEmpty()
+                        "gate" -> JSONObject(String(c.read(GateUuids.STATE) ?: ByteArray(0))).optString("id")
+                        else -> JSONObject(String(c.read(Uuids.INFO) ?: ByteArray(0))).optString("id")
+                    }.lowercase()
+                } catch (_: Exception) { "" }
+                when (val r = c.write(cmdUuid, cmd.toByteArray(Charsets.UTF_8))) {
+                    0 -> null
+                    0x83 -> "Il dispositivo risulta già configurato: usa la sua pagina o \"Abbina Bluetooth\" dalla lista del relay."
+                    0x80 -> "Il dispositivo è occupato: riprova tra poco."
+                    -1 -> "Il dispositivo non ha risposto: avvicinati e riprova."
+                    else -> "Impostazioni non accettate ($r): firmware vecchio? Usa l'hotspot."
+                }
+            })
+            if (e != null) { err = e; return@launch }
+            btAddr = f.addr
+            dev = HotspotDev(f.code, app.store.sensors.value.firstOrNull { it.address == f.addr }?.name ?: f.name, rid, f.type)
+            if (espnow) { step = 3; st = St.DONE; return@launch }
+            step = 2
+            if (rid.isNotBlank()) app.store.addPending(rid, rpw, dev?.name ?: f.name)
+            // il dispositivo entra in rete: si prova a entrare nel relay per un
+            // minuto (poi ci riprova l'app da sola, ogni 30 s)
+            if (rid.isNotBlank()) withTimeoutOrNull(60_000) {
+                while (true) {
+                    delay(5000)
+                    when (withContext(Dispatchers.IO) { Relay.login(rid, rpw) }) {
+                        Relay.Login.OK -> { app.store.removePending(rid); relayIn = true; return@withTimeoutOrNull }
+                        Relay.Login.BAD -> return@withTimeoutOrNull
+                        else -> {}
+                    }
+                }
+            }
+            step = 3
+            st = St.DONE
+        }
+    }
+
     // Dalle impostazioni in poi, tutto da solo (telefono ancora sull'hotspot)
     fun work() {
+        bt?.let { workBt(it); return }
         st = St.WORK; step = 0; err = null; relayIn = false; btAddr = null; hook = null; hookGiveUp = false
         job = scope.launch {
             // 0. codice (di nuovo: la finestra di 3 minuti riparte da adesso)
@@ -268,6 +390,12 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
         hookGiveUp = true
     }
 
+    // dispositivi da configurare in Bluetooth: solo nella prima schermata
+    LaunchedEffect(st, permTick) {
+        if (st == St.FIND) { bt = null; finder.start() } else finder.stop()
+    }
+    DisposableEffect(Unit) { onDispose { finder.stop() } }
+
     // hotspot vicini; appena il telefono e' sull'hotspot di un dispositivo si va avanti
     LaunchedEffect(st) {
         if (st != St.HOTSPOT) return@LaunchedEffect
@@ -276,7 +404,7 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
             delay(2000)
             near = Hotspot.nearby(ctx, scan = false)
             val d = withContext(Dispatchers.IO) { if (Hotspot.wifi(ctx) != null) Hotspot.abbina(ctx) else null }
-            if (d != null) { dev = d; afterHotspot(); break }
+            if (d != null) { dev = d; bt = null; afterHotspot(); break }
         }
     }
 
@@ -284,7 +412,7 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             if (st != St.DONE) {
                 Back("Nuovo dispositivo", ::back)
-                val n = when (st) { St.HOTSPOT -> 1; St.MODE -> 2; St.WIFI -> if (sensor) 3 else 2; St.RELAY -> if (sensor) 4 else 3; else -> 5 }
+                val n = when (st) { St.FIND, St.HOTSPOT -> 1; St.MODE -> 2; St.WIFI -> if (sensor) 3 else 2; St.RELAY -> if (sensor) 4 else 3; else -> 5 }
                 val tot = if (sensor) 5 else 4
                 Row(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     (1..tot).forEach { i ->
@@ -294,6 +422,40 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
                 }
             }
             when (st) {
+                St.FIND -> {
+                    H("Dispositivi da configurare")
+                    P("Accendi il dispositivo appena flashato e tienilo vicino al telefono.")
+                    if (found.isNotEmpty()) Text("TROVATI IN BLUETOOTH", color = pal.muted, fontSize = 11.sp, letterSpacing = 1.5.sp,
+                        modifier = Modifier.padding(start = 4.dp, top = 6.dp, bottom = 8.dp))
+                    found.forEach { f ->
+                        val (ico, col, what) = when (f.type) {
+                            "sensor" -> Triple(ICO_THERMO, CH_SENS, "sensore esterno")
+                            "gate" -> Triple(ICO_GATE_DEV, pal.accent, "cancello o garage")
+                            else -> Triple(ICO_AC, pal.accent, "condizionatore")
+                        }
+                        Row(Modifier.fillMaxWidth().padding(bottom = 10.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)
+                            .border(1.dp, pal.border, RoundedCornerShape(16.dp)).clickable {
+                                bt = f
+                                dev = HotspotDev(f.code, f.name, "", f.type)
+                                espnow = false
+                                st = if (f.type == "sensor") St.MODE else St.WIFI
+                            }.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            SvgIcon(ico, col, 26.dp)
+                            Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                                Text(f.name, color = pal.text, fontSize = 17.sp, maxLines = 1)
+                                Text("$what · da configurare", color = pal.muted, fontSize = 13.sp, maxLines = 1)
+                            }
+                            Text("›", color = pal.accent, fontSize = 24.sp)
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth().padding(top = 6.dp, start = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(Modifier.size(16.dp), color = pal.accent, strokeWidth = 2.dp)
+                        Text(if (found.isEmpty()) "  Cerco in Bluetooth…" else "  Cerco altri dispositivi…", color = pal.value, fontSize = 14.sp)
+                    }
+                    Note("Compaiono solo i dispositivi mai configurati: quelli già in uso non si possono prendere da qui. Serve il Bluetooth del telefono acceso.", center = true)
+                    Text("Non lo trovo? Usa l'hotspot", color = pal.accent, fontSize = 15.sp, textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth().padding(top = 16.dp).clickable { bt = null; st = St.HOTSPOT }.padding(8.dp))
+                }
                 St.HOTSPOT -> {
                     H("Collegati al dispositivo")
                     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(pal.card)
@@ -327,7 +489,7 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
                 }
                 St.WIFI -> {
                     H("Wi-Fi di casa")
-                    P("La rete a cui si collegherà il dispositivo.")
+                    P(if (bt != null) "La rete a cui si collegherà il dispositivo. La mando via Bluetooth." else "La rete a cui si collegherà il dispositivo.")
                     Field("Rete", ssid, { ssid = it; fromPhone = false; ghz5 = false },
                         tag = if (fromPhone && !manual) "del telefono" else null)
                     Field("Password", wpass, { wpass = it }, secret = !showPw,
@@ -361,18 +523,24 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
                             textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                         P("Se Android chiede il codice, scrivi questo.", center = true)
                     }
-                    val steps = if (espnow) listOf("Collegato all'hotspot", "Codice dal dispositivo", "Abbinamento e Solo ESP-NOW")
-                                else listOf("Collegato all'hotspot", "Wi-Fi e relay impostati", "Abbinamento Bluetooth", "Di nuovo sulla tua rete")
+                    val steps = when {
+                        bt != null && espnow -> listOf("Abbinamento Bluetooth, senza codice", "Solo ESP-NOW impostato", "Il sensore si riavvia")
+                        bt != null -> listOf("Abbinamento Bluetooth, senza codice", "Wi-Fi e password del relay inviati", "Il dispositivo entra nel relay")
+                        espnow -> listOf("Collegato all'hotspot", "Codice dal dispositivo", "Abbinamento e Solo ESP-NOW")
+                        else -> listOf("Collegato all'hotspot", "Wi-Fi e relay impostati", "Abbinamento Bluetooth", "Di nuovo sulla tua rete")
+                    }
                     Column(Modifier.padding(top = 16.dp, start = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         steps.forEachIndexed { i, t ->
                             StepRow(t, ok = i < step, now = i == step && err == null, bad = i == step && err != null)
                         }
                     }
-                    if (step == 3 && !espnow) Note("Se il telefono resta sull'hotspot, torna sulla tua rete Wi-Fi o sui dati mobili.", center = true)
+                    if (bt != null && err == null) Note(if (step == 2) "Può volerci un paio di minuti: se è lungo, finisco io dopo, da solo."
+                        else "Niente hotspot e niente impostazioni Wi-Fi: fa tutto l'app. Se Android chiede di abbinare, conferma.", center = true)
+                    if (bt == null && step == 3 && !espnow) Note("Se il telefono resta sull'hotspot, torna sulla tua rete Wi-Fi o sui dati mobili.", center = true)
                     err?.let { Warn(it) }
                     Spacer(Modifier.height(18.dp))
                     if (err != null) {
-                        Btn("Riprova") { st = St.HOTSPOT }
+                        Btn("Riprova") { st = if (bt != null) St.FIND else St.HOTSPOT }
                         Spacer(Modifier.height(8.dp))
                         Btn("Chiudi", secondary = true, onClick = onClose)
                     } else Btn("Annulla", secondary = true) { job?.cancel(); onClose() }
@@ -405,6 +573,7 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
                         if (!mac.isNullOrBlank()) MacBox(mac)
                         Note("Sul termostato aggiungi il sensore ESP-NOW con questo MAC. Il MAC lo ritrovi sempre nella scheda del sensore.", center = true)
                     } else Note("Tutto salvato sul dispositivo: senza Wi-Fi o senza internet resta in Bluetooth e passa al relay quando la rete c'è.", center = true)
+                    if (bt != null) Note("Configurazione finita: da ora un nuovo abbinamento Bluetooth chiede il codice, come sempre. Il tuo telefono resta abbinato.", center = true)
                     Spacer(Modifier.height(14.dp))
                     Btn("Fine", onClick = onClose)
                 }

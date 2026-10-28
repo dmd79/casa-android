@@ -134,15 +134,19 @@ class BtPairer(private val ctx: Context, private val store: Store, private val b
      * Cerca [name] in Bluetooth (il dispositivo ha appena aperto l'abbinamento
      * col codice [code]), lo abbina scrivendo il codice e lo salva nell'app.
      * null se riuscito, altrimenti il motivo. [onFound]: trovato, si abbina.
-     * Usato anche da "Nuovo dispositivo" (SetupScreen.kt).
+     * Usato anche da "Nuovo dispositivo" (SetupScreen.kt): [addr] dispositivo
+     * gia' trovato (niente ricerca per nome), [after] eseguito sul
+     * collegamento appena abbinato (Wi-Fi e relay), null se riuscito.
      */
-    suspend fun bond(type: String, name: String, code: String, onFound: () -> Unit = {}): String? {
+    internal suspend fun bond(type: String, name: String, code: String, addr: String? = null,
+                              after: (suspend (GateConn) -> String?)? = null, onFound: () -> Unit = {}): String? {
         if (!gb.hasPermissions()) return "Manca il permesso Bluetooth."
         if (adapter?.isEnabled != true) return "Il Bluetooth del telefono è spento."
         gb.stopScan(); ble.stopScan(); sensors.stopScan()
         val svc = when (type) { "gate" -> GateUuids.SVC; "sensor" -> SensorUuids.SVC; else -> Uuids.SVC }
         val rev = when (type) { "gate" -> GateUuids.REV; "sensor" -> SensorUuids.REV; else -> Uuids.REV }
-        val (dev, advName) = find(svc, name) ?: return "Non trovo $name in Bluetooth: avvicinati e riprova."
+        val (dev, advName) = (if (addr != null) adapter?.getRemoteDevice(addr)?.let { it to name } else find(svc, name))
+            ?: return "Non trovo $name in Bluetooth: avvicinati e riprova."
         onFound()
         if (dev.bondState == BluetoothDevice.BOND_BONDED) {          // rimasto solo sul telefono: da rifare
             try { dev.javaClass.getMethod("removeBond").invoke(dev) } catch (_: Exception) {}
@@ -201,6 +205,7 @@ class BtPairer(private val ctx: Context, private val store: Store, private val b
                 val n = try { AcState.parse(JSONObject(String(c.read(Uuids.STATE) ?: ByteArray(0)))).name } catch (e: Exception) { "" }
                 store.put(dev.address, n.ifBlank { name })
             }
+            after?.invoke(c)?.let { notify(); return it }
         } finally {
             c.close()
             try { ctx.unregisterReceiver(rxBond) } catch (_: Exception) {}
