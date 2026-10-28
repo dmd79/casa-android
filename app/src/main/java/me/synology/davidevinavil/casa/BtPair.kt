@@ -121,13 +121,27 @@ class BtPairer(private val ctx: Context, private val store: Store, private val b
         ui.value = ui.value?.copy(code = code, step = 1)
         val later = " Torna da solo sul relay entro 3 minuti."
 
-        // 2. ricerca: il dispositivo accende il Bluetooth dopo aver risposto
+        // 2-3. ricerca e abbinamento
+        val err2 = bond(type, name, code) { ui.value = ui.value?.copy(step = 2) }
+        if (err2 != null) return fail("$err2$later")
+        ui.value = ui.value?.copy(done = true)
+        notify()
+    }
+
+    /**
+     * Cerca [name] in Bluetooth (il dispositivo ha appena aperto l'abbinamento
+     * col codice [code]), lo abbina scrivendo il codice e lo salva nell'app.
+     * null se riuscito, altrimenti il motivo. [onFound]: trovato, si abbina.
+     * Usato anche da "Nuovo dispositivo" (SetupScreen.kt).
+     */
+    suspend fun bond(type: String, name: String, code: String, onFound: () -> Unit = {}): String? {
+        if (!gb.hasPermissions()) return "Manca il permesso Bluetooth."
+        if (adapter?.isEnabled != true) return "Il Bluetooth del telefono è spento."
         gb.stopScan(); ble.stopScan()
         val svc = if (type == "gate") GateUuids.SVC else Uuids.SVC
-        val (dev, advName) = find(svc, name) ?: return fail("Non trovo $name in Bluetooth: avvicinati e riprova.$later")
-        ui.value = ui.value?.copy(step = 2)
-
-        // 3. abbinamento
+        val rev = if (type == "gate") GateUuids.REV else Uuids.REV
+        val (dev, advName) = find(svc, name) ?: return "Non trovo $name in Bluetooth: avvicinati e riprova."
+        onFound()
         if (dev.bondState == BluetoothDevice.BOND_BONDED) {          // rimasto solo sul telefono: da rifare
             try { dev.javaClass.getMethod("removeBond").invoke(dev) } catch (_: Exception) {}
             delay(1500)
@@ -160,17 +174,17 @@ class BtPairer(private val ctx: Context, private val store: Store, private val b
         ContextCompat.registerReceiver(ctx, rxPin, IntentFilter(BluetoothDevice.ACTION_PAIRING_REQUEST).apply { priority = IntentFilter.SYSTEM_HIGH_PRIORITY - 1 },
             ContextCompat.RECEIVER_EXPORTED)
         // il primo collegamento subito dopo la ricerca a volte non va (errore 133 di Android): si riprova
-        var c = GateConn(ctx, dev, scope, svc, if (type == "gate") GateUuids.REV else Uuids.REV)
+        var c = GateConn(ctx, dev, scope, svc, rev)
         try {
             var ok = false
             for (t in 1..3) {
-                if (t > 1) { c.close(); delay(1500); c = GateConn(ctx, dev, scope, svc, if (type == "gate") GateUuids.REV else Uuids.REV) }
+                if (t > 1) { c.close(); delay(1500); c = GateConn(ctx, dev, scope, svc, rev) }
                 if (c.connect(12_000)) { ok = true; break }
             }
-            if (!ok) return fail("Trovato «$advName» (${dev.address}) ma non accetta il collegamento: avvicinati e riprova.$later")
-            if (!dev.createBond()) return fail("Abbinamento non avviato: riprova.$later")
-            val r = withTimeoutOrNull(150_000) { bonded.await() } ?: return fail("Tempo scaduto: il codice non è stato scritto.$later")
-            if (r != BluetoothDevice.BOND_BONDED) return fail("Abbinamento rifiutato: codice sbagliato o finestra chiusa.$later")
+            if (!ok) return "Trovato «$advName» (${dev.address}) ma non accetta il collegamento: avvicinati e riprova."
+            if (!dev.createBond()) return "Abbinamento non avviato: riprova."
+            val r = withTimeoutOrNull(150_000) { bonded.await() } ?: return "Tempo scaduto: il codice non è stato scritto."
+            if (r != BluetoothDevice.BOND_BONDED) return "Abbinamento rifiutato: codice sbagliato o finestra chiusa."
             delay(800)        // cifratura del collegamento appena abbinato
             // nome e pulsanti dal dispositivo, poi nell'elenco dell'app
             if (type == "gate") {
@@ -185,8 +199,8 @@ class BtPairer(private val ctx: Context, private val store: Store, private val b
             try { ctx.unregisterReceiver(rxBond) } catch (_: Exception) {}
             try { ctx.unregisterReceiver(rxPin) } catch (_: Exception) {}
         }
-        ui.value = ui.value?.copy(done = true)
         notify()
+        return null
     }
 
     private fun extraDev(i: Intent): BluetoothDevice? = if (Build.VERSION.SDK_INT >= 33)

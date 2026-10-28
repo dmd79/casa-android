@@ -53,7 +53,7 @@ import kotlinx.coroutines.withContext
 import java.util.Locale
 
 /** Cosa occupa lo schermo sopra la barra. */
-enum class Pane { WEB, CLIMA, SCORC, GATE, ACC, CLIMI }
+enum class Pane { WEB, CLIMA, SCORC, GATE, ACC, CLIMI, NEW }
 
 /** Voci della barra: una per tipo di dispositivo. */
 enum class Cat(val label: String) { ALL("Tutti"), DASH("Plancia"), HEAT("Termostati"), AC("Clima"), GATE("Accessi"), SENS("Sensori"), MORE("Altro") }
@@ -93,6 +93,21 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
         ble.active = view == Pane.CLIMA
         if (view == Pane.CLIMA) ble.resume() else ble.disconnect()
     }
+    // Dispositivi nuovi non ancora entrati nel relay ("Nuovo dispositivo"):
+    // si riprova finche' il relay non li accetta (dopo il loro primo collegamento)
+    val pendingLogins by store.pending.collectAsState()
+    LaunchedEffect(pendingLogins.isNotEmpty()) {
+        while (store.pending.value.isNotEmpty()) {
+            for ((id, pw, _) in store.pending.value) {
+                when (withContext(Dispatchers.IO) { Relay.login(id, pw) }) {
+                    Relay.Login.OK -> { store.removePending(id); refresh(true); if (nav.url.value.contains("/_home")) web.reload() }
+                    Relay.Login.BAD -> store.removePending(id)       // password diversa: si entra a mano
+                    else -> {}
+                }
+            }
+            delay(30_000)
+        }
+    }
     LaunchedEffect(Unit) {
         nav.onLoaded = { refresh() }
         while (true) { refresh(); delay(60_000) }
@@ -112,7 +127,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
 
     val pageCat = webCat(url, devs.firstOrNull { it.id == curDev })
     LaunchedEffect(url) { pending = null }
-    val active = when (view) { Pane.CLIMA, Pane.CLIMI -> Cat.AC; Pane.SCORC -> Cat.MORE; Pane.GATE, Pane.ACC -> Cat.GATE; Pane.WEB -> pending ?: pageCat }
+    val active = when (view) { Pane.CLIMA, Pane.CLIMI -> Cat.AC; Pane.SCORC, Pane.NEW -> Cat.MORE; Pane.GATE, Pane.ACC -> Cat.GATE; Pane.WEB -> pending ?: pageCat }
 
     // Copertura solo arrivando da una schermata dell'app (Clima, Accessi...):
     // sotto c'e' rimasta un'altra pagina, che si vedrebbe per un attimo. Da
@@ -186,6 +201,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
                         Pane.CLIMI -> ClimaScreen(app, openRelay = { openDev(it) }, openBt = { openBt(it) },
                             onList = { app.climaGo.value = Scr.DEVICES; setView(Pane.CLIMA) })
                         Pane.ACC -> AccessScreen(app, ::setWho, onHistory = { go("/_gates", Cat.GATE) }, onBt = { openGate("list") })
+                        Pane.NEW -> SetupScreen(app, onClose = { refresh(true); go("/_home", Cat.ALL) })
                         else -> ShortcutsScreen(store, web)
                     }
                 }
@@ -222,6 +238,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
                 "guests" to Item("Ospiti", "inviti e permessi", Icons.users, null, onClick = pick { go("/_guests", Cat.MORE) }),
             )
             rel.sortedBy { ord.indexOf(it.first) }.forEach { add(it.second) }
+            add(Item("Nuovo dispositivo", "Wi-Fi, relay e Bluetooth dall'hotspot", Icons.plus, null, onClick = pick { setView(Pane.NEW) }))
             add(Item("Scorciatoie", "cancelli dalle impostazioni rapide e dal widget", Icons.gate, null, onClick = pick { setView(Pane.SCORC) }))
             add(Item("Gate Bluetooth", "elenco, aggiungi, dimentica", Icons.bt, null, onClick = pick { openGate("list") }))
             add(Item("Condizionatori Bluetooth", "elenco, aggiungi, dimentica", Icons.bt, null, onClick = pick { app.climaGo.value = Scr.DEVICES; setView(Pane.CLIMA) }))

@@ -191,5 +191,45 @@ object Relay {
         catch (e: Exception) { null to "nessuna risposta" }
     }
 
+    enum class Login { OK, WAIT, BAD, NET }
+
+    /**
+     * "Entra" come dalla pagina del relay, con codice e password: la sessione
+     * finisce nei cookie della WebView (il dispositivo compare nella lista).
+     * WAIT: il dispositivo non si e' ancora mai collegato (o troppi tentativi).
+     */
+    fun login(id: String, pw: String): Login {
+        val c = try {
+            (URL("$BASE/_login").openConnection() as HttpURLConnection).apply {
+                requestMethod = "POST"
+                instanceFollowRedirects = false
+                connectTimeout = 5000
+                readTimeout = 8000
+                doOutput = true
+                setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
+                setRequestProperty("Accept-Language", "en")      // i messaggi d'errore si riconoscono in inglese
+                setRequestProperty("Connection", "close")
+                outputStream.use { it.write(("id=" + enc(id) + "&pw=" + enc(pw)).toByteArray()) }
+            }
+        } catch (e: Exception) { return Login.NET }
+        return try {
+            val code = c.responseCode
+            if (code in 300..399) {
+                val cm = CookieManager.getInstance()
+                c.headerFields.filterKeys { it != null && it.equals("Set-Cookie", true) }.values.flatten()
+                    .filter { it.startsWith("bt_d_") }.forEach { cm.setCookie(BASE, it) }
+                cm.flush()
+                Login.OK
+            } else {
+                val page = (c.errorStream ?: c.inputStream)?.bufferedReader()?.use { it.readText() } ?: ""
+                when {
+                    "never connected" in page || "No password has been set" in page || "Too many attempts" in page -> Login.WAIT
+                    code == 401 || code == 200 -> Login.BAD
+                    else -> Login.NET
+                }
+            }
+        } catch (e: Exception) { Login.NET } finally { c.disconnect() }
+    }
+
     private fun enc(s: String) = URLEncoder.encode(s, "UTF-8")
 }

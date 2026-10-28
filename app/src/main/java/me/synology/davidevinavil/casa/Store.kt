@@ -32,6 +32,29 @@ class Store(ctx: Context) {
         get() = p.getString("relayList", "[]") ?: "[]"
         set(v) = p.edit().putString("relayList", v).apply()
 
+    /**
+     * Dispositivi nuovi da far entrare nel relay ("Nuovo dispositivo"): il
+     * relay li accetta solo dopo il loro primo collegamento. Codice del
+     * relay, password e nome; tolti appena entrati.
+     */
+    private val _pending = MutableStateFlow(loadPending())
+    val pending: StateFlow<List<Triple<String, String, String>>> = _pending
+
+    fun addPending(id: String, pw: String, name: String) = savePending(_pending.value.filter { it.first != id } + Triple(id, pw, name))
+    fun removePending(id: String) = savePending(_pending.value.filter { it.first != id })
+
+    private fun savePending(l: List<Triple<String, String, String>>) {
+        _pending.value = l
+        val a = JSONArray()
+        l.forEach { a.put(JSONObject().put("id", it.first).put("pw", it.second).put("n", it.third)) }
+        p.edit().putString("pendingLogins", a.toString()).apply()
+    }
+
+    private fun loadPending(): List<Triple<String, String, String>> = try {
+        val a = JSONArray(p.getString("pendingLogins", "[]"))
+        (0 until a.length()).map { val o = a.getJSONObject(it); Triple(o.getString("id"), o.getString("pw"), o.optString("n")) }
+    } catch (e: Exception) { emptyList() }
+
     /** Ordine della barra scelto in Personalizza (chiavi del relay: all, dash, thermostat...). */
     private val _barOrder = MutableStateFlow(parseOrder(p.getString("barOrder", "[]")))
     val barOrder: StateFlow<List<String>> = _barOrder

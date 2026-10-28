@@ -104,6 +104,7 @@ object Icons {
     val gear = listOf(IconPart(circle(12f, 12f, 3.2f)),
         IconPart("M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"))
     val bt = listOf(IconPart("M7 7l10 10-5 5V2l5 5L7 17"))
+    val plus = listOf(IconPart("M12 5v14"), IconPart("M5 12h14"))
     val flame = listOf(IconPart("M12 3c.5 3.5 5 5.5 5 10.5a5 5 0 0 1-10 0c0-2.5 1.5-3.8 2.2-5.8 1 1 1.8 2 2.1 3.3.9-2.4.7-5.2.7-8z"))
     val dash = listOf(IconPart("M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z"))
     val dots = listOf(IconPart(circle(5f, 12f, 1.8f), fill = true), IconPart(circle(12f, 12f, 1.8f), fill = true), IconPart(circle(19f, 12f, 1.8f), fill = true))
