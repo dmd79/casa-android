@@ -55,7 +55,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 
-enum class Scr { DEVICES, SCAN, CTL, SET, WIFI, SCHED }
+enum class Scr { DEVICES, SCAN, CTL, SET, WIFI, SCHED, FW }
 
 @Composable
 fun App(ble: Ble, store: Store, go: MutableStateFlow<Scr?>? = null) {
@@ -70,7 +70,7 @@ fun App(ble: Ble, store: Store, go: MutableStateFlow<Scr?>? = null) {
 
     BackHandler(enabled = scr != Scr.CTL && !(scr == Scr.DEVICES && addr == null)) {
         scr = when (scr) {
-            Scr.WIFI -> Scr.SET
+            Scr.WIFI, Scr.FW -> Scr.SET
             Scr.SCAN -> if (addr != null) Scr.CTL else Scr.DEVICES
             else -> Scr.CTL
         }
@@ -86,7 +86,13 @@ fun App(ble: Ble, store: Store, go: MutableStateFlow<Scr?>? = null) {
                 scr == Scr.SCAN -> ScanScreen(ble, store, onBack = { scr = if (addr != null) Scr.CTL else Scr.DEVICES }) {
                     store.put(it.address, it.name); ble.connectTo(it.address); scr = Scr.CTL }
                 scr == Scr.SET && st != null -> SettingsScreen(ble, store, onBack = { scr = Scr.CTL },
-                    onWifi = { scr = Scr.WIFI }, onForgot = { scr = Scr.DEVICES })
+                    onWifi = { scr = Scr.WIFI }, onForgot = { scr = Scr.DEVICES }, onFw = { scr = Scr.FW })
+                scr == Scr.FW && st != null && addr != null -> {
+                    val inf by ble.info.collectAsState()
+                    DevFwUpdate(st!!.name.ifBlank { "condizionatore" }, "condizionatore", addr!!, store, inf?.ota.orEmpty(), inf?.md5.orEmpty(),
+                        "Haier Hotspot", where = { ble.readInfo(); ble.info.value?.let { if (it.wifi && it.ip.isNotBlank()) it.ip else null } },
+                        onBack = { scr = Scr.SET })
+                }
                 scr == Scr.WIFI && st != null -> WifiScreen(ble, onBack = { scr = Scr.SET })
                 scr == Scr.SCHED && st != null -> SchedScreen(ble, st!!.name, onBack = { scr = Scr.CTL })
                 link == Link.UNPAIRED -> PairScreen(ble, store, onDevices = { scr = Scr.DEVICES })
@@ -280,7 +286,7 @@ fun Back(title: String, onBack: () -> Unit) {
 // ── impostazioni ──────────────────────────────────────────
 
 @Composable
-fun SettingsScreen(ble: Ble, store: Store, onBack: () -> Unit, onWifi: () -> Unit, onForgot: () -> Unit) {
+fun SettingsScreen(ble: Ble, store: Store, onBack: () -> Unit, onWifi: () -> Unit, onForgot: () -> Unit, onFw: () -> Unit = {}) {
     val st by ble.state.collectAsState()
     val info by ble.info.collectAsState()
     val addr by ble.address.collectAsState()
@@ -312,6 +318,7 @@ fun SettingsScreen(ble: Ble, store: Store, onBack: () -> Unit, onWifi: () -> Uni
         }
         Section("DISPOSITIVO")
         RowCard("Nome", st?.name ?: "--") { dlg = "name" }
+        if (info?.ota?.isNotBlank() == true) RowCard("Aggiorna firmware", "anche senza internet", onClick = onFw)
         RowCard("Dimentica questo condizionatore") { dlg = "forget" }
         Note("App ${BuildConfig.VERSION_NAME}", Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 20.dp), center = true)
     }

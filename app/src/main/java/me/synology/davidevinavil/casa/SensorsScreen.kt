@@ -445,11 +445,20 @@ object FwUpdate {
         }
     } catch (e: Exception) { "download non riuscito (${e.message ?: "rete"})" }
 
-    /** Il telefono e' sull'hotspot e la pagina del sensore risponde. */
-    fun pageUp(ctx: Context): Boolean = try {
-        val net = Hotspot.wifi(ctx)
-        if (net == null) false else {
-            val c = net.openConnection(URL("http://192.168.4.1/")) as HttpURLConnection
+    const val HOTSPOT = "192.168.4.1"
+
+    // hotspot: sulla rete Wi-Fi del telefono (non ha internet); altrimenti la rete normale
+    private fun open(ctx: Context, host: String, path: String): HttpURLConnection? {
+        val u = URL("http://$host$path")
+        return if (host == HOTSPOT) Hotspot.wifi(ctx)?.openConnection(u) as? HttpURLConnection
+        else u.openConnection() as HttpURLConnection
+    }
+
+    /** La pagina del dispositivo risponde ([host]: hotspot o indirizzo in casa). */
+    fun pageUp(ctx: Context, host: String = HOTSPOT): Boolean = try {
+        val c0 = open(ctx, host, "/")
+        if (c0 == null) false else {
+            val c = c0
             c.connectTimeout = 2500; c.readTimeout = 4000
             val ok = c.responseCode in 200..399
             c.disconnect()
@@ -458,13 +467,13 @@ object FwUpdate {
     } catch (e: Exception) { false }
 
     /** Carica il firmware; null se riuscito, altrimenti il motivo. */
-    fun upload(ctx: Context, f: File, progress: (Int) -> Unit): String? {
-        val net = Hotspot.wifi(ctx) ?: return "hotspot non collegato"
+    fun upload(ctx: Context, f: File, host: String = HOTSPOT, progress: (Int) -> Unit): String? {
+        if (host == HOTSPOT && Hotspot.wifi(ctx) == null) return "hotspot non collegato"
         val bnd = "----casa" + System.currentTimeMillis()
         val head = "--$bnd\r\nContent-Disposition: form-data; name=\"update\"; filename=\"firmware.bin\"\r\nContent-Type: application/octet-stream\r\n\r\n".toByteArray()
         val tail = "\r\n--$bnd--\r\n".toByteArray()
         return try {
-            val c = net.openConnection(URL("http://192.168.4.1/update")) as HttpURLConnection
+            val c = open(ctx, host, "/update") ?: return "hotspot non collegato"
             c.requestMethod = "POST"; c.doOutput = true
             c.connectTimeout = 5000; c.readTimeout = 120_000
             c.setRequestProperty("Content-Type", "multipart/form-data; boundary=$bnd")
@@ -482,16 +491,16 @@ object FwUpdate {
             val code = c.responseCode
             val body = (if (code < 400) c.inputStream else c.errorStream)?.bufferedReader()?.use { it.readText() } ?: ""
             c.disconnect()
-            if (code in 200..399 && !body.contains("fail", true)) null else "il sensore ha rifiutato il file ($code)"
+            if (code in 200..399 && !body.contains("fail", true)) null else "il dispositivo ha rifiutato il file ($code)"
         } catch (e: Exception) { "caricamento interrotto (${e.message ?: "rete"})" }
     }
 }
 
 /** File del firmware scelto sul telefono, copiato nella cache. */
-private data class LocalFw(val file: java.io.File, val name: String, val size: Long)
+internal data class LocalFw(val file: java.io.File, val name: String, val size: Long)
 
 /** Copia il file scelto e controlla che sia un firmware ESP32 (primo byte 0xE9, almeno 100 KB). */
-private fun copyFw(ctx: Context, uri: android.net.Uri): Pair<LocalFw?, String?> = try {
+internal fun copyFw(ctx: Context, uri: android.net.Uri): Pair<LocalFw?, String?> = try {
     var name = "firmware.bin"
     ctx.contentResolver.query(uri, null, null, null, null)?.use { c ->
         val i = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
@@ -653,11 +662,11 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
     }
 }
 
-private val ICO_NET = listOf(IconPart("M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18z"), IconPart("M3 12h18"), IconPart("M12 3a14 14 0 0 1 0 18"), IconPart("M12 3a14 14 0 0 0 0 18"))
-private val ICO_FILE = listOf(IconPart("M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"), IconPart("M14 3v5h5"))
+internal val ICO_NET = listOf(IconPart("M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18z"), IconPart("M3 12h18"), IconPart("M12 3a14 14 0 0 1 0 18"), IconPart("M12 3a14 14 0 0 0 0 18"))
+internal val ICO_FILE = listOf(IconPart("M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"), IconPart("M14 3v5h5"))
 
 @Composable
-private fun SrcOpt(icon: List<IconPart>, t: String, on: Boolean, onPick: () -> Unit, body: @Composable () -> Unit) {
+internal fun SrcOpt(icon: List<IconPart>, t: String, on: Boolean, onPick: () -> Unit, body: @Composable () -> Unit) {
     Column(
         Modifier.fillMaxWidth().padding(bottom = 10.dp).clip(RoundedCornerShape(16.dp)).background(if (on) pal.sel else pal.card)
             .border(1.dp, if (on) pal.accent else pal.border, RoundedCornerShape(16.dp)).clickable(onClick = onPick).padding(12.dp),

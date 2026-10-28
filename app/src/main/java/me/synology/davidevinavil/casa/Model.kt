@@ -62,6 +62,9 @@ data class AcInfo(
     val ip: String,
     val ap: Boolean,
     val fw: String,
+    /** Indirizzo degli aggiornamenti e md5 del firmware installato (per "Aggiorna firmware"). */
+    val ota: String = "",
+    val md5: String = "",
 ) {
     companion object {
         fun parse(j: JSONObject) = AcInfo(
@@ -76,6 +79,8 @@ data class AcInfo(
             ip = j.optString("ip", ""),
             ap = j.optBoolean("ap", false),
             fw = j.optString("fw", ""),
+            ota = j.optString("ota", ""),
+            md5 = j.optString("md5", ""),
         )
     }
 }

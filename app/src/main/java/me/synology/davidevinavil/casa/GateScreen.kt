@@ -55,7 +55,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-private enum class GScr { LIST, SCAN, PAIR, CTL }
+private enum class GScr { LIST, SCAN, PAIR, CTL, FW }
 
 // colori della pagina del dispositivo (gate.css)
 private val G_BLUE = Color(0xFF00C6FF)
@@ -104,8 +104,8 @@ fun GateApp(gb: GateBle, store: Store, go: MutableStateFlow<String?>, setWho: (S
 
     // indietro: ricerca e abbinamento tornano all'elenco; da elenco e
     // cancello ci pensa la barra (torna alle pagine)
-    BackHandler(enabled = scr == GScr.SCAN || scr == GScr.PAIR) {
-        scr = if (scr == GScr.PAIR) GScr.SCAN else GScr.LIST
+    BackHandler(enabled = scr == GScr.SCAN || scr == GScr.PAIR || scr == GScr.FW) {
+        scr = when (scr) { GScr.PAIR -> GScr.SCAN; GScr.FW -> GScr.CTL; else -> GScr.LIST }
     }
 
     Box(Modifier.fillMaxSize().background(pal.bg)) {
@@ -117,7 +117,16 @@ fun GateApp(gb: GateBle, store: Store, go: MutableStateFlow<String?>, setWho: (S
                     else { pairAddr = f.address; pairName = f.name; scr = GScr.PAIR }
                 }
                 scr == GScr.PAIR -> GatePair(gb, pairAddr, pairName, onBack = { scr = GScr.SCAN }) { sel = pairAddr; scr = GScr.CTL }
-                scr == GScr.CTL && sel != null -> GateCtl(gb, store, sel!!, setWho, onBack = { scr = GScr.LIST }) { scr = GScr.LIST }
+                scr == GScr.CTL && sel != null -> GateCtl(gb, store, sel!!, setWho, onBack = { scr = GScr.LIST }, onFw = { scr = GScr.FW }) { scr = GScr.LIST }
+                scr == GScr.FW && sel != null -> {
+                    val a = sel!!
+                    val gst by gb.state.collectAsState()
+                    DisposableEffect(a) { gb.watch(a); onDispose { gb.unwatch() } }
+                    DevFwUpdate(gates.firstOrNull { it.address == a }?.name ?: "Cancello", "cancello", a, store,
+                        gst?.ota.orEmpty(), gst?.md5.orEmpty(), "",
+                        where = { gb.state.value?.let { if (it.wifiOn == true && it.ip.isNotBlank()) it.ip else null } },
+                        onBack = { scr = GScr.CTL })
+                }
                 else -> GateList(gb, store, onAdd = { scr = GScr.SCAN }) { sel = it; scr = GScr.CTL }
             }
         }
@@ -262,7 +271,7 @@ private fun GatePair(gb: GateBle, addr: String, name: String, onBack: () -> Unit
 // ── comandi ───────────────────────────────────────────────
 
 @Composable
-private fun GateCtl(gb: GateBle, store: Store, addr: String, setWho: (String) -> Unit, onBack: () -> Unit, onForgot: () -> Unit) {
+private fun GateCtl(gb: GateBle, store: Store, addr: String, setWho: (String) -> Unit, onBack: () -> Unit, onFw: () -> Unit = {}, onForgot: () -> Unit) {
     val gates by store.gates.collectAsState()
     val g = gates.firstOrNull { it.address == addr }
     DisposableEffect(addr) { gb.watch(addr); onDispose { gb.unwatch() } }
@@ -336,6 +345,7 @@ private fun GateCtl(gb: GateBle, store: Store, addr: String, setWho: (String) ->
                 s.ssid.isBlank() -> "non impostato"
                 else -> "${s.ssid} · non collegato"
             }) { netAsk = true }
+            if (s.ota.isNotBlank()) RowCard("Aggiorna firmware", "anche senza internet", onClick = onFw)
         }
         Spacer(Modifier.height(24.dp))
         Btn("Dimentica questo cancello", secondary = true) { forget = true }

@@ -58,7 +58,9 @@ data class BtGate(val address: String, val name: String, val azioni: List<String
 
 /** [wifiOn]: Wi-Fi collegato (null: firmware che non lo dice), [ssid]: rete collegata o impostata. */
 data class GateState(val name: String, val azioni: List<String>, val stati: Map<String, String>, val t: Long,
-                     val wifiOn: Boolean? = null, val ssid: String = "") {
+                     val wifiOn: Boolean? = null, val ssid: String = "",
+                     /** Per "Aggiorna firmware": IP (vuoto senza Wi-Fi), indirizzo degli aggiornamenti, md5 installato. */
+                     val ip: String = "", val ota: String = "", val md5: String = "") {
     companion object {
         fun parse(b: ByteArray?): GateState? = try {
             val j = JSONObject(String(b ?: return null))
@@ -71,6 +73,7 @@ data class GateState(val name: String, val azioni: List<String>, val stati: Map<
                 j.optLong("t"),
                 if (j.has("wc")) j.optBoolean("wc") else null,
                 j.optString("ws"),
+                j.optString("ip"), j.optString("ota"), j.optString("md5"),
             )
         } catch (e: Exception) { null }
     }
