@@ -53,7 +53,7 @@ import kotlinx.coroutines.withContext
 import java.util.Locale
 
 /** Cosa occupa lo schermo sopra la barra. */
-enum class Pane { WEB, CLIMA, SCORC, GATE, ACC, CLIMI, NEW }
+enum class Pane { WEB, CLIMA, SCORC, GATE, ACC, CLIMI, NEW, SENS }
 
 /** Voci della barra: una per tipo di dispositivo. */
 enum class Cat(val label: String) { ALL("Tutti"), DASH("Plancia"), HEAT("Termostati"), AC("Clima"), GATE("Accessi"), SENS("Sensori"), MORE("Altro") }
@@ -117,6 +117,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     val curDev by nav.dev.collectAsState()
     val bts by store.devices.collectAsState()
     val btGates by store.gates.collectAsState()
+    val btSensors by store.sensors.collectAsState()
     val savedOrder by store.barOrder.collectAsState()
     val ord = barOrder(savedOrder)
     val btAddr by ble.address.collectAsState()
@@ -127,7 +128,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
 
     val pageCat = webCat(url, devs.firstOrNull { it.id == curDev })
     LaunchedEffect(url) { pending = null }
-    val active = when (view) { Pane.CLIMA, Pane.CLIMI -> Cat.AC; Pane.SCORC, Pane.NEW -> Cat.MORE; Pane.GATE, Pane.ACC -> Cat.GATE; Pane.WEB -> pending ?: pageCat }
+    val active = when (view) { Pane.CLIMA, Pane.CLIMI -> Cat.AC; Pane.SCORC, Pane.NEW -> Cat.MORE; Pane.GATE, Pane.ACC -> Cat.GATE; Pane.SENS -> Cat.SENS; Pane.WEB -> pending ?: pageCat }
 
     // Copertura solo arrivando da una schermata dell'app (Clima, Accessi...):
     // sotto c'e' rimasta un'altra pagina, che si vedrebbe per un attimo. Da
@@ -160,7 +161,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     val others = devs.filter { it.type == "other" }
     val cats = Cat.entries.filter {
         when (it) {
-            Cat.HEAT -> heat.isNotEmpty(); Cat.AC -> acs.isNotEmpty() || bts.isNotEmpty(); Cat.GATE -> gates.isNotEmpty() || btGates.isNotEmpty(); Cat.SENS -> sensors.isNotEmpty()
+            Cat.HEAT -> heat.isNotEmpty(); Cat.AC -> acs.isNotEmpty() || bts.isNotEmpty(); Cat.GATE -> gates.isNotEmpty() || btGates.isNotEmpty(); Cat.SENS -> sensors.isNotEmpty() || btSensors.isNotEmpty()
             Cat.DASH -> devs.isNotEmpty(); else -> true
         }
     }.sortedBy { c -> CAT_KEY[c]?.let { ord.indexOf(it) } ?: Int.MAX_VALUE }   // Altro resta in fondo
@@ -170,7 +171,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
             Cat.ALL -> go("/_home", c)
             Cat.DASH -> go("/_plancia", c)
             Cat.GATE -> setView(Pane.ACC)        // subito i pulsanti, relay o Bluetooth
-            Cat.SENS -> go("/_sensors", c)
+            Cat.SENS -> setView(Pane.SENS)       // relay o Bluetooth; grafici nella pagina web
             Cat.HEAT -> if (heat.size == 1) openDev(heat[0]) else { refresh(true); sheet = c }
             Cat.AC -> setView(Pane.CLIMI)        // tutti i condizionatori, relay o Bluetooth
             Cat.MORE -> sheet = c
@@ -202,6 +203,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
                             onList = { app.climaGo.value = Scr.DEVICES; setView(Pane.CLIMA) })
                         Pane.ACC -> AccessScreen(app, ::setWho, onHistory = { go("/_gates", Cat.GATE) }, onBt = { openGate("list") })
                         Pane.NEW -> SetupScreen(app, onClose = { refresh(true); go("/_home", Cat.ALL) })
+                        Pane.SENS -> SensorsApp(app, app.sensorGo, openRelay = { openDev(it) }, onCharts = { go("/_sensors", Cat.SENS) })
                         else -> ShortcutsScreen(store, web)
                     }
                 }

@@ -73,7 +73,8 @@ private fun normName(s: String) = s.trim().lowercase()
  * dopo pochi secondi; non riuscito: ci torna alla chiusura della finestra (3 minuti).
  */
 @SuppressLint("MissingPermission")
-class BtPairer(private val ctx: Context, private val store: Store, private val ble: Ble, private val gb: GateBle) {
+class BtPairer(private val ctx: Context, private val store: Store, private val ble: Ble, private val gb: GateBle,
+               private val sensors: SensorBle) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val adapter get() = ctx.getSystemService(BluetoothManager::class.java)?.adapter
 
@@ -84,10 +85,11 @@ class BtPairer(private val ctx: Context, private val store: Store, private val b
     @Volatile var notify: () -> Unit = {}
     private var job: Job? = null
 
-    /** Nomi (minuscoli) dei dispositivi abbinati nell'app: {"ac":[...],"gate":[...]}. */
+    /** Nomi (minuscoli) dei dispositivi abbinati nell'app: {"ac":[...],"gate":[...],"sensor":[...]}. */
     fun pairedJson(): String = JSONObject()
         .put("ac", org.json.JSONArray(store.devices.value.map { normName(it.name) }))
         .put("gate", org.json.JSONArray(store.gates.value.map { normName(it.name) }))
+        .put("sensor", org.json.JSONArray(store.sensors.value.map { normName(it.name) }))
         .toString()
 
     fun start(id: String, type: String, name: String, cookie: String?) {
@@ -119,7 +121,7 @@ class BtPairer(private val ctx: Context, private val store: Store, private val b
             else -> "$name non ha dato il codice ($err)."
         } + " Il Bluetooth del telefono non è stato toccato: riprova tra poco.")
         ui.value = ui.value?.copy(code = code, step = 1)
-        val later = " Torna da solo sul relay entro 3 minuti."
+        val later = if (type == "sensor") "" else " Torna da solo sul relay entro 3 minuti."
 
         // 2-3. ricerca e abbinamento
         val err2 = bond(type, name, code) { ui.value = ui.value?.copy(step = 2) }
@@ -137,9 +139,9 @@ class BtPairer(private val ctx: Context, private val store: Store, private val b
     suspend fun bond(type: String, name: String, code: String, onFound: () -> Unit = {}): String? {
         if (!gb.hasPermissions()) return "Manca il permesso Bluetooth."
         if (adapter?.isEnabled != true) return "Il Bluetooth del telefono è spento."
-        gb.stopScan(); ble.stopScan()
-        val svc = if (type == "gate") GateUuids.SVC else Uuids.SVC
-        val rev = if (type == "gate") GateUuids.REV else Uuids.REV
+        gb.stopScan(); ble.stopScan(); sensors.stopScan()
+        val svc = when (type) { "gate" -> GateUuids.SVC; "sensor" -> SensorUuids.SVC; else -> Uuids.SVC }
+        val rev = when (type) { "gate" -> GateUuids.REV; "sensor" -> SensorUuids.REV; else -> Uuids.REV }
         val (dev, advName) = find(svc, name) ?: return "Non trovo $name in Bluetooth: avvicinati e riprova."
         onFound()
         if (dev.bondState == BluetoothDevice.BOND_BONDED) {          // rimasto solo sul telefono: da rifare
@@ -160,6 +162,7 @@ class BtPairer(private val ctx: Context, private val store: Store, private val b
                 val d = extraDev(i) ?: return
                 if (d.address != dev.address) return
                 try {
+                    if (code.length != 6) return             // codice non noto: lo scrive chi abbina
                     when (i.getIntExtra(BluetoothDevice.EXTRA_PAIRING_VARIANT, -1)) {
                         BluetoothDevice.PAIRING_VARIANT_PIN, 5 -> if (d.setPin(code.toByteArray()) && isOrderedBroadcast) abortBroadcast()
                         1 -> {   // PAIRING_VARIANT_PASSKEY (vecchie versioni di Android)
@@ -190,6 +193,10 @@ class BtPairer(private val ctx: Context, private val store: Store, private val b
             if (type == "gate") {
                 val s = GateState.parse(c.read(GateUuids.STATE))
                 store.putGate(BtGate(dev.address, s?.name?.ifBlank { null } ?: name, s?.azioni ?: emptyList()))
+            } else if (type == "sensor") {
+                val s = SensorState.parse(c.read(SensorUuids.STATE))
+                store.putSensor(BtSensor(dev.address, s?.name?.ifBlank { null } ?: name))
+                if (s != null) sensors.stati.value = sensors.stati.value + (dev.address to s)
             } else {
                 val n = try { AcState.parse(JSONObject(String(c.read(Uuids.STATE) ?: ByteArray(0)))).name } catch (e: Exception) { "" }
                 store.put(dev.address, n.ifBlank { name })
@@ -237,8 +244,11 @@ class BtPairer(private val ctx: Context, private val store: Store, private val b
     /** "Dimentica Bluetooth" confermato: via dall'app e dagli abbinamenti del telefono. */
     fun forget(type: String, name: String) {
         val n = normName(name)
-        if (type == "gate") store.gates.value.filter { normName(it.name) == n }.forEach { gb.forget(it.address) }
-        else store.devices.value.filter { normName(it.name) == n }.forEach { ble.forget(it.address) }
+        when (type) {
+            "gate" -> store.gates.value.filter { normName(it.name) == n }.forEach { gb.forget(it.address) }
+            "sensor" -> store.sensors.value.filter { normName(it.name) == n }.forEach { sensors.forget(it.address) }
+            else -> store.devices.value.filter { normName(it.name) == n }.forEach { ble.forget(it.address) }
+        }
         notify()
     }
 }
@@ -277,8 +287,11 @@ fun BtPairDialogs(p: BtPairer) {
             Text(when { s.done -> "${s.name} abbinato"; s.err != null -> "Abbinamento annullato"; else -> "Abbina ${s.name}" },
                 color = pal.text, fontSize = 22.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 12.dp, bottom = 8.dp))
             val body = when {
-                s.done -> (if (s.type == "gate") "Da vicino lo apri anche senza internet." else "Da vicino lo comandi anche senza internet.") +
-                    " Torna sul relay tra pochi secondi."
+                s.done -> when (s.type) {
+                    "gate" -> "Da vicino lo apri anche senza internet. Torna sul relay tra pochi secondi."
+                    "sensor" -> "Da vicino leggi temperatura e umidità anche senza internet."
+                    else -> "Da vicino lo comandi anche senza internet. Torna sul relay tra pochi secondi."
+                }
                 s.err != null -> s.err
                 s.code == null -> "Chiedo il codice al dispositivo tramite il relay…"
                 else -> null

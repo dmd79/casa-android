@@ -72,6 +72,32 @@ class Store(ctx: Context) {
     } catch (e: Exception) { emptyList() }
 
     /** Cancelli e garage Bluetooth abbinati (indirizzo, nome, pulsanti). */
+    /** Sensori esterni abbinati in Bluetooth. */
+    private val _sensors = MutableStateFlow(loadSensors())
+    val sensors: StateFlow<List<BtSensor>> = _sensors
+
+    /** Nuovo o nome cambiato (non riscrive se uguale). */
+    fun putSensor(s: BtSensor) {
+        val cur = _sensors.value
+        val old = cur.firstOrNull { it.address == s.address }
+        if (old == s) return
+        saveSensors(if (old != null) cur.map { if (it.address == s.address) s else it } else cur + s)
+    }
+
+    fun removeSensor(address: String) = saveSensors(_sensors.value.filter { it.address != address })
+
+    private fun saveSensors(list: List<BtSensor>) {
+        _sensors.value = list
+        val a = JSONArray()
+        list.forEach { a.put(JSONObject().put("a", it.address).put("n", it.name)) }
+        p.edit().putString("btSensors", a.toString()).apply()
+    }
+
+    private fun loadSensors(): List<BtSensor> = try {
+        val a = JSONArray(p.getString("btSensors", "[]"))
+        (0 until a.length()).map { i -> val o = a.getJSONObject(i); BtSensor(o.getString("a"), o.optString("n")) }
+    } catch (e: Exception) { emptyList() }
+
     private val _gates = MutableStateFlow(loadGates())
     val gates: StateFlow<List<BtGate>> = _gates
 

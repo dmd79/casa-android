@@ -1,0 +1,556 @@
+package me.synology.davidevinavil.casa
+
+import android.content.Context
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import java.io.File
+import java.net.HttpURLConnection
+import java.net.URL
+import java.util.Locale
+
+private enum class SScr { MAIN, LIST, SCAN, DETAIL, UPDATE }
+
+/** Un sensore della pagina: via relay, via Bluetooth o tutti e due (stesso nome). */
+private data class Sn(val name: String, val relay: RelayDev?, val bt: BtSensor?)
+
+private fun f1(v: Double?) = v?.let { String.format(Locale.ITALY, "%.1f", it) } ?: "--"
+private fun f0(v: Double?) = v?.let { String.format(Locale.ITALY, "%.0f", it) } ?: "--"
+private fun modoNome(m: Int) = when (m) { 1 -> "Wi-Fi"; 2 -> "Solo ESP-NOW"; else -> "da configurare" }
+
+/**
+ * Sensori esterni. Pagina principale: riquadri via relay se raggiungibile e in
+ * linea, altrimenti via Bluetooth (lettura breve, uno per volta). Poi elenco dei
+ * sensori Bluetooth, ricerca, scheda del sensore e aggiornamento senza internet.
+ */
+@Composable
+fun SensorsApp(app: CasaApp, go: MutableStateFlow<String?>, openRelay: (RelayDev) -> Unit, onCharts: () -> Unit) {
+    var scr by rememberSaveable { mutableStateOf(SScr.MAIN) }
+    var sel by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(go) {
+        go.collect { r ->
+            if (r == null) return@collect
+            when {
+                r == "list" -> scr = SScr.LIST
+                r.startsWith("dev:") -> { sel = r.removePrefix("dev:"); scr = SScr.DETAIL }
+            }
+            go.value = null
+        }
+    }
+    BackHandler(enabled = scr != SScr.MAIN) {
+        scr = when (scr) { SScr.SCAN -> SScr.LIST; SScr.UPDATE -> SScr.DETAIL; else -> SScr.MAIN }
+    }
+    Box(Modifier.fillMaxSize().background(pal.bg).padding(horizontal = 20.dp, vertical = 16.dp)) {
+        when (scr) {
+            SScr.MAIN -> SensorsMain(app, openRelay, onCharts, openBt = { sel = it; scr = SScr.DETAIL }, onList = { scr = SScr.LIST })
+            SScr.LIST -> SensorList(app, onBack = { scr = SScr.MAIN }, onAdd = { scr = SScr.SCAN }) { sel = it; scr = SScr.DETAIL }
+            SScr.SCAN -> SensorScan(app, onBack = { scr = SScr.LIST }) { scr = SScr.LIST }
+            SScr.DETAIL -> sel?.let { SensorDetail(app, it, onBack = { scr = SScr.MAIN }, onUpdate = { scr = SScr.UPDATE }, onGone = { scr = SScr.LIST }) }
+            SScr.UPDATE -> sel?.let { SensorUpdate(app, it, onBack = { scr = SScr.DETAIL }) }
+        }
+    }
+}
+
+// ── pagina principale ─────────────────────────────────────
+
+@Composable
+private fun SensorsMain(app: CasaApp, openRelay: (RelayDev) -> Unit, onCharts: () -> Unit, openBt: (String) -> Unit, onList: () -> Unit) {
+    val store = app.store
+    val sb = app.sensors
+    var devs by remember { mutableStateOf(Relay.parseList(store.relayList).filter { it.type == "sensor" }) }
+    var relayOk by remember { mutableStateOf(store.relayUp) }
+    var loaded by remember { mutableStateOf(false) }
+    val bts by store.sensors.collectAsState()
+    val stati by sb.stati.collectAsState()
+
+    // relay come in Clima e Accessi (in secondo piano non si conta)
+    LaunchedEffect(Unit) {
+        var fails = 0
+        while (true) {
+            if (!app.fg) { delay(1000); continue }
+            val cookie = Relay.cookie()
+            var raw = withContext(Dispatchers.IO) { Relay.listRaw(cookie) }
+            if (raw == null && relayOk) { delay(1500); raw = withContext(Dispatchers.IO) { Relay.listRaw(cookie) } }
+            if (raw == null && !app.fg) continue
+            if (raw != null) { store.relayList = raw; devs = Relay.parseList(raw).filter { it.type == "sensor" }; fails = 0; relayOk = true }
+            else if (++fails >= 2 || !relayOk) relayOk = false
+            store.relayUp = relayOk
+            loaded = true
+            delay(if (raw != null) 5000 else 3000)
+        }
+    }
+
+    fun same(a: String, b: String) = a.trim().equals(b.trim(), ignoreCase = true)
+    val list = buildList {
+        devs.forEach { d -> add(Sn(d.name, d, bts.firstOrNull { same(it.name, d.name) })) }
+        bts.forEach { b -> if (none { same(it.name, b.name) }) add(Sn(b.name, null, b)) }
+    }
+    fun viaRelay(x: Sn) = x.relay != null && (relayOk && x.relay.online || x.bt == null)
+
+    // Bluetooth: lettura breve dei sensori non coperti dal relay, uno per volta, poi ogni minuto
+    val reach = remember { mutableStateMapOf<String, Boolean>() }
+    val btWanted = list.filter { !viaRelay(it) && it.bt != null }.map { it.bt!!.address }
+    LaunchedEffect(btWanted.joinToString()) {
+        if (btWanted.isEmpty()) return@LaunchedEffect
+        delay(600)
+        while (true) {
+            btWanted.forEach { a -> reach[a] = sb.peek(a) != null }
+            delay(60_000)
+        }
+    }
+
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Title("Sensori", Modifier.padding(bottom = 14.dp))
+        if (loaded && !relayOk && list.isNotEmpty()) {
+            val y = Color(0xFFE7C12C)
+            Text(if (bts.isNotEmpty()) "Relay non raggiungibile: leggo via Bluetooth, da vicino" else "Relay non raggiungibile",
+                color = y, fontSize = 14.sp,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(12.dp))
+                    .background(y.copy(alpha = .12f)).border(1.dp, y, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 10.dp))
+        }
+        if (list.isEmpty()) Note(if (loaded) "Nessun sensore. Entra nei sensori dalla scheda Tutti, oppure abbinane uno via Bluetooth qui sotto."
+                                 else "Leggo i sensori…", center = true)
+        list.chunked(2).forEach { row ->
+            Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                row.forEach { x ->
+                    if (viaRelay(x)) {
+                        val d = x.relay!!
+                        val on = d.online && relayOk
+                        SensorCard(Modifier.weight(1f), x.name, d.cur, d.hum, "wifi", if (on) null else "non raggiungibile") { openRelay(d) }
+                    } else {
+                        val b = x.bt!!
+                        val s = stati[b.address]
+                        val r = reach[b.address]
+                        val status = when {
+                            r == null && s == null -> "cerco…"
+                            r == false -> "non raggiungibile"
+                            else -> null
+                        }
+                        SensorCard(Modifier.weight(1f), x.name, s?.t, s?.h, "bt", status) { openBt(b.address) }
+                    }
+                }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
+        if (list.isNotEmpty()) Row(Modifier.padding(top = 2.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            SvgIcon(ICO_WIFI, pal.muted, 13.dp, stroke = 2f)
+            Text(" via relay    ", color = pal.muted, fontSize = 12.sp)
+            SvgIcon(ICO_BT, pal.muted, 13.dp, stroke = 2f)
+            Text(" via Bluetooth", color = pal.muted, fontSize = 12.sp)
+        }
+        Spacer(Modifier.height(8.dp))
+        RowCard("Grafici e storico", onClick = onCharts)
+        LinkCard("Sensori Bluetooth", "elenco, aggiungi, dimentica", onClick = onList)
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+private val ICO_THERMO = listOf(IconPart("M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z"))
+
+@Composable
+private fun SensorCard(modifier: Modifier, name: String, t: Double?, h: Double?, ch: String, status: String?, onClick: () -> Unit) {
+    val off = status != null
+    Column(
+        modifier.heightIn(min = 128.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)
+            .border(1.dp, pal.border, RoundedCornerShape(16.dp)).clickable(onClick = onClick)
+            .padding(horizontal = 13.dp, vertical = 12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SvgIcon(ICO_THERMO, if (off) pal.muted else Color(0xFF00C6FF), 16.dp)
+            Text(" $name", color = Color(0xFFC9D1D4), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
+                overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            SvgIcon(if (ch == "bt") ICO_BT else ICO_WIFI, Color(0xFF8A93A3), 14.dp, stroke = 2f)
+        }
+        Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.Bottom) {
+            Text(if (off) "--" else f1(t), color = if (off) pal.muted else pal.text, fontSize = 32.sp, fontWeight = FontWeight.Light)
+            Text(" °C", color = Color(0xFF8A9599), fontSize = 13.sp, modifier = Modifier.padding(bottom = 5.dp))
+        }
+        Text("${if (off) "--" else f1(h)} %", color = pal.value, fontSize = 16.sp)
+        Text(status ?: if (ch == "bt") "da vicino, Bluetooth" else "via relay", color = pal.muted, fontSize = 11.sp,
+            letterSpacing = .5.sp, modifier = Modifier.padding(top = 6.dp))
+    }
+}
+
+// ── elenco dei sensori Bluetooth ──────────────────────────
+
+@Composable
+private fun SensorList(app: CasaApp, onBack: () -> Unit, onAdd: () -> Unit, onPick: (String) -> Unit) {
+    val list by app.store.sensors.collectAsState()
+    val stati by app.sensors.stati.collectAsState()
+    var del by remember { mutableStateOf<BtSensor?>(null) }
+    del?.let { s ->
+        Confirm("Dimenticare ${s.name}?", "Il telefono non lo leggerà più via Bluetooth finché non lo abbini di nuovo. Via relay resta tutto com'è.",
+            "Dimentica", danger = true, onDismiss = { del = null }) { del = null; app.sensors.forget(s.address) }
+    }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Back("Sensori Bluetooth", onBack)
+        Sub(if (list.isEmpty()) "nessuno ancora" else "abbinati a questo telefono")
+        Spacer(Modifier.height(18.dp))
+        list.forEach { s ->
+            val v = stati[s.address]
+            DeviceRow(s.name, v?.let { "${f1(it.t)} °C · ${f0(it.h)} %" } ?: "tocca per leggere", onDelete = { del = s }) { onPick(s.address) }
+        }
+        Spacer(Modifier.height(16.dp))
+        Btn("Aggiungi sensore Bluetooth", onClick = onAdd)
+        Note("Più comodo: «Abbina Bluetooth» nella lista del relay, oppure Altro → Nuovo dispositivo. Da qui serve il codice della pagina del sensore (WIFI → Bluetooth → Abbina telefono).", center = true)
+    }
+}
+
+@Composable
+private fun SensorScan(app: CasaApp, onBack: () -> Unit, onDone: () -> Unit) {
+    val sb = app.sensors
+    val found by sb.found.collectAsState()
+    val scanning by sb.scanning.collectAsState()
+    val scope = rememberCoroutineScope()
+    var pick by remember { mutableStateOf<Found?>(null) }
+    var busy by remember { mutableStateOf<String?>(null) }
+    var err by remember { mutableStateOf("") }
+    LaunchedEffect(Unit) { sb.startScan() }
+    DisposableEffect(Unit) { onDispose { sb.stopScan() } }
+    pick?.let { f ->
+        Ask("Abbina ${f.name}", "Il codice di 6 cifre della pagina del sensore (WIFI → Bluetooth → Abbina telefono).", "", ok = "Abbina",
+            onDismiss = { pick = null }) { v ->
+            pick = null
+            val c = v.filter(Char::isDigit)
+            busy = f.name; err = ""
+            scope.launch {
+                val e = app.pairer.bond("sensor", f.name, if (c.length == 6) c else "")
+                busy = null
+                if (e == null) onDone() else err = e
+            }
+        }
+    }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Back("Aggiungi", onBack)
+        Sub(when { busy != null -> "abbino $busy…"; scanning -> "cerco i sensori vicini…"; else -> "ricerca finita" })
+        Spacer(Modifier.height(18.dp))
+        found.forEach { f ->
+            Row(
+                Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)
+                    .border(1.dp, pal.border, RoundedCornerShape(16.dp)).clickable(enabled = busy == null) { sb.stopScan(); pick = f }
+                    .padding(horizontal = 18.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(f.name, color = pal.text, fontSize = 19.sp, maxLines = 1)
+                    Text(f.address, color = pal.muted, fontSize = 14.sp)
+                }
+                SignalBars(f.rssi)
+            }
+        }
+        if (err.isNotBlank()) Text(err, color = Color(0xFFE7C12C), fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
+        if (!scanning && found.isEmpty()) Note("Nessun sensore trovato. Avvicinati: il sensore ha il Bluetooth sempre acceso.", center = true)
+        Spacer(Modifier.height(18.dp))
+        Btn("Cerca di nuovo", secondary = true, enabled = !scanning && busy == null) { sb.startScan() }
+    }
+}
+
+// ── scheda del sensore (Bluetooth) ────────────────────────
+
+@Composable
+private fun SensorDetail(app: CasaApp, addr: String, onBack: () -> Unit, onUpdate: () -> Unit, onGone: () -> Unit) {
+    val sb = app.sensors
+    val list by app.store.sensors.collectAsState()
+    val stati by sb.stati.collectAsState()
+    val name = list.firstOrNull { it.address == addr }?.name ?: "Sensore"
+    val s = stati[addr]
+    var reach by remember { mutableStateOf<Boolean?>(null) }
+    var ask by remember { mutableStateOf<String?>(null) }       // "espnow", "wifi", "forget"
+    var msg by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
+    // lettura breve ogni 5 s mentre la scheda e' aperta
+    LaunchedEffect(addr) {
+        while (true) {
+            reach = sb.peek(addr) != null
+            delay(5000)
+        }
+    }
+    when (ask) {
+        "forget" -> Confirm("Dimenticare il Bluetooth di $name?", "Via relay resta tutto com'è.", "Dimentica", danger = true,
+            onDismiss = { ask = null }) { ask = null; sb.forget(addr); onGone() }
+        "espnow" -> Confirm("Passare a Solo ESP-NOW?", "Il sensore spegne il Wi-Fi e il relay, si riavvia e cerca il termostato. Da vicino resta il Bluetooth.",
+            "Passa a ESP-NOW", onDismiss = { ask = null }) {
+            ask = null
+            scope.launch { msg = sb.cmd(addr, "modo=espnow")?.let { "Non riuscito: $it" } ?: "Fatto: il sensore si riavvia in Solo ESP-NOW." }
+        }
+        "wifi" -> WifiAsk(onDismiss = { ask = null }) { ssid, pw, rpw ->
+            ask = null
+            scope.launch {
+                val e = sb.cmd(addr, "modo=wifi\t$ssid\t$pw\t$rpw")
+                if (e == null) {
+                    s?.id?.takeIf { it.isNotBlank() }?.let { app.store.addPending(it, rpw, name) }
+                    msg = "Fatto: il sensore si riavvia in Wi-Fi. Lo aggiungo alla lista del relay appena è online."
+                } else msg = "Non riuscito: $e"
+            }
+        }
+    }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Back(name, onBack)
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp, bottom = 6.dp)) {
+            SvgIcon(ICO_BT, if (reach == true) pal.accent else pal.muted, 13.dp, stroke = 2f)
+            Text(when (reach) { null -> " mi collego…"; true -> " collegato via Bluetooth"; false -> " non raggiungibile: avvicinati" },
+                color = pal.muted, fontSize = 13.sp)
+        }
+        Row(verticalAlignment = Alignment.Bottom) {
+            Text(f1(s?.t), color = pal.text, fontSize = 48.sp, fontWeight = FontWeight.Light)
+            Text(" °C   ", color = Color(0xFF8A9599), fontSize = 15.sp, modifier = Modifier.padding(bottom = 9.dp))
+            Text("${f0(s?.h)} %", color = pal.value, fontSize = 22.sp, modifier = Modifier.padding(bottom = 6.dp))
+        }
+        if (s != null) {
+            Column(Modifier.fillMaxWidth().padding(top = 10.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)
+                .border(1.dp, pal.border, RoundedCornerShape(16.dp)).padding(horizontal = 14.dp, vertical = 4.dp)) {
+                Kv("Funzionamento", modoNome(s.mode))
+                if (s.mode != 0) Kv("Termostato", if (s.hooked) "agganciato, canale ${s.ch}" else "non agganciato",
+                    if (s.hooked) pal.ok else Color(0xFFE7C12C))
+                Kv("MAC", s.mac)
+                Kv("Firmware", s.ver.ifBlank { "--" })
+            }
+            if (s.mode == 2) MacBox(s.mac)
+        }
+        if (msg.isNotBlank()) Text(msg, color = pal.value, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
+        Spacer(Modifier.height(10.dp))
+        if (s != null) {
+            RowCard("Cambia funzionamento", if (s.mode == 1) "passa a Solo ESP-NOW" else "passa a Wi-Fi") { ask = if (s.mode == 1) "espnow" else "wifi" }
+            if (s.mode == 1) Note("In Wi-Fi si aggiorna da solo: niente da fare qui.")
+            else RowCard("Aggiorna firmware", "senza internet, dall'hotspot", onClick = onUpdate)
+        }
+        Btn("Dimentica Bluetooth", secondary = true, modifier = Modifier.padding(top = 8.dp)) { ask = "forget" }
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun Kv(k: String, v: String, c: Color? = null) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 9.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(k, color = pal.muted, fontSize = 14.sp)
+        Text(v, color = c ?: pal.text, fontSize = 14.sp, textAlign = TextAlign.End, modifier = Modifier.padding(start = 12.dp))
+    }
+}
+
+/** Wi-Fi e password del relay per passare a Wi-Fi (via Bluetooth). */
+@Composable
+private fun WifiAsk(onDismiss: () -> Unit, onOk: (String, String, String) -> Unit) {
+    val ctx = LocalContext.current
+    var ssid by remember { mutableStateOf(Hotspot.phoneWifi(ctx)?.first ?: "") }
+    var pw by remember { mutableStateOf("") }
+    var rpw by remember { mutableStateOf("") }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss, containerColor = pal.bg,
+        title = { Text("Passa a Wi-Fi", color = pal.text, fontSize = 21.sp) },
+        text = {
+            Column {
+                Text("Rete di casa (2,4 GHz) e password del relay. Il sensore si riavvia in Wi-Fi.", color = pal.value, fontSize = 15.sp)
+                listOf(Triple("Rete", ssid, false), Triple("Password Wi-Fi", pw, true), Triple("Password del relay", rpw, true)).forEachIndexed { i, (l, v, sec) ->
+                    androidx.compose.material3.OutlinedTextField(
+                        value = v, onValueChange = { n -> when (i) { 0 -> ssid = n; 1 -> pw = n; else -> rpw = n.take(32) } },
+                        label = { Text(l) }, singleLine = true, colors = fieldColors(),
+                        visualTransformation = if (sec) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+                        modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            val ok = ssid.isNotBlank() && ssid.length <= 32 && pw.length in 8..63 && rpw.length >= 6 && !ssid.contains('\t') && !pw.contains('\t') && !rpw.contains('\t')
+            androidx.compose.material3.TextButton(enabled = ok, onClick = { onOk(ssid.trim(), pw, rpw) }) {
+                Text("Passa a Wi-Fi", color = if (ok) pal.accent else pal.muted, fontSize = 17.sp)
+            }
+        },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Annulla", color = pal.value, fontSize = 17.sp) } },
+    )
+}
+
+// ── aggiornamento senza internet ──────────────────────────
+
+/**
+ * Firmware scaricato dall'indirizzo OTA del sensore (con internet), poi
+ * caricato sulla sua pagina dall'hotspot (http://192.168.4.1/update, come
+ * "OTA Update" del portale).
+ */
+object FwUpdate {
+    private fun url(base: String, file: String) = base.trim().trimEnd('/') + "/" + file
+
+    fun md5(base: String): String? = try {
+        val c = URL(url(base, "firmware.md5")).openConnection() as HttpURLConnection
+        c.connectTimeout = 8000; c.readTimeout = 15000
+        val t = if (c.responseCode == 200) c.inputStream.bufferedReader().use { it.readText() } else null
+        c.disconnect()
+        t?.trim()?.split(Regex("\\s+"))?.firstOrNull()?.lowercase()?.takeIf { it.length == 32 }
+    } catch (e: Exception) { null }
+
+    /** Scarica il firmware in [out]; null se riuscito, altrimenti il motivo. */
+    fun download(base: String, out: File, progress: (Int) -> Unit): String? = try {
+        val c = URL(url(base, "firmware.bin")).openConnection() as HttpURLConnection
+        c.connectTimeout = 8000; c.readTimeout = 20000
+        if (c.responseCode != 200) "server: errore ${c.responseCode}" else {
+            val tot = c.contentLengthLong
+            var n = 0L
+            c.inputStream.use { inp -> out.outputStream().use { o ->
+                val b = ByteArray(16384)
+                while (true) { val r = inp.read(b); if (r < 0) break; o.write(b, 0, r); n += r; if (tot > 0) progress((n * 100 / tot).toInt()) }
+            } }
+            c.disconnect()
+            if (n < 100_000) "file troppo piccolo" else null
+        }
+    } catch (e: Exception) { "download non riuscito (${e.message ?: "rete"})" }
+
+    /** Il telefono e' sull'hotspot e la pagina del sensore risponde. */
+    fun pageUp(ctx: Context): Boolean = try {
+        val net = Hotspot.wifi(ctx)
+        if (net == null) false else {
+            val c = net.openConnection(URL("http://192.168.4.1/")) as HttpURLConnection
+            c.connectTimeout = 2500; c.readTimeout = 4000
+            val ok = c.responseCode in 200..399
+            c.disconnect()
+            ok
+        }
+    } catch (e: Exception) { false }
+
+    /** Carica il firmware; null se riuscito, altrimenti il motivo. */
+    fun upload(ctx: Context, f: File, progress: (Int) -> Unit): String? {
+        val net = Hotspot.wifi(ctx) ?: return "hotspot non collegato"
+        val bnd = "----casa" + System.currentTimeMillis()
+        val head = "--$bnd\r\nContent-Disposition: form-data; name=\"update\"; filename=\"firmware.bin\"\r\nContent-Type: application/octet-stream\r\n\r\n".toByteArray()
+        val tail = "\r\n--$bnd--\r\n".toByteArray()
+        return try {
+            val c = net.openConnection(URL("http://192.168.4.1/update")) as HttpURLConnection
+            c.requestMethod = "POST"; c.doOutput = true
+            c.connectTimeout = 5000; c.readTimeout = 120_000
+            c.setRequestProperty("Content-Type", "multipart/form-data; boundary=$bnd")
+            val tot = head.size + f.length() + tail.size
+            c.setFixedLengthStreamingMode(tot)
+            c.outputStream.use { o ->
+                o.write(head)
+                var n = 0L
+                f.inputStream().use { inp ->
+                    val b = ByteArray(8192)
+                    while (true) { val r = inp.read(b); if (r < 0) break; o.write(b, 0, r); n += r; progress((n * 100 / f.length()).toInt()) }
+                }
+                o.write(tail)
+            }
+            val code = c.responseCode
+            val body = (if (code < 400) c.inputStream else c.errorStream)?.bufferedReader()?.use { it.readText() } ?: ""
+            c.disconnect()
+            if (code in 200..399 && !body.contains("fail", true)) null else "il sensore ha rifiutato il file ($code)"
+        } catch (e: Exception) { "caricamento interrotto (${e.message ?: "rete"})" }
+    }
+}
+
+@Composable
+private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
+    val ctx = LocalContext.current
+    val sb = app.sensors
+    val s = sb.stati.collectAsState().value[addr]
+    val name = app.store.sensors.collectAsState().value.firstOrNull { it.address == addr }?.name ?: "sensore"
+    var step by remember { mutableStateOf(0) }          // 0 scarico, 1 hotspot, 2 collegati, 3 carico, 4 riavvio, 5 fatto
+    var pct by remember { mutableStateOf(0) }
+    var err by remember { mutableStateOf<String?>(null) }
+    var info by remember { mutableStateOf("") }
+    var go by remember { mutableStateOf(0) }
+    LaunchedEffect(go) {
+        err = null; step = 0; pct = 0
+        val st = s ?: sb.peek(addr) ?: run { err = "Il sensore non risponde in Bluetooth: avvicinati."; return@LaunchedEffect }
+        if (!st.ota.startsWith("https://")) { err = "Indirizzo degli aggiornamenti non https (${st.ota.ifBlank { "vuoto" }}): l'app scarica solo da https, per esempio GitHub."; return@LaunchedEffect }
+        // 0. firmware, finche' c'e' internet
+        val nuovo = withContext(Dispatchers.IO) { FwUpdate.md5(st.ota) } ?: run { err = "Non trovo l'aggiornamento: serve internet per scaricarlo."; return@LaunchedEffect }
+        info = if (nuovo == st.md5.lowercase()) "Il firmware è già l'ultimo: lo ricarico lo stesso." else "Versione nuova disponibile."
+        val f = File(ctx.cacheDir, "fw_sensor.bin")
+        val e0 = withContext(Dispatchers.IO) { FwUpdate.download(st.ota, f) { p -> pct = p } }
+        if (e0 != null) { err = "Firmware non scaricato: $e0."; return@LaunchedEffect }
+        step = 1; pct = 0
+        // 1. hotspot del sensore (da configurare c'e' gia')
+        if (st.mode == 2) {
+            val e1 = sb.cmd(addr, "ota")
+            if (e1 != null) { err = "Il sensore non ha acceso l'hotspot: $e1."; return@LaunchedEffect }
+        }
+        step = 2
+        // 2. telefono sull'hotspot (10 minuti al massimo)
+        val up = withTimeoutOrNull(600_000) { while (!withContext(Dispatchers.IO) { FwUpdate.pageUp(ctx) }) delay(2000); true }
+        if (up != true) { err = "Hotspot non raggiunto entro 10 minuti."; return@LaunchedEffect }
+        step = 3
+        // 3. caricamento
+        val e3 = withContext(Dispatchers.IO) { FwUpdate.upload(ctx, f) { p -> pct = p } }
+        if (e3 != null) { err = "Aggiornamento non riuscito: $e3."; return@LaunchedEffect }
+        step = 4
+        delay(8000)
+        f.delete()
+        step = 5
+    }
+    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Back("Aggiorna $name", onBack)
+        if (info.isNotBlank()) Text(info, color = pal.value, fontSize = 15.sp, modifier = Modifier.padding(top = 10.dp))
+        Column(Modifier.padding(top = 16.dp, start = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            listOf(if (step == 0 && pct > 0) "Scarico il firmware $pct %" else "Firmware scaricato", "Hotspot del sensore acceso",
+                "Collegati all'hotspot", if (step == 3) "Caricamento $pct %" else "Caricamento", "Riavvio").forEachIndexed { i, t ->
+                val ok = i < step; val now = i == step && err == null; val bad = i == step && err != null
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.width(26.dp), contentAlignment = Alignment.CenterStart) {
+                        when {
+                            ok -> SvgIcon(listOf(IconPart("M5 12.5l4.5 4.5L19 7.5")), pal.ok, 16.dp, stroke = 2.4f)
+                            now -> CircularProgressIndicator(Modifier.size(16.dp), color = pal.accent, strokeWidth = 2.dp)
+                            else -> Text("•", color = if (bad) Color(0xFFFF5A5A) else pal.muted, fontSize = 16.sp)
+                        }
+                    }
+                    Text(t, fontSize = 17.sp, color = when { ok -> pal.ok; bad -> Color(0xFFFF5A5A); now -> pal.text; else -> pal.muted })
+                }
+            }
+        }
+        if (step == 3) LinearProgressIndicator(progress = { pct / 100f }, color = pal.accent, trackColor = pal.border,
+            modifier = Modifier.fillMaxWidth().padding(top = 14.dp))
+        if (step == 2 && err == null) {
+            Note("Nelle impostazioni Wi-Fi del telefono collegati all'hotspot del sensore (di solito «Ext-Sensor Hotspot»), con la sua password. Resta collegato finché non finisce.", center = true)
+            Btn("Apri impostazioni Wi-Fi") { Hotspot.openWifiSettings(ctx) }
+        }
+        if (step == 5) Note("Fatto: il sensore si è riavviato e torna nel suo modo. Puoi tornare sulla tua rete.", center = true)
+        err?.let { Text(it, color = Color(0xFFE7C12C), fontSize = 14.sp, modifier = Modifier.padding(top = 12.dp)) }
+        Spacer(Modifier.height(16.dp))
+        if (err != null) Btn("Riprova") { go++ }
+        Btn(if (step == 5 || err != null) "Chiudi" else "Annulla", secondary = true, modifier = Modifier.padding(top = 8.dp), onClick = onBack)
+    }
+}

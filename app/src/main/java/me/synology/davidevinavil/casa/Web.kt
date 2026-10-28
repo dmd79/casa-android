@@ -188,14 +188,14 @@ class Bridge(private val ctx: Context, private val store: Store, private val web
     /** "Abbina Bluetooth" nella lista del relay ([type] "ac" o "gate"). */
     @JavascriptInterface
     fun btPair(id: String, type: String, name: String) {
-        if (type != "ac" && type != "gate") return
+        if (type != "ac" && type != "gate" && type != "sensor") return
         pairer.start(id, type, name, Relay.cookie())
     }
 
     /** "Dimentica Bluetooth": prima la conferma. */
     @JavascriptInterface
     fun btForget(type: String, name: String) {
-        if (type != "ac" && type != "gate") return
+        if (type != "ac" && type != "gate" && type != "sensor") return
         pairer.forgetAsk.value = type to name
     }
 

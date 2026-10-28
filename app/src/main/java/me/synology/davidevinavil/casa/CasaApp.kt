@@ -14,6 +14,10 @@ class CasaApp : Application() {
     val climaGo = kotlinx.coroutines.flow.MutableStateFlow<Scr?>(null)
     /** "Abbina / Dimentica Bluetooth" dalla lista del relay. */
     lateinit var pairer: BtPairer
+    /** Sensori esterni via Bluetooth. */
+    lateinit var sensors: SensorBle
+    /** Schermata dei sensori chiesta da fuori: "dev:<indirizzo>", "list". */
+    val sensorGo = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
     /**
      * App sullo schermo. In secondo piano Android blocca la rete: le
      * richieste al relay fallirebbero e Clima/Accessi lo crederebbero giu'
@@ -26,7 +30,8 @@ class CasaApp : Application() {
         store = Store(this)
         ble = Ble(this, store)
         gates = GateBle(this, store)
-        pairer = BtPairer(this, store, ble, gates)
+        sensors = SensorBle(this, store)
+        pairer = BtPairer(this, store, ble, gates, sensors)
         ble.resume()
     }
 }

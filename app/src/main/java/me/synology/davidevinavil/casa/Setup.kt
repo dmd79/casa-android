@@ -100,7 +100,7 @@ object Hotspot {
         val code = j.optString("codice").filter { it.isDigit() }
         if (!j.optBoolean("ok") || code.length != 6) return null
         val t = j.optString("tipo")
-        return HotspotDev(code, j.optString("nome"), j.optString("id").lowercase(), if (t == "gate") "gate" else "ac")
+        return HotspotDev(code, j.optString("nome"), j.optString("id").lowercase(), if (t == "gate" || t == "sensor") t else "ac")
     }
 
     /** Wi-Fi di casa e password del relay; null se accettati, altrimenti il motivo. */
@@ -141,19 +141,26 @@ object Hotspot {
     }
 }
 
-private enum class St { WIFI, RELAY, HOTSPOT, WORK, DONE }
+private enum class St { HOTSPOT, MODE, WIFI, RELAY, WORK, DONE }
+
+/** Rete Wi-Fi o Solo ESP-NOW (solo sensori esterni). */
+private val ICO_RADIO = listOf(IconPart("M12 10a2 2 0 1 1 0 4a2 2 0 1 1 0-4z"), IconPart("M16.2 7.8a6 6 0 0 1 0 8.4"),
+    IconPart("M7.8 16.2a6 6 0 0 1 0-8.4"), IconPart("M19 5a10 10 0 0 1 0 14"), IconPart("M5 19A10 10 0 0 1 5 5"))
 
 /**
- * "Nuovo dispositivo" (condizionatore o gate col firmware relay-o-Bluetooth):
- * Wi-Fi di casa e password del relay qui, poi dall'hotspot del dispositivo
- * codice, impostazioni e abbinamento Bluetooth, infine l'ingresso nel relay
- * (subito o appena il dispositivo si collega la prima volta).
+ * "Nuovo dispositivo" (condizionatore, gate o sensore esterno col firmware
+ * col Bluetooth). Prima l'hotspot del dispositivo (che dice cos'e'), poi:
+ *  - sensore esterno: Wi-Fi o Solo ESP-NOW;
+ *  - Wi-Fi di casa e password del relay (non in Solo ESP-NOW);
+ *  - impostazioni e abbinamento Bluetooth, infine l'ingresso nel relay
+ *    (subito o appena il dispositivo si collega la prima volta).
+ * La rete del telefono si legge all'inizio, prima di passare all'hotspot.
  */
 @Composable
 fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
-    var st by remember { mutableStateOf(St.WIFI) }
+    var st by remember { mutableStateOf(St.HOTSPOT) }
     var ssid by remember { mutableStateOf("") }
     var fromPhone by remember { mutableStateOf(false) }
     var ghz5 by remember { mutableStateOf(false) }
@@ -162,13 +169,16 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
     var manual by remember { mutableStateOf(false) }
     var rpw by remember { mutableStateOf("") }
     var rpw2 by remember { mutableStateOf("") }
+    var espnow by remember { mutableStateOf(false) }       // sensore: Solo ESP-NOW
     var near by remember { mutableStateOf(emptyList<String>()) }
-    // avanzamento: 0 hotspot, 1 Wi-Fi e relay, 2 Bluetooth, 3 di nuovo in rete; 4 = finito
     var step by remember { mutableStateOf(0) }
     var code by remember { mutableStateOf<String?>(null) }
     var dev by remember { mutableStateOf<HotspotDev?>(null) }
     var err by remember { mutableStateOf<String?>(null) }
     var relayIn by remember { mutableStateOf(false) }
+    var btAddr by remember { mutableStateOf<String?>(null) }
+    var hook by remember { mutableStateOf<SensorState?>(null) }
+    var hookGiveUp by remember { mutableStateOf(false) }
     var job by remember { mutableStateOf<Job?>(null) }
 
     val perms = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -182,36 +192,59 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
         perms.launch(need.toTypedArray())
     }
 
+    val sensor = dev?.type == "sensor"
     fun back() {
         job?.cancel()
-        when (st) { St.RELAY -> st = St.WIFI; St.HOTSPOT -> st = St.RELAY; else -> onClose() }
+        st = when (st) {
+            St.RELAY -> St.WIFI
+            St.WIFI -> if (sensor) St.MODE else St.HOTSPOT
+            St.MODE -> St.HOTSPOT
+            else -> { onClose(); st }
+        }
     }
     BackHandler { back() }
+    fun afterHotspot() { st = if (sensor) St.MODE else St.WIFI }
 
-    // Dall'hotspot in poi, tutto da solo
+    // Dalle impostazioni in poi, tutto da solo (telefono ancora sull'hotspot)
     fun work() {
-        st = St.WORK; step = 0; err = null; code = null; dev = null; relayIn = false
+        st = St.WORK; step = 0; err = null; relayIn = false; btAddr = null; hook = null; hookGiveUp = false
         job = scope.launch {
-            // 0. telefono sull'hotspot: il dispositivo da' il codice (si riprova finche' non arriva)
+            // 0. codice (di nuovo: la finestra di 3 minuti riparte da adesso)
             var d: HotspotDev? = null
-            while (d == null) {
+            for (i in 1..10) {
                 d = withContext(Dispatchers.IO) { Hotspot.abbina(ctx) }
-                if (d == null) delay(2000)
+                if (d != null) break
+                delay(2000)
             }
-            val dv = d ?: return@launch
+            val dv = d ?: run { err = "Il dispositivo non risponde sull'hotspot: ricollegati e riprova."; return@launch }
             dev = dv; code = dv.code; step = 1
-            // 1. Wi-Fi e password del relay
-            val e1 = withContext(Dispatchers.IO) { Hotspot.config(ctx, ssid.trim(), wpass, rpw) }
-            if (e1 != null) { err = "Impostazioni non accettate: $e1."; return@launch }
-            app.store.addPending(dv.id, rpw, dv.name)
+            // 1. Wi-Fi e password del relay dall'hotspot (in Solo ESP-NOW dopo, via Bluetooth)
+            if (!espnow) {
+                val e1 = withContext(Dispatchers.IO) { Hotspot.config(ctx, ssid.trim(), wpass, rpw) }
+                if (e1 != null) { err = "Impostazioni non accettate: $e1."; return@launch }
+                if (dv.id.isNotBlank()) app.store.addPending(dv.id, rpw, dv.name)
+            }
             step = 2
-            // 2. Bluetooth: il dispositivo e' gia' acceso in Bluetooth (niente rete)
+            // 2. Bluetooth (sempre acceso senza rete)
             val e2 = app.pairer.bond(dv.type, dv.name, dv.code)
-            if (e2 != null) { err = "$e2 Wi-Fi e password del relay sono già salvati sul dispositivo: puoi abbinarlo più tardi."; return@launch }
+            if (e2 != null) {
+                err = e2 + if (espnow) "" else " Wi-Fi e password del relay sono già salvati sul dispositivo: puoi abbinarlo più tardi."
+                return@launch
+            }
+            btAddr = app.store.sensors.value.firstOrNull { it.name.trim().equals(dv.name.trim(), true) }?.address
+            if (espnow) {
+                // Solo ESP-NOW: comando via Bluetooth, il sensore si riavvia col Wi-Fi spento
+                val a = btAddr
+                val e3 = if (a == null) "sensore non trovato dopo l'abbinamento" else app.sensors.cmd(a, "modo=espnow")
+                if (e3 != null) { err = "Modo non impostato: $e3. Riprova dalla scheda del sensore."; return@launch }
+                step = 4
+                st = St.DONE
+                return@launch
+            }
             step = 3
             // 3. di nuovo su internet, poi subito un tentativo di ingresso nel relay
             withTimeoutOrNull(120_000) { while (!Hotspot.online(ctx)) delay(1500) }
-            if (Hotspot.online(ctx)) {
+            if (Hotspot.online(ctx) && dv.id.isNotBlank()) {
                 val r = withContext(Dispatchers.IO) { Relay.login(dv.id, rpw) }
                 if (r == Relay.Login.OK) { app.store.removePending(dv.id); relayIn = true }
             }
@@ -220,14 +253,30 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
         }
     }
 
-    // hotspot vicini, aggiornati ogni tanto mentre si aspetta
+    // Solo ESP-NOW finito: aggancio al termostato per al massimo un minuto (il
+    // sensore si riavvia, poi cerca il canale); senza termostato si smette di
+    // aspettare, il sensore continua a cercarlo da solo
+    LaunchedEffect(st, btAddr) {
+        val a = btAddr
+        if (st != St.DONE || !espnow || a == null) return@LaunchedEffect
+        delay(8000)
+        val until = System.currentTimeMillis() + 60_000
+        while (System.currentTimeMillis() < until) {
+            app.sensors.peek(a)?.let { hook = it; if (it.hooked) return@LaunchedEffect }
+            delay(5000)
+        }
+        hookGiveUp = true
+    }
+
+    // hotspot vicini; appena il telefono e' sull'hotspot di un dispositivo si va avanti
     LaunchedEffect(st) {
         if (st != St.HOTSPOT) return@LaunchedEffect
         near = Hotspot.nearby(ctx, scan = true)
         while (true) {
             delay(2000)
             near = Hotspot.nearby(ctx, scan = false)
-            if (withContext(Dispatchers.IO) { Hotspot.wifi(ctx) != null && Hotspot.abbina(ctx) != null }) { work(); break }
+            val d = withContext(Dispatchers.IO) { if (Hotspot.wifi(ctx) != null) Hotspot.abbina(ctx) else null }
+            if (d != null) { dev = d; afterHotspot(); break }
         }
     }
 
@@ -235,15 +284,47 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             if (st != St.DONE) {
                 Back("Nuovo dispositivo", ::back)
-                val n = when (st) { St.WIFI -> 1; St.RELAY -> 2; St.HOTSPOT -> 3; else -> 4 }
+                val n = when (st) { St.HOTSPOT -> 1; St.MODE -> 2; St.WIFI -> if (sensor) 3 else 2; St.RELAY -> if (sensor) 4 else 3; else -> 5 }
+                val tot = if (sensor) 5 else 4
                 Row(Modifier.fillMaxWidth().padding(top = 10.dp, bottom = 16.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    (1..4).forEach { i ->
+                    (1..tot).forEach { i ->
                         Box(Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(2.dp))
                             .background(when { i < n -> pal.ok; i == n -> pal.accent; else -> pal.border }))
                     }
                 }
             }
             when (st) {
+                St.HOTSPOT -> {
+                    H("Collegati al dispositivo")
+                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(pal.card)
+                        .border(1.dp, pal.border, RoundedCornerShape(16.dp)).padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally) {
+                        SvgIcon(ICO_WIFI, pal.accent, 34.dp)
+                        Text("Il dispositivo senza rete accende un suo Wi-Fi, di solito «nome Hotspot». Collegati lì dalle impostazioni Wi-Fi del telefono, con la sua password.",
+                            color = pal.value, fontSize = 15.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 8.dp))
+                        if (near.isNotEmpty()) {
+                            Text("VISTI QUI VICINO", color = pal.muted, fontSize = 11.sp, letterSpacing = 1.sp,
+                                modifier = Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 4.dp))
+                            near.forEach { Text(it, color = pal.text, fontSize = 17.sp, modifier = Modifier.fillMaxWidth().padding(vertical = 7.dp)) }
+                        }
+                    }
+                    Spacer(Modifier.height(14.dp))
+                    Btn("Apri impostazioni Wi-Fi") { Hotspot.openWifiSettings(ctx) }
+                    Row(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(Modifier.size(16.dp), color = pal.accent, strokeWidth = 2.dp)
+                        Text("  Aspetto il collegamento a un hotspot…", color = pal.text, fontSize = 15.sp)
+                    }
+                    Note("Appena sei collegato l'app va avanti da sola. Android potrebbe dire «nessuna connessione a internet»: è normale, resta collegato.", center = true)
+                }
+                St.MODE -> {
+                    H("Come funziona ${dev?.name ?: "il sensore"}?")
+                    P("Il dispositivo è un sensore esterno: scegli come manda i valori al termostato.")
+                    ModeOpt(ICO_WIFI, "Wi-Fi", "rete di casa e relay: valori anche da fuori casa, aggiornamenti automatici. Anche ESP-NOW sul canale del router.", !espnow) { espnow = false }
+                    ModeOpt(ICO_RADIO, "Solo ESP-NOW", "dove il Wi-Fi non arriva: diretto al termostato. Da vicino via Bluetooth; aggiornamenti dall'app.", espnow) { espnow = true }
+                    Note("Si cambia quando vuoi dall'app, via Bluetooth.", center = true)
+                    Spacer(Modifier.height(14.dp))
+                    Btn("Avanti") { if (espnow) work() else st = St.WIFI }
+                }
                 St.WIFI -> {
                     H("Wi-Fi di casa")
                     P("La rete a cui si collegherà il dispositivo.")
@@ -271,29 +352,7 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
                     else if (rpw2.isNotEmpty() && rpw2 != rpw) Warn("Le due password non sono uguali.")
                     Note("Senza internet si salva lo stesso: il relay lo aggiunge quando arriva.", center = true)
                     Spacer(Modifier.height(14.dp))
-                    Btn("Avanti", enabled = rpw.length >= 6 && rpw == rpw2) { st = St.HOTSPOT }
-                }
-                St.HOTSPOT -> {
-                    H("Collegati al dispositivo")
-                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(pal.card)
-                        .border(1.dp, pal.border, RoundedCornerShape(16.dp)).padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally) {
-                        SvgIcon(ICO_WIFI, pal.accent, 34.dp)
-                        Text("Il dispositivo senza rete accende un suo Wi-Fi, di solito «nome Hotspot». Collegati lì dalle impostazioni Wi-Fi del telefono, con la sua password.",
-                            color = pal.value, fontSize = 15.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 8.dp))
-                        if (near.isNotEmpty()) {
-                            Text("VISTI QUI VICINO", color = pal.muted, fontSize = 11.sp, letterSpacing = 1.sp,
-                                modifier = Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 4.dp))
-                            near.forEach { Text(it, color = pal.text, fontSize = 17.sp, modifier = Modifier.fillMaxWidth().padding(vertical = 7.dp)) }
-                        }
-                    }
-                    Spacer(Modifier.height(14.dp))
-                    Btn("Apri impostazioni Wi-Fi") { Hotspot.openWifiSettings(ctx) }
-                    Row(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                        CircularProgressIndicator(Modifier.size(16.dp), color = pal.accent, strokeWidth = 2.dp)
-                        Text("  Aspetto il collegamento a un hotspot…", color = pal.text, fontSize = 15.sp)
-                    }
-                    Note("Appena sei collegato l'app va avanti da sola. Android potrebbe dire «nessuna connessione a internet»: è normale, resta collegato.", center = true)
+                    Btn("Avanti", enabled = rpw.length >= 6 && rpw == rpw2) { work() }
                 }
                 St.WORK -> {
                     H(dev?.let { "Configuro ${it.name}" } ?: "Configuro il dispositivo")
@@ -302,12 +361,14 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
                             textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
                         P("Se Android chiede il codice, scrivi questo.", center = true)
                     }
+                    val steps = if (espnow) listOf("Collegato all'hotspot", "Codice dal dispositivo", "Abbinamento e Solo ESP-NOW")
+                                else listOf("Collegato all'hotspot", "Wi-Fi e relay impostati", "Abbinamento Bluetooth", "Di nuovo sulla tua rete")
                     Column(Modifier.padding(top = 16.dp, start = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        listOf("Collegato all'hotspot", "Wi-Fi e relay impostati", "Abbinamento Bluetooth", "Di nuovo sulla tua rete").forEachIndexed { i, t ->
+                        steps.forEachIndexed { i, t ->
                             StepRow(t, ok = i < step, now = i == step && err == null, bad = i == step && err != null)
                         }
                     }
-                    if (step == 3) Note("Se il telefono resta sull'hotspot, torna sulla tua rete Wi-Fi o sui dati mobili.", center = true)
+                    if (step == 3 && !espnow) Note("Se il telefono resta sull'hotspot, torna sulla tua rete Wi-Fi o sui dati mobili.", center = true)
                     err?.let { Warn(it) }
                     Spacer(Modifier.height(18.dp))
                     if (err != null) {
@@ -323,17 +384,64 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 14.dp))
                     Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(pal.card)
                         .border(1.dp, pal.border, RoundedCornerShape(16.dp)).padding(horizontal = 14.dp, vertical = 6.dp)) {
-                        DoneRow(ICO_BT, "Bluetooth", "abbinato: da vicino anche senza internet", pal.ok)
-                        DoneRow(ICO_WIFI, "Wi-Fi", "«${ssid.trim()}» salvato: si collega da solo", pal.muted)
-                        if (relayIn) DoneRow(LOCK, "Relay", "nella tua lista", pal.ok)
-                        else DoneRow(LOCK, "Relay", "lo aggiungo alla lista appena è online", Color(0xFFE7C12C))
+                        if (espnow) {
+                            DoneRow(ICO_RADIO, "Funzionamento", "Solo ESP-NOW", pal.muted)
+                            DoneRow(ICO_BT, "Bluetooth", "abbinato: da vicino anche senza internet", pal.ok)
+                            val h = hook
+                            when {
+                                h?.hooked == true -> DoneRow(ICO_RADIO, "Termostato", "agganciato, canale ${h.ch}", pal.ok)
+                                hookGiveUp -> DoneRow(ICO_RADIO, "Termostato", "non trovato: inserisci il MAC sul termostato, il sensore continua a cercarlo", Color(0xFFE7C12C))
+                                else -> DoneRow(ICO_RADIO, "Termostato", "cerco il canale…", Color(0xFFE7C12C))
+                            }
+                        } else {
+                            DoneRow(ICO_BT, "Bluetooth", "abbinato: da vicino anche senza internet", pal.ok)
+                            DoneRow(ICO_WIFI, "Wi-Fi", "«${ssid.trim()}» salvato: si collega da solo", pal.muted)
+                            if (relayIn) DoneRow(LOCK, "Relay", "nella tua lista", pal.ok)
+                            else DoneRow(LOCK, "Relay", "lo aggiungo alla lista appena è online", Color(0xFFE7C12C))
+                        }
                     }
-                    Note("Tutto salvato sul dispositivo: senza Wi-Fi o senza internet resta in Bluetooth e passa al relay quando la rete c'è.", center = true)
+                    if (espnow) {
+                        val mac = hook?.mac ?: btAddr?.let { a -> app.sensors.stati.value[a]?.mac }
+                        if (!mac.isNullOrBlank()) MacBox(mac)
+                        Note("Sul termostato aggiungi il sensore ESP-NOW con questo MAC. Il MAC lo ritrovi sempre nella scheda del sensore.", center = true)
+                    } else Note("Tutto salvato sul dispositivo: senza Wi-Fi o senza internet resta in Bluetooth e passa al relay quando la rete c'è.", center = true)
                     Spacer(Modifier.height(14.dp))
                     Btn("Fine", onClick = onClose)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ModeOpt(icon: List<IconPart>, t: String, s: String, on: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().padding(bottom = 10.dp).clip(RoundedCornerShape(16.dp)).background(if (on) pal.sel else pal.card)
+            .border(1.dp, if (on) pal.accent else pal.border, RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SvgIcon(icon, if (on) pal.accent else pal.value, 26.dp)
+        Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+            Text(t, color = pal.text, fontSize = 17.sp)
+            Text(s, color = pal.muted, fontSize = 13.sp)
+        }
+        Box(Modifier.size(20.dp).clip(RoundedCornerShape(10.dp)).border(if (on) 6.dp else 2.dp, if (on) pal.accent else pal.border, RoundedCornerShape(10.dp)))
+    }
+}
+
+/** MAC da inserire nel termostato (Solo ESP-NOW), con copia. */
+@Composable
+fun MacBox(mac: String) {
+    val ctx = LocalContext.current
+    Column(Modifier.fillMaxWidth().padding(top = 12.dp).clip(RoundedCornerShape(16.dp)).background(pal.sel)
+        .border(1.dp, pal.accent.copy(alpha = .35f), RoundedCornerShape(16.dp)).clickable {
+            val cm = ctx.getSystemService(android.content.ClipboardManager::class.java)
+            cm?.setPrimaryClip(android.content.ClipData.newPlainText("MAC", mac))
+        }.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text("MAC da inserire nel termostato", color = pal.value, fontSize = 13.sp)
+        Text(mac, color = pal.accent, fontSize = 22.sp, letterSpacing = 1.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+            modifier = Modifier.padding(vertical = 6.dp))
+        Text("tocca per copiare", color = pal.accent, fontSize = 12.sp)
     }
 }
 
