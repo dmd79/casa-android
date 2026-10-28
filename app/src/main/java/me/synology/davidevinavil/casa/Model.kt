@@ -122,3 +122,34 @@ fun pieces(b: ByteArray): List<ByteArray> {
         if (i == l - 1) p else byteArrayOf('+'.code.toByte()) + p
     }
 }
+
+// ── programmazione del condizionatore (haier/haier_scheduler.h) ──
+val SCHED_MODES = listOf("cool", "heat", "heat_cool", "dry", "fan_only", "off")
+val SCHED_FANS = listOf("auto", "low", "medium", "high")
+val SCHED_SWV = listOf("health_up", "max_up", "up", "center", "down", "max_down", "health_down", "auto", "keep")
+val SCHED_SWH = listOf("max_left", "left", "center", "right", "max_right", "auto", "keep")
+
+/** Un orario: [days] bit0 = lunedi' ... bit6 = domenica; indici in SCHED_*. */
+data class SchedSlot(val hour: Int, val minute: Int, val days: Int, val temp: Int, val mode: Int, val fan: Int,
+                     val enabled: Boolean, val swv: Int, val swh: Int) {
+    val min get() = hour * 60 + minute
+    fun has(day: Int) = (days shr day) and 1 == 1
+    val modeKey get() = SCHED_MODES.getOrElse(mode) { "cool" }
+}
+
+/** Programmazione letta via Bluetooth (esadecimale: master, numero, 9 byte per orario). */
+data class Sched(val on: Boolean, val slots: List<SchedSlot>) {
+    /** Orari di un giorno, in ordine d'ora, con l'indice nello store. */
+    fun day(d: Int) = slots.withIndex().filter { it.value.has(d) }.sortedBy { it.value.min }
+
+    companion object {
+        fun parse(h: String): Sched? = try {
+            val b = h.trim().chunked(2).map { it.toInt(16) }
+            val n = b[1]
+            Sched(b[0] == 1, (0 until n).map { i ->
+                val o = 2 + i * 9
+                SchedSlot(b[o], b[o + 1], b[o + 2], b[o + 3], b[o + 4], b[o + 5], b[o + 6] and 1 == 1, b[o + 7], b[o + 8])
+            })
+        } catch (e: Exception) { null }
+    }
+}

@@ -55,7 +55,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.MutableStateFlow
 
-enum class Scr { DEVICES, SCAN, CTL, SET, WIFI }
+enum class Scr { DEVICES, SCAN, CTL, SET, WIFI, SCHED }
 
 @Composable
 fun App(ble: Ble, store: Store, go: MutableStateFlow<Scr?>? = null) {
@@ -88,9 +88,10 @@ fun App(ble: Ble, store: Store, go: MutableStateFlow<Scr?>? = null) {
                 scr == Scr.SET && st != null -> SettingsScreen(ble, store, onBack = { scr = Scr.CTL },
                     onWifi = { scr = Scr.WIFI }, onForgot = { scr = Scr.DEVICES })
                 scr == Scr.WIFI && st != null -> WifiScreen(ble, onBack = { scr = Scr.SET })
+                scr == Scr.SCHED && st != null -> SchedScreen(ble, st!!.name, onBack = { scr = Scr.CTL })
                 link == Link.UNPAIRED -> PairScreen(ble, store, onDevices = { scr = Scr.DEVICES })
                 st == null -> WaitScreen(ble, store, link, onDevices = { scr = Scr.DEVICES })
-                else -> ControlScreen(ble, st!!, link, onSettings = { scr = Scr.SET }, onDevices = { scr = Scr.DEVICES })
+                else -> ControlScreen(ble, st!!, link, onSettings = { scr = Scr.SET }, onDevices = { scr = Scr.DEVICES }, onSched = { scr = Scr.SCHED })
             }
         }
         SnackbarHost(snack, Modifier.align(Alignment.BottomCenter))

@@ -48,6 +48,7 @@ object Uuids {
     val CMD: UUID = UUID.fromString("5e6b0004-6c2a-4b9b-9b3e-3c1a2b4d5e01")
     val INFO: UUID = UUID.fromString("5e6b0005-6c2a-4b9b-9b3e-3c1a2b4d5e01")
     val SCAN: UUID = UUID.fromString("5e6b0006-6c2a-4b9b-9b3e-3c1a2b4d5e01")
+    val SCHED: UUID = UUID.fromString("5e6b0007-6c2a-4b9b-9b3e-3c1a2b4d5e01")
     val CCCD: UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
 }
 
@@ -92,6 +93,10 @@ class Ble(private val ctx: Context, val store: Store) {
     private var chCmd: BluetoothGattCharacteristic? = null
     private var chInfo: BluetoothGattCharacteristic? = null
     private var chScan: BluetoothGattCharacteristic? = null
+    private var chSched: BluetoothGattCharacteristic? = null
+    /** Programmazione (firmware con la caratteristica 0007); null = non disponibile. */
+    val sched = MutableStateFlow<Sched?>(null)
+    val hasSched get() = chSched != null
     val hasInfo get() = chInfo != null
 
     // Il Bluetooth fa una sola operazione alla volta: letture e scritture in coda.
@@ -232,7 +237,7 @@ class Ble(private val ctx: Context, val store: Store) {
             if (newState != BluetoothProfile.STATE_DISCONNECTED) return
             Log.d(TAG, "scollegato, status=$status auto=$autoMode")
             pending?.complete(null)
-            chState = null; chCmd = null; chInfo = null; chScan = null
+            chState = null; chCmd = null; chInfo = null; chScan = null; chSched = null
             if (!wanted || adapter?.isEnabled != true) return
             link.value = Link.SEARCHING
             val dev = g.device
@@ -270,12 +275,12 @@ class Ble(private val ctx: Context, val store: Store) {
         }
 
         override fun onCharacteristicChanged(g: BluetoothGatt, c: BluetoothGattCharacteristic, value: ByteArray) {
-            if (c.uuid == Uuids.REV) scope.launch { readState() }
+            if (c.uuid == Uuids.REV) scope.launch { readState(); readSched() }
         }
 
         @Deprecated("API < 33")
         override fun onCharacteristicChanged(g: BluetoothGatt, c: BluetoothGattCharacteristic) {
-            if (Build.VERSION.SDK_INT < 33 && c.uuid == Uuids.REV) scope.launch { readState() }
+            if (Build.VERSION.SDK_INT < 33 && c.uuid == Uuids.REV) scope.launch { readState(); readSched() }
         }
     }
 
@@ -286,6 +291,7 @@ class Ble(private val ctx: Context, val store: Store) {
         chCmd = s.getCharacteristic(Uuids.CMD)
         chInfo = s.getCharacteristic(Uuids.INFO)      // assenti col firmware vecchio
         chScan = s.getCharacteristic(Uuids.SCAN)
+        chSched = s.getCharacteristic(Uuids.SCHED)      // solo col firmware con la programmazione via Bluetooth
         val rev = s.getCharacteristic(Uuids.REV)
         if (chState == null || chCmd == null) { g.disconnect(); return }
         if (rev != null) notify(g, rev)
@@ -298,6 +304,8 @@ class Ble(private val ctx: Context, val store: Store) {
         link.value = Link.CONNECTED
         readState()
         if (state.value == null) { delay(1500); readState() }
+        // ora del telefono: senza internet il condizionatore non ce l'ha e gli orari non partirebbero
+        if (chSched != null) { send("time", (System.currentTimeMillis() / 1000).toString()); readSched() }
         // abbinato qui ma dimenticato dal condizionatore ("Dimentica telefoni")
         if (state.value == null && gatt === g) link.value = Link.UNPAIRED
     }
@@ -414,6 +422,26 @@ class Ble(private val ctx: Context, val store: Store) {
     }
 
     fun launch(block: suspend Ble.() -> Unit): Job = scope.launch { block(this@Ble) }
+
+    // ── programmazione ───────────────────────────────────
+
+    suspend fun readSched() {
+        if (link.value != Link.CONNECTED) return
+        val c = chSched ?: return
+        val b = read(c) ?: return
+        Sched.parse(String(b))?.let { sched.value = it }
+    }
+
+    /** Comandi come la pagina web (add | del i | set i campo valore), uno dopo l'altro, poi si rilegge. */
+    suspend fun schedCmd(vararg cmds: String): Boolean {
+        var ok = true
+        for (c in cmds) if (!send("sched", c)) { ok = false; break }
+        delay(250)
+        readSched()
+        return ok
+    }
+
+    suspend fun schedOn(on: Boolean) { send("schedon", if (on) "1" else "0"); delay(250); readSched() }
 
     suspend fun readInfo() {
         if (link.value != Link.CONNECTED) return

@@ -27,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -59,7 +60,8 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 @Composable
-fun ControlScreen(ble: Ble, st: AcState, link: Link, onSettings: () -> Unit, onDevices: () -> Unit) {
+fun ControlScreen(ble: Ble, st: AcState, link: Link, onSettings: () -> Unit, onDevices: () -> Unit, onSched: () -> Unit = {}) {
+    val sc by ble.sched.collectAsState()
     val on = st.isOn
     val mc = modeColor(st.mode)
     var tmrDlg by remember { mutableStateOf(false) }
@@ -158,6 +160,10 @@ fun ControlScreen(ble: Ble, st: AcState, link: Link, onSettings: () -> Unit, onD
             }
         }
         Spacer(Modifier.weight(1f))
+        if (ble.hasSched) sc.let { x ->
+            Spacer(Modifier.height(10.dp))
+            RowCard("Programmazione", if (x == null) "…" else "${x.slots.size} orari · ${if (x.on) "attiva" else "spenta"}", onClick = onSched)
+        }
         Note("Tocco: opzione successiva · Pressione lunga sul Timer: durata", Modifier.fillMaxWidth(), center = true)
     }
 
