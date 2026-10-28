@@ -72,8 +72,8 @@ fun ControlScreen(ble: Ble, st: AcState, link: Link, onSettings: () -> Unit, onD
     Column(Modifier.fillMaxSize()) {
         // ── barra in alto ──
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(st.name.ifBlank { "Condizionatore" } + " ▾", color = pal.text, fontSize = 26.sp, maxLines = 1,
-                modifier = Modifier.weight(1f).clickable(onClick = onDevices))
+            // niente selettore: il nome e' gia' sullo split; si cambia condizionatore dalla pagina Clima
+            Spacer(Modifier.weight(1f))
             val (txt, col) = when (link) {
                 Link.CONNECTED -> "Collegato" to pal.ok
                 Link.BT_OFF -> "Bluetooth spento" to pal.danger
