@@ -414,12 +414,12 @@ fun GateButton(modifier: Modifier, a: String, stato: String?, mark: String?, ch:
             Modifier.fillMaxWidth().padding(top = 22.dp, bottom = 16.dp, start = 6.dp, end = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            SvgIcon(gateIcon(a), col, 42.dp, stroke = 1.6f)
+            GateIcon(a, stato == "aperto", col, 42.dp)      // animata come nella pagina del gate
             Text(a.uppercase(), color = col, fontSize = 13.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 2.sp, maxLines = 1)
             Text(if (sub != null && mark == null && !off) "$sub · $line" else line, color = G_DIM, fontSize = 11.sp, letterSpacing = 1.sp, maxLines = 1)
         }
         if (ch != null) Box(Modifier.align(Alignment.TopEnd).padding(top = 8.dp, end = 9.dp)) {
-            SvgIcon(if (ch == "bt") ICO_BT else ICO_WIFI, col.copy(alpha = .85f), 14.dp, stroke = 2f)
+            SvgIcon(if (ch == "bt") ICO_BT else ICO_WIFI, chColor(ch, off), 14.dp, stroke = 2f)   // colore fisso del canale
         }
     }
 }

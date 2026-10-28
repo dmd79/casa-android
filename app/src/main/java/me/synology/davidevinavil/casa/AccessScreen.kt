@@ -184,9 +184,9 @@ fun AccessScreen(app: CasaApp, setWho: (String) -> Unit, onHistory: () -> Unit, 
                 }
             }
             if (accs.isNotEmpty()) Row(Modifier.padding(top = 2.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                SvgIcon(ICO_WIFI, pal.muted, 13.dp, stroke = 2f)
+                SvgIcon(ICO_WIFI, CH_WIFI, 13.dp, stroke = 2f)
                 Text(" via relay    ", color = pal.muted, fontSize = 12.sp)
-                SvgIcon(ICO_BT, pal.muted, 13.dp, stroke = 2f)
+                SvgIcon(ICO_BT, CH_BT, 13.dp, stroke = 2f)
                 Text(" via Bluetooth", color = pal.muted, fontSize = 12.sp)
             }
             Spacer(Modifier.height(8.dp))
