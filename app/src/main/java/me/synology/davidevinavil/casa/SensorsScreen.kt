@@ -126,7 +126,7 @@ private fun SensorsMain(app: CasaApp, openRelay: (RelayDev) -> Unit, onCharts: (
         }
     }
 
-    fun same(a: String, b: String) = a.trim().equals(b.trim(), ignoreCase = true)
+    fun same(a: String, b: String) = sameName(a, b)
     val list = buildList {
         devs.forEach { d -> add(Sn(d.name, d, bts.firstOrNull { same(it.name, d.name) })) }
         bts.forEach { b -> if (none { same(it.name, b.name) }) add(Sn(b.name, null, b)) }

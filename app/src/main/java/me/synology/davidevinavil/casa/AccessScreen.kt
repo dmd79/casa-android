@@ -46,7 +46,8 @@ import kotlinx.coroutines.withContext
  */
 private data class Acc(val key: String, val azione: String, val dev: String, val relay: RelayGate?, val bt: BtGate?)
 
-private fun norm(s: String) = s.trim().lowercase()
+// come sameName (Model.kt): maiuscole, spazi e trattini non contano
+private fun norm(s: String) = s.lowercase().filter { it.isLetterOrDigit() }
 
 /**
  * Scheda Accessi: tutti i pulsanti insieme. Relay se raggiungibile e il

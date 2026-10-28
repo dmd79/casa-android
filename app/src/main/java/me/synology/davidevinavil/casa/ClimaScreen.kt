@@ -94,7 +94,7 @@ fun ClimaScreen(app: CasaApp, openRelay: (RelayDev) -> Unit, openBt: (String) ->
         }
     }
 
-    fun same(a: String, b: String) = a.trim().equals(b.trim(), ignoreCase = true)
+    fun same(a: String, b: String) = sameName(a, b)
     val list = buildList {
         devs.forEach { d -> add(Ac(d.name, d, bts.firstOrNull { same(it.name, d.name) })) }
         bts.forEach { b -> if (none { same(it.name, b.name) }) add(Ac(b.name, null, b)) }

@@ -153,3 +153,13 @@ data class Sched(val on: Boolean, val slots: List<SchedSlot>) {
         } catch (e: Exception) { null }
     }
 }
+
+/**
+ * Stesso dispositivo nel relay e in Bluetooth: nomi uguali senza contare
+ * maiuscole, spazi, trattini e altri segni ("haier 7c0064" = "haier-7c0064").
+ */
+fun sameName(a: String, b: String): Boolean {
+    fun k(s: String) = s.lowercase().filter { it.isLetterOrDigit() }
+    val x = k(a)
+    return x.isNotEmpty() && x == k(b)
+}
