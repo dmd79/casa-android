@@ -179,7 +179,7 @@ private fun AcCard(modifier: Modifier, name: String, cur: Double?, tgt: Double?,
     val off = status != null || mode == "off" || mode.isBlank()
     val col = if (status != null) Color(0xFF6B7479) else acColor(mode)
     Column(
-        modifier.heightIn(min = 132.dp).clip(RoundedCornerShape(16.dp)).background(col.copy(alpha = if (off) .05f else .12f))
+        modifier.heightIn(min = 128.dp).clip(RoundedCornerShape(16.dp)).background(col.copy(alpha = if (off) .05f else .12f))
             .border(2.dp, col.copy(alpha = if (off) .35f else 1f), RoundedCornerShape(16.dp))
             .combinedClickable(onClick = onClick, onLongClick = onLong)
             .padding(horizontal = 13.dp, vertical = 12.dp),
@@ -196,14 +196,20 @@ private fun AcCard(modifier: Modifier, name: String, cur: Double?, tgt: Double?,
                 maxLines = 1, softWrap = false)
             Text(" °C", color = Color(0xFF8A9599), fontSize = 13.sp, maxLines = 1, softWrap = false, modifier = Modifier.padding(bottom = 5.dp))
         }
-        // stessa altezza di tutti i riquadri: l'umidita' sta nella riga della temperatura impostata
-        Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text((if (status != null) null else t0(tgt))?.let { "→ $it °C" } ?: " ", color = Color(0xFF8A9599), fontSize = 13.sp,
-                maxLines = 1, softWrap = false, modifier = Modifier.weight(1f))
-            if (src != null && status == null) Text("${d2(hum)} %", color = HUM_BLUE, fontSize = 13.sp, maxLines = 1, softWrap = false)
+        // come i riquadri dei Sensori: umidita' a sinistra, grande e azzurra;
+        // la temperatura impostata allora va a destra (stessa riga, stessa altezza)
+        val tg = (if (status != null) null else t0(tgt))?.let { "→ $it °C" }
+        Row(Modifier.fillMaxWidth().padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (src != null && status == null) {
+                Text("${d2(hum)} %", color = HUM_BLUE, fontSize = 16.sp, maxLines = 1, softWrap = false, modifier = Modifier.weight(1f))
+                if (tg != null) Text(tg, color = Color(0xFF8A9599), fontSize = 13.sp, maxLines = 1, softWrap = false)
+            } else {
+                Text(tg ?: " ", color = Color(0xFF8A9599), fontSize = 13.sp, maxLines = 1, softWrap = false,
+                    modifier = Modifier.weight(1f).padding(vertical = 2.dp))
+            }
         }
 
-        Box(Modifier.padding(top = 14.dp)) {
+        Box(Modifier.padding(top = 10.dp)) {
             Text("● " + (status ?: acLabel(mode)).uppercase(), color = if (off) Color(0xFF6B7479) else col,
                 fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, maxLines = 1)
         }
