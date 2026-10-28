@@ -16,6 +16,8 @@ class CasaApp : Application() {
     lateinit var pairer: BtPairer
     /** Sensori esterni via Bluetooth. */
     lateinit var sensors: SensorBle
+    /** Temperatura mostrata dei condizionatori (split o un sensore). */
+    lateinit var acSrc: AcSources
     /** Schermata dei sensori chiesta da fuori: "dev:<indirizzo>", "list". */
     val sensorGo = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
     /**
@@ -31,6 +33,7 @@ class CasaApp : Application() {
         ble = Ble(this, store)
         gates = GateBle(this, store)
         sensors = SensorBle(this, store)
+        acSrc = AcSources(store)
         pairer = BtPairer(this, store, ble, gates, sensors)
         ble.resume()
     }

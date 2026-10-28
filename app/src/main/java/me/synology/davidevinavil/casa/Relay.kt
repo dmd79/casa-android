@@ -191,6 +191,12 @@ object Relay {
         catch (e: Exception) { null to "nessuna risposta" }
     }
 
+    /** Pagina Sensori di un dispositivo (termostato o ext-sensor): own {t,h} e sensors []. */
+    fun sensData(cookie: String?, id: String): JSONObject? = try {
+        val (code, body) = text(conn("/_sensdata?d=" + enc(id), cookie))
+        if (code != 200) null else JSONObject(body).takeIf { it.optBoolean("ok") }
+    } catch (e: Exception) { null }
+
     enum class Login { OK, WAIT, BAD, NET }
 
     /**

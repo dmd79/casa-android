@@ -224,6 +224,9 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
 
     // "Abbina / Dimentica Bluetooth" chiesti dalla lista del relay
     BtPairDialogs(app.pairer)
+    // scelta del sensore per la temperatura, chiesta dalla pagina del condizionatore
+    val acPick by app.acSrc.pick.collectAsState()
+    acPick?.let { id -> AcSrcSheet(app, id, devs.firstOrNull { it.id == id }?.name ?: "condizionatore") { app.acSrc.pick.value = null } }
 
     val open = sheet ?: return
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)

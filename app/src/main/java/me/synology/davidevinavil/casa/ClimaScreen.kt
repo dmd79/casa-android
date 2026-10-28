@@ -2,7 +2,8 @@ package me.synology.davidevinavil.casa
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -65,6 +66,9 @@ fun ClimaScreen(app: CasaApp, openRelay: (RelayDev) -> Unit, openBt: (String) ->
     var devs by remember { mutableStateOf(Relay.parseList(store.relayList).filter { it.type == "ac" }) }
     var relayOk by remember { mutableStateOf(store.relayUp) }   // si riparte da com'era l'ultima volta
     var loaded by remember { mutableStateOf(false) }
+    var pickFor by remember { mutableStateOf<RelayDev?>(null) }       // scelta del sensore (tocco lungo)
+    val acChoice by app.acSrc.choice.collectAsState()
+    val acOpts by app.acSrc.options.collectAsState()
     val bts by store.devices.collectAsState()
     val snaps by ble.snaps.collectAsState()
 
@@ -78,7 +82,10 @@ fun ClimaScreen(app: CasaApp, openRelay: (RelayDev) -> Unit, openBt: (String) ->
             var raw = withContext(Dispatchers.IO) { Relay.listRaw(cookie) }
             if (raw == null && relayOk) { delay(1500); raw = withContext(Dispatchers.IO) { Relay.listRaw(cookie) } }
             if (raw == null && !app.fg) continue        // andata in secondo piano durante la richiesta
-            if (raw != null) { store.relayList = raw; devs = Relay.parseList(raw).filter { it.type == "ac" }; fails = 0; relayOk = true }
+            if (raw != null) {
+                store.relayList = raw; devs = Relay.parseList(raw).filter { it.type == "ac" }; fails = 0; relayOk = true
+                withContext(Dispatchers.IO) { app.acSrc.refresh(cookie) }      // sensori scelti per la temperatura (al massimo ogni minuto)
+            }
             else if (++fails >= 2 || !relayOk) relayOk = false
             store.relayUp = relayOk
             loaded = true
@@ -124,8 +131,11 @@ fun ClimaScreen(app: CasaApp, openRelay: (RelayDev) -> Unit, openBt: (String) ->
                     if (viaRelay(x)) {
                         val d = x.relay!!
                         val on = d.online && relayOk
-                        AcCard(Modifier.weight(1f), x.name, d.cur, if (d.mode != "off") d.tgt else null,
-                            d.mode, "wifi", if (on) null else "Non raggiungibile") { openRelay(d) }
+                        // temperatura da un sensore scelto (umidita' compresa), altrimenti dello split
+                        val src = acChoice[d.id]?.let { k -> acOpts.firstOrNull { it.key == k } ?: app.acSrc.of(d.id) }
+                        AcCard(Modifier.weight(1f), x.name, src?.t ?: if (src == null) d.cur else null, if (d.mode != "off") d.tgt else null,
+                            d.mode, "wifi", if (on) null else "Non raggiungibile", hum = src?.h, src = src?.name,
+                            onLong = { pickFor = d }) { openRelay(d) }
                     } else {
                         val b = x.bt!!
                         val s = snaps[b.address]
@@ -151,18 +161,27 @@ fun ClimaScreen(app: CasaApp, openRelay: (RelayDev) -> Unit, openBt: (String) ->
         }
         Spacer(Modifier.height(8.dp))
         LinkCard("Condizionatori Bluetooth", "elenco, aggiungi, dimentica", onClick = onList)
+        if (devs.isNotEmpty()) Note("Tieni premuto un riquadro per scegliere la temperatura mostrata.", center = true)
         Spacer(Modifier.height(16.dp))
     }
+    pickFor?.let { d -> AcSrcSheet(app, d.id, d.name) { pickFor = null } }
 }
 
-/** Riquadro di un condizionatore. [status]: al posto del modo, in grigio e senza valori (Cerco…, Non raggiungibile…). */
+/**
+ * Riquadro di un condizionatore. [status]: al posto del modo, in grigio e senza
+ * valori (Cerco…, Non raggiungibile…). [src]: temperatura (e [hum]) da quel
+ * sensore invece che dallo split. Due decimali, niente a capo.
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun AcCard(modifier: Modifier, name: String, cur: Double?, tgt: Double?, mode: String, ch: String, status: String?, onClick: () -> Unit) {
+private fun AcCard(modifier: Modifier, name: String, cur: Double?, tgt: Double?, mode: String, ch: String, status: String?,
+                   hum: Double? = null, src: String? = null, onLong: (() -> Unit)? = null, onClick: () -> Unit) {
     val off = status != null || mode == "off" || mode.isBlank()
     val col = if (status != null) Color(0xFF6B7479) else acColor(mode)
     Column(
         modifier.heightIn(min = 132.dp).clip(RoundedCornerShape(16.dp)).background(col.copy(alpha = if (off) .05f else .12f))
-            .border(2.dp, col.copy(alpha = if (off) .35f else 1f), RoundedCornerShape(16.dp)).clickable(onClick = onClick)
+            .border(2.dp, col.copy(alpha = if (off) .35f else 1f), RoundedCornerShape(16.dp))
+            .combinedClickable(onClick = onClick, onLongClick = onLong)
             .padding(horizontal = 13.dp, vertical = 12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -170,12 +189,20 @@ private fun AcCard(modifier: Modifier, name: String, cur: Double?, tgt: Double?,
                 overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             SvgIcon(if (ch == "bt") ICO_BT else ICO_WIFI, Color(0xFF8A93A3), 14.dp, stroke = 2f)
         }
-        Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.Bottom) {
-            Text(if (status != null) "--" else t1(cur), color = pal.text, fontSize = 32.sp, fontWeight = FontWeight.Light)
-            Text(" °C", color = Color(0xFF8A9599), fontSize = 13.sp, modifier = Modifier.padding(bottom = 5.dp))
+        Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.Bottom) {
+            Text(if (status != null) "--" else d2(cur), color = pal.text, fontSize = 30.sp, fontWeight = FontWeight.Light,
+                maxLines = 1, softWrap = false)
+            Text(" °C", color = Color(0xFF8A9599), fontSize = 13.sp, maxLines = 1, softWrap = false, modifier = Modifier.padding(bottom = 5.dp))
         }
-        Text((if (status != null) null else t0(tgt))?.let { "→ $it °C" } ?: " ", color = Color(0xFF8A9599), fontSize = 13.sp,
-            modifier = Modifier.padding(top = 4.dp))
+        Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text((if (status != null) null else t0(tgt))?.let { "→ $it °C" } ?: " ", color = Color(0xFF8A9599), fontSize = 13.sp,
+                maxLines = 1, softWrap = false, modifier = Modifier.weight(1f))
+            if (src != null && status == null) Text("${d2(hum)} %", color = pal.value, fontSize = 13.sp, maxLines = 1, softWrap = false)
+        }
+        if (src != null) Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+            SvgIcon(listOf(IconPart("M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z")), Color(0xFF8A9599), 11.dp)
+            Text(" $src", color = Color(0xFF8A9599), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
         Box(Modifier.padding(top = 14.dp)) {
             Text("● " + (status ?: acLabel(mode)).uppercase(), color = if (off) Color(0xFF6B7479) else col,
                 fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, maxLines = 1)

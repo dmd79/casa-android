@@ -98,7 +98,7 @@ fun makeWeb(ctx: Context, store: Store, nav: WebNav): WebView = WebView(ctx).app
     val cm = CookieManager.getInstance()
     cm.setAcceptCookie(true)
     cm.setAcceptThirdPartyCookies(this, true)
-    addJavascriptInterface(Bridge(ctx.applicationContext, store, this), "CasaApp")
+    addJavascriptInterface(Bridge(ctx.applicationContext, store, this, nav), "CasaApp")
     val early = WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
     if (early) WebViewCompat.addDocumentStartJavaScript(this, START_JS, setOf(Relay.BASE))
 
@@ -172,13 +172,38 @@ private fun WebView.loadWhenSized() {
 }
 
 /** Da JavaScript ad Android. */
-class Bridge(private val ctx: Context, private val store: Store, private val web: WebView) {
+class Bridge(private val ctx: Context, private val store: Store, private val web: WebView, private val nav: WebNav) {
     private val gb get() = (ctx as CasaApp).gates
     private val pairer get() = (ctx as CasaApp).pairer
 
     init {
         // abbinato o dimenticato: la lista del relay ridisegna simboli e tasti
         pairer.notify = { web.post { web.evaluateJavascript("window.__btPairedChanged&&window.__btPairedChanged()", null) } }
+        // sensore scelto o valori nuovi: la pagina del condizionatore si ridisegna
+        (ctx as CasaApp).acSrc.notify = { web.post { web.evaluateJavascript("window.__acSensorChanged&&window.__acSensorChanged()", null) } }
+    }
+
+    /**
+     * Temperatura mostrata del condizionatore aperto (pagina del relay):
+     * {"n":nome del sensore,"t":21.9,"h":67.1}, oppure "" = quella dello split.
+     */
+    @JavascriptInterface
+    fun acSensor(): String {
+        val id = nav.dev.value ?: return ""
+        val src = (ctx as CasaApp).acSrc
+        val s = src.of(id) ?: return ""
+        if (src.stale()) kotlin.concurrent.thread { src.refresh(Relay.cookie()) }   // al massimo ogni minuto
+        val o = org.json.JSONObject().put("n", s.name)
+        s.t?.let { o.put("t", it) }
+        s.h?.let { o.put("h", it) }
+        return o.toString()
+    }
+
+    /** Tocco sulla temperatura della pagina del condizionatore: scelta del sensore. */
+    @JavascriptInterface
+    fun acSensorPick() {
+        val id = nav.dev.value ?: return
+        (ctx as CasaApp).acSrc.pick.value = id
     }
 
     /** Dispositivi abbinati in Bluetooth nell'app, per nome: {"ac":[...],"gate":[...]}. */

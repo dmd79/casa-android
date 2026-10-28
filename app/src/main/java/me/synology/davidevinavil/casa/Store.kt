@@ -72,6 +72,14 @@ class Store(ctx: Context) {
     } catch (e: Exception) { emptyList() }
 
     /** Cancelli e garage Bluetooth abbinati (indirizzo, nome, pulsanti). */
+    /** Sensore scelto per la temperatura di ogni condizionatore: {"<id>":"<chiave>"} (AcTemp.kt). */
+    var acSrcJson: String
+        get() = p.getString("acSrc", "{}") ?: "{}"
+        set(v) = p.edit().putString("acSrc", v).apply()
+    /** Ultimo nome visto di un sensore (per mostrarlo anche prima di rileggerlo). */
+    fun acSrcName(key: String): String = p.getString("acSrcN:$key", "") ?: ""
+    fun setAcSrcName(key: String, name: String) { if (acSrcName(key) != name) p.edit().putString("acSrcN:$key", name).apply() }
+
     /** Indirizzo degli aggiornamenti scelto nell'app per un dispositivo (vuoto = quello del dispositivo). */
     fun fwUrl(address: String): String = p.getString("fwUrl:$address", "") ?: ""
     fun setFwUrl(address: String, url: String) = p.edit().putString("fwUrl:$address", url.trim()).apply()
