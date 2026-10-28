@@ -187,6 +187,8 @@ private fun AcCard(modifier: Modifier, name: String, cur: Double?, tgt: Double?,
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(name, color = Color(0xFFC9D1D4), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
                 overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            // temperatura da un sensore: termometro accanto al canale (quale sensore: tocco lungo)
+            if (src != null) Box(Modifier.padding(end = 4.dp)) { SvgIcon(listOf(IconPart("M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z")), Color(0xFF8A93A3), 14.dp, stroke = 2f) }
             SvgIcon(if (ch == "bt") ICO_BT else ICO_WIFI, Color(0xFF8A93A3), 14.dp, stroke = 2f)
         }
         Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.Bottom) {
@@ -194,15 +196,13 @@ private fun AcCard(modifier: Modifier, name: String, cur: Double?, tgt: Double?,
                 maxLines = 1, softWrap = false)
             Text(" °C", color = Color(0xFF8A9599), fontSize = 13.sp, maxLines = 1, softWrap = false, modifier = Modifier.padding(bottom = 5.dp))
         }
+        // stessa altezza di tutti i riquadri: l'umidita' sta nella riga della temperatura impostata
         Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             Text((if (status != null) null else t0(tgt))?.let { "→ $it °C" } ?: " ", color = Color(0xFF8A9599), fontSize = 13.sp,
                 maxLines = 1, softWrap = false, modifier = Modifier.weight(1f))
             if (src != null && status == null) Text("${d2(hum)} %", color = pal.value, fontSize = 13.sp, maxLines = 1, softWrap = false)
         }
-        if (src != null) Row(Modifier.padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            SvgIcon(listOf(IconPart("M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z")), Color(0xFF8A9599), 11.dp)
-            Text(" $src", color = Color(0xFF8A9599), fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        }
+
         Box(Modifier.padding(top = 14.dp)) {
             Text("● " + (status ?: acLabel(mode)).uppercase(), color = if (off) Color(0xFF6B7479) else col,
                 fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, maxLines = 1)
