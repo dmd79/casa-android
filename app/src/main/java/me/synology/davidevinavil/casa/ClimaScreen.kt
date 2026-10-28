@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -153,12 +154,6 @@ fun ClimaScreen(app: CasaApp, openRelay: (RelayDev) -> Unit, openBt: (String) ->
                 if (row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
-        if (list.isNotEmpty()) Row(Modifier.padding(top = 2.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            SvgIcon(ICO_WIFI, CH_WIFI, 13.dp, stroke = 2f)
-            Text(" via relay    ", color = pal.muted, fontSize = 12.sp)
-            SvgIcon(ICO_BT, CH_BT, 13.dp, stroke = 2f)
-            Text(" via Bluetooth", color = pal.muted, fontSize = 12.sp)
-        }
         Spacer(Modifier.height(8.dp))
         LinkCard("Condizionatori Bluetooth", "elenco, aggiungi, dimentica", onClick = onList)
         if (devs.isNotEmpty()) Note("Tieni premuto un riquadro per scegliere la temperatura mostrata.", center = true)
@@ -184,34 +179,21 @@ private fun AcCard(modifier: Modifier, name: String, cur: Double?, tgt: Double?,
             .combinedClickable(onClick = onClick, onLongClick = onLong)
             .padding(horizontal = 13.dp, vertical = 12.dp),
     ) {
+        // stesso schema dei riquadri dei Sensori: nome e canale; temperatura con
+        // l'icona della provenienza; umidita' con la goccia; in fondo impostata e modo
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(name, color = Color(0xFFC9D1D4), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
                 overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-            // temperatura da un sensore: termometro accanto al canale (quale sensore: tocco lungo)
-            if (src != null) Box(Modifier.padding(end = 4.dp)) { SvgIcon(listOf(IconPart("M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z")), CH_SENS, 14.dp, stroke = 2f) }
             SvgIcon(if (ch == "bt") ICO_BT else ICO_WIFI, chColor(ch, status != null), 14.dp, stroke = 2f)
         }
-        Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.Bottom) {
-            Text(if (status != null) "--" else d2(cur), color = pal.text, fontSize = 30.sp, fontWeight = FontWeight.Light,
-                maxLines = 1, softWrap = false)
-            Text(" °C", color = Color(0xFF8A9599), fontSize = 13.sp, maxLines = 1, softWrap = false, modifier = Modifier.padding(bottom = 5.dp))
-        }
-        // come i riquadri dei Sensori: umidita' a sinistra, grande e azzurra;
-        // la temperatura impostata allora va a destra (stessa riga, stessa altezza)
-        val tg = (if (status != null) null else t0(tgt))?.let { "→ $it °C" }
-        Row(Modifier.fillMaxWidth().padding(top = 2.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (src != null && status == null) {
-                Text("${d2(hum)} %", color = HUM_BLUE, fontSize = 16.sp, maxLines = 1, softWrap = false, modifier = Modifier.weight(1f))
-                if (tg != null) Text(tg, color = Color(0xFF8A9599), fontSize = 13.sp, maxLines = 1, softWrap = false)
-            } else {
-                Text(tg ?: " ", color = Color(0xFF8A9599), fontSize = 13.sp, maxLines = 1, softWrap = false,
-                    modifier = Modifier.weight(1f).padding(vertical = 2.dp))
-            }
-        }
-
-        Box(Modifier.padding(top = 10.dp)) {
+        ValueRows(if (status != null) null else cur, if (src != null && status == null) hum else null, hasHum = src != null && status == null,
+            icon = if (src != null) ICO_THERMO else ICO_AC, iconColor = if (src != null) CH_SENS else Color(0xFF8A9599), dim = status != null)
+        val tg = (if (status != null) null else t0(tgt))?.let { "→ $it °C  " }
+        Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (tg != null) Text(tg, color = Color(0xFF8A9599), fontSize = 12.sp, maxLines = 1, softWrap = false)
             Text("● " + (status ?: acLabel(mode)).uppercase(), color = if (off) Color(0xFF6B7479) else col,
-                fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, maxLines = 1)
+                fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, maxLines = 1, softWrap = false,
+                overflow = TextOverflow.Ellipsis)
         }
     }
 }
@@ -223,3 +205,28 @@ val CH_BT = Color(0xFF4F8CFF)
 val CH_SENS = Color(0xFFE7C12C)
 val HUM_BLUE = Color(0xFF00C6FF)
 fun chColor(ch: String, off: Boolean) = if (off) Color(0xFF5A6266) else if (ch == "bt") CH_BT else CH_WIFI
+
+val ICO_THERMO = listOf(IconPart("M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z"))
+val ICO_DROP = listOf(IconPart("M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"))
+val ICO_AC = listOf(IconPart("M4.5 5h15a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"), IconPart("M6 11h12M8 17v2M12 17v3M16 17v2"))
+
+/**
+ * Temperatura con l'icona della provenienza (termometro giallo = sensore,
+ * condizionatore grigio = split) e, sotto, l'umidita' con la goccia azzurra.
+ * Stessa altezza con o senza umidita'. Due decimali, niente a capo.
+ */
+@Composable
+fun ValueRows(t: Double?, h: Double?, hasHum: Boolean, icon: List<IconPart>, iconColor: Color, dim: Boolean) {
+    Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.width(22.dp)) { SvgIcon(icon, if (dim) Color(0xFF5A6266) else iconColor, 17.dp, stroke = 1.8f) }
+        Text(if (dim) "--" else d2(t), color = if (dim) pal.muted else pal.text, fontSize = 30.sp, fontWeight = FontWeight.Light,
+            maxLines = 1, softWrap = false)
+        Text(" °C", color = Color(0xFF8A9599), fontSize = 13.sp, maxLines = 1, softWrap = false, modifier = Modifier.padding(top = 10.dp))
+    }
+    Row(Modifier.height(22.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (hasHum) {
+            Box(Modifier.width(22.dp)) { SvgIcon(ICO_DROP, if (dim) Color(0xFF5A6266) else HUM_BLUE, 16.dp, stroke = 2f) }
+            Text("${if (dim) "--" else d2(h)} %", color = if (dim) pal.muted else HUM_BLUE, fontSize = 16.sp, maxLines = 1, softWrap = false)
+        }
+    }
+}

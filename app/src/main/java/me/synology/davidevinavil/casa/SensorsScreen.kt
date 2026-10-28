@@ -178,12 +178,6 @@ private fun SensorsMain(app: CasaApp, openRelay: (RelayDev) -> Unit, onCharts: (
                 if (row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
-        if (list.isNotEmpty()) Row(Modifier.padding(top = 2.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            SvgIcon(ICO_WIFI, CH_WIFI, 13.dp, stroke = 2f)
-            Text(" via relay    ", color = pal.muted, fontSize = 12.sp)
-            SvgIcon(ICO_BT, CH_BT, 13.dp, stroke = 2f)
-            Text(" via Bluetooth", color = pal.muted, fontSize = 12.sp)
-        }
         Spacer(Modifier.height(8.dp))
         RowCard("Grafici e storico", onClick = onCharts)
         LinkCard("Sensori Bluetooth", "elenco, aggiungi, dimentica", onClick = onList)
@@ -191,7 +185,6 @@ private fun SensorsMain(app: CasaApp, openRelay: (RelayDev) -> Unit, onCharts: (
     }
 }
 
-private val ICO_THERMO = listOf(IconPart("M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z"))
 
 @Composable
 private fun SensorCard(modifier: Modifier, name: String, t: Double?, h: Double?, ch: String, status: String?, onClick: () -> Unit) {
@@ -201,19 +194,15 @@ private fun SensorCard(modifier: Modifier, name: String, t: Double?, h: Double?,
             .border(1.dp, pal.border, RoundedCornerShape(16.dp)).clickable(onClick = onClick)
             .padding(horizontal = 13.dp, vertical = 12.dp),
     ) {
+        // stesso schema dei riquadri del Clima
         Row(verticalAlignment = Alignment.CenterVertically) {
-            SvgIcon(ICO_THERMO, if (off) pal.muted else Color(0xFF00C6FF), 16.dp)
-            Text(" $name", color = Color(0xFFC9D1D4), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
+            Text(name, color = Color(0xFFC9D1D4), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
                 overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             SvgIcon(if (ch == "bt") ICO_BT else ICO_WIFI, chColor(ch, off), 14.dp, stroke = 2f)
         }
-        Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.Bottom) {
-            Text(if (off) "--" else d2(t), color = if (off) pal.muted else pal.text, fontSize = 30.sp, fontWeight = FontWeight.Light, maxLines = 1, softWrap = false)
-            Text(" °C", color = Color(0xFF8A9599), fontSize = 13.sp, modifier = Modifier.padding(bottom = 5.dp))
-        }
-        Text("${if (off) "--" else d2(h)} %", color = if (off) pal.muted else HUM_BLUE, fontSize = 16.sp, maxLines = 1, softWrap = false)
+        ValueRows(t, h, hasHum = true, icon = ICO_THERMO, iconColor = CH_SENS, dim = off)
         Text(status ?: if (ch == "bt") "da vicino, Bluetooth" else "via relay", color = pal.muted, fontSize = 11.sp,
-            letterSpacing = .5.sp, modifier = Modifier.padding(top = 6.dp))
+            letterSpacing = .5.sp, maxLines = 1, modifier = Modifier.padding(top = 10.dp))
     }
 }
 
