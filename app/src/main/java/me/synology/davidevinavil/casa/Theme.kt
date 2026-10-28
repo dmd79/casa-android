@@ -172,9 +172,11 @@ fun RowCard(label: String, value: String = "", onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
     ) {
-        Text(label, color = pal.text, fontSize = 18.sp)
+        // una riga sola: se non ci sta si accorcia la scritta, non si va a capo
+        Text(label, color = pal.text, fontSize = 18.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false).padding(end = 8.dp))
         androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(value, color = pal.value, fontSize = 15.sp, maxLines = 1)
+            Text(value, color = pal.value, fontSize = 15.sp, maxLines = 1, softWrap = false)
             Text("  ›", color = pal.accent, fontSize = 26.sp)
         }
     }

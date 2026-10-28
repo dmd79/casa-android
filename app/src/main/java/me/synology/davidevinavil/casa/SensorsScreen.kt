@@ -345,7 +345,7 @@ private fun SensorDetail(app: CasaApp, addr: String, onBack: () -> Unit, onUpdat
         if (msg.isNotBlank()) Text(msg, color = pal.value, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
         Spacer(Modifier.height(10.dp))
         if (s != null) {
-            RowCard("Cambia funzionamento", if (s.mode == 1) "passa a Solo ESP-NOW" else "passa a Wi-Fi") { ask = if (s.mode == 1) "espnow" else "wifi" }
+            RowCard("Funzionamento", if (s.mode == 1) "passa a ESP-NOW" else "passa a Wi-Fi") { ask = if (s.mode == 1) "espnow" else "wifi" }
             if (s.mode == 1) Note("In Wi-Fi si aggiorna da solo: niente da fare qui.")
             else RowCard("Aggiorna firmware", "senza internet, dall'hotspot", onClick = onUpdate)
         }
@@ -369,6 +369,7 @@ private fun WifiAsk(onDismiss: () -> Unit, onOk: (String, String, String) -> Uni
     var ssid by remember { mutableStateOf(Hotspot.phoneWifi(ctx)?.first ?: "") }
     var pw by remember { mutableStateOf("") }
     var rpw by remember { mutableStateOf("") }
+    var show by remember { mutableStateOf(setOf<Int>()) }        // password visibili
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss, containerColor = pal.bg,
         title = { Text("Passa a Wi-Fi", color = pal.text, fontSize = 21.sp) },
@@ -379,7 +380,8 @@ private fun WifiAsk(onDismiss: () -> Unit, onOk: (String, String, String) -> Uni
                     androidx.compose.material3.OutlinedTextField(
                         value = v, onValueChange = { n -> when (i) { 0 -> ssid = n; 1 -> pw = n; else -> rpw = n.take(32) } },
                         label = { Text(l) }, singleLine = true, colors = fieldColors(),
-                        visualTransformation = if (sec) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+                        visualTransformation = if (sec && i !in show) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
+                        trailingIcon = if (sec) { { ShowPw(i in show) { show = if (i in show) show - i else show + i } } } else null,
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                     )
                 }

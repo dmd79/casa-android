@@ -376,7 +376,7 @@ fun WifiScreen(ble: Ble, onBack: () -> Unit) {
                 placeholder = { Text("password") },
                 visualTransformation = if (show) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                trailingIcon = { TextButton(onClick = { show = !show }) { Text(if (show) "nascondi" else "mostra", color = pal.accent) } },
+                trailingIcon = { ShowPw(show) { show = !show } },
                 colors = fieldColors(),
             )
             Spacer(Modifier.height(18.dp))
@@ -394,6 +394,12 @@ fun WifiScreen(ble: Ble, onBack: () -> Unit) {
 }
 
 // ── finestre ──────────────────────────────────────────────
+
+/** "mostra" / "nascondi" in fondo a un campo password. */
+@Composable
+fun ShowPw(show: Boolean, toggle: () -> Unit) =
+    Text(if (show) "nascondi" else "mostra", color = pal.muted, fontSize = 13.sp,
+        modifier = Modifier.clickable(onClick = toggle).padding(horizontal = 10.dp, vertical = 8.dp))
 
 @Composable
 fun fieldColors() = OutlinedTextFieldDefaults.colors(
@@ -416,6 +422,7 @@ fun Confirm(title: String, text: String, ok: String, danger: Boolean = false, on
 fun Ask(title: String, text: String, initial: String, number: Boolean = false, secret: Boolean = false, ok: String,
         onDismiss: () -> Unit, onOk: (String) -> Unit) {
     var v by remember { mutableStateOf(initial) }
+    var show by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onDismiss, containerColor = pal.bg,
         title = { Text(title, color = pal.text, fontSize = 21.sp) },
@@ -425,8 +432,9 @@ fun Ask(title: String, text: String, initial: String, number: Boolean = false, s
                 OutlinedTextField(
                     value = v, onValueChange = { v = if (number) it.filter(Char::isDigit).take(4) else it },
                     singleLine = true, modifier = Modifier.fillMaxWidth().padding(top = 12.dp), colors = fieldColors(),
-                    visualTransformation = if (secret) PasswordVisualTransformation() else VisualTransformation.None,
+                    visualTransformation = if (secret && !show) PasswordVisualTransformation() else VisualTransformation.None,
                     keyboardOptions = KeyboardOptions(keyboardType = if (number) KeyboardType.NumberPassword else KeyboardType.Text),
+                    trailingIcon = if (secret) { { ShowPw(show) { show = !show } } } else null,
                 )
             }
         },

@@ -37,6 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -96,11 +97,19 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     // Dispositivi nuovi non ancora entrati nel relay ("Nuovo dispositivo"):
     // si riprova finche' il relay non li accetta (dopo il loro primo collegamento)
     val pendingLogins by store.pending.collectAsState()
+    val viewNow by rememberUpdatedState(view)
     LaunchedEffect(pendingLogins.isNotEmpty()) {
         while (store.pending.value.isNotEmpty()) {
             for ((id, pw, _) in store.pending.value) {
                 when (withContext(Dispatchers.IO) { Relay.login(id, pw) }) {
-                    Relay.Login.OK -> { store.removePending(id); refresh(true); if (nav.url.value.contains("/_home")) web.reload() }
+                    // la lista "Tutti" si ricarica solo se e' quella sullo schermo e
+                    // ferma: ricaricarla mentre si apriva un'altra pagina (per
+                    // esempio un sensore dalla scheda Sensori) annullava l'apertura
+                    // e si finiva su "Tutti"
+                    Relay.Login.OK -> {
+                        store.removePending(id); refresh(true)
+                        if (viewNow == Pane.WEB && !nav.loading && !nav.busy.value && Uri.parse(nav.url.value).path == "/_home") web.reload()
+                    }
                     Relay.Login.BAD -> store.removePending(id)       // password diversa: si entra a mano
                     else -> {}
                 }

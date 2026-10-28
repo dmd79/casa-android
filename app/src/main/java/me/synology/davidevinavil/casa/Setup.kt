@@ -225,7 +225,6 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
     var fromPhone by remember { mutableStateOf(false) }
     var ghz5 by remember { mutableStateOf(false) }
     var wpass by remember { mutableStateOf("") }
-    var showPw by remember { mutableStateOf(false) }
     var manual by remember { mutableStateOf(false) }
     var rpw by remember { mutableStateOf("") }
     var rpw2 by remember { mutableStateOf("") }
@@ -492,9 +491,7 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
                     P(if (bt != null) "La rete a cui si collegherà il dispositivo. La mando via Bluetooth." else "La rete a cui si collegherà il dispositivo.")
                     Field("Rete", ssid, { ssid = it; fromPhone = false; ghz5 = false },
                         tag = if (fromPhone && !manual) "del telefono" else null)
-                    Field("Password", wpass, { wpass = it }, secret = !showPw,
-                        trailing = { Text(if (showPw) "nascondi" else "mostra", color = pal.muted, fontSize = 13.sp,
-                            modifier = Modifier.clickable { showPw = !showPw }.padding(8.dp)) })
+                    Field("Password", wpass, { wpass = it }, secret = true)
                     if (!manual) Text("Qui non c'è Wi-Fi: lo scrivo a mano", color = pal.accent, fontSize = 15.sp,
                         modifier = Modifier.padding(top = 12.dp, start = 4.dp).clickable { manual = true; ssid = ""; fromPhone = false; ghz5 = false })
                     if (ghz5) Warn("Il telefono è su una rete a 5 GHz: il dispositivo vede solo il 2,4 GHz. Se la rete ha un nome diverso per il 2,4 GHz, scrivi quello.")
@@ -625,15 +622,23 @@ private val LOCK = listOf(IconPart("M7 11h10a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H7a2 2
 @Composable private fun Warn(t: String) =
     Text(t, color = Color(0xFFE7C12C), fontSize = 14.sp, modifier = Modifier.fillMaxWidth().padding(top = 10.dp))
 
+/** Campo di testo; [secret]: password, con "mostra" per vederla. */
 @Composable
 private fun Field(label: String, v: String, set: (String) -> Unit, secret: Boolean = false, tag: String? = null,
                   trailing: (@Composable () -> Unit)? = null) {
+    var show by remember { mutableStateOf(false) }
     Text(label, color = pal.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 12.dp, start = 4.dp, bottom = 4.dp))
     OutlinedTextField(
         value = v, onValueChange = set, singleLine = true, modifier = Modifier.fillMaxWidth(), colors = fieldColors(),
-        visualTransformation = if (secret) PasswordVisualTransformation() else VisualTransformation.None,
+        visualTransformation = if (secret && !show) PasswordVisualTransformation() else VisualTransformation.None,
         keyboardOptions = KeyboardOptions(keyboardType = if (secret) KeyboardType.Password else KeyboardType.Text),
         trailingIcon = when {
+            secret -> { {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    trailing?.invoke()
+                    ShowPw(show) { show = !show }
+                }
+            } }
             trailing != null -> trailing
             tag != null -> { { Text(tag, color = pal.accent, fontSize = 12.sp, modifier = Modifier.padding(end = 10.dp)) } }
             else -> null

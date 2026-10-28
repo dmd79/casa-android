@@ -65,6 +65,8 @@ class WebNav {
      * aprendo un condizionatore), quindi la si copre finche' non arriva.
      */
     val busy = MutableStateFlow(false)
+    /** Una pagina sta caricando (dall'inizio alla fine del caricamento). */
+    @Volatile var loading = false
     /** Pagina finita di caricare: occasione per riaggiornare l'elenco. */
     var onLoaded: () -> Unit = {}
 
@@ -112,6 +114,7 @@ fun makeWeb(ctx: Context, store: Store, nav: WebNav): WebView = WebView(ctx).app
         }
 
         override fun onPageStarted(v: WebView, url: String?, favicon: Bitmap?) {
+            nav.loading = true
             nav.note(url)
             if (!early) v.evaluateJavascript(START_JS, null)
         }
@@ -125,6 +128,7 @@ fun makeWeb(ctx: Context, store: Store, nav: WebNav): WebView = WebView(ctx).app
             // Copertura via a pagina caricata, e un attimo dopo: il termostato
             // ricostruisce la pagina appena carica, e togliendola alla prima
             // schermata (ancora vuota) si vedeva un lampo.
+            nav.loading = false
             v.postDelayed({ nav.busy.value = false }, 180)
             cm.flush()
             if (!early) {
@@ -147,6 +151,7 @@ fun makeWeb(ctx: Context, store: Store, nav: WebNav): WebView = WebView(ctx).app
 
         override fun onReceivedError(v: WebView, r: WebResourceRequest, e: WebResourceError) {
             if (!r.isForMainFrame) return
+            nav.loading = false
             nav.busy.value = false
             v.loadDataWithBaseURL(null, offlinePage(), "text/html", "utf-8", null)
         }
