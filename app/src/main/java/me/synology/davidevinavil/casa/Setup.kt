@@ -240,6 +240,9 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
     var hookGiveUp by remember { mutableStateOf(false) }
     var job by remember { mutableStateOf<Job?>(null) }
     var bt by remember { mutableStateOf<SetupDev?>(null) }     // trovato in Bluetooth (null: dall'hotspot)
+    var wifiKo by remember { mutableStateOf(false) }           // il Wi-Fi non si e' collegato
+    var noWifi by remember { mutableStateOf(false) }           // finito senza Wi-Fi
+    var retry by remember { mutableStateOf(false) }            // gia' abbinato e configurato: solo il Wi-Fi
     var permTick by remember { mutableStateOf(0) }
     val finder = remember { SetupScan(ctx.applicationContext) }
     val found by finder.found.collectAsState()
@@ -261,7 +264,7 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
         job?.cancel()
         st = when (st) {
             St.RELAY -> St.WIFI
-            St.WIFI -> if (sensor) St.MODE else if (bt != null) St.FIND else St.HOTSPOT
+            St.WIFI -> if (retry) { wifiKo = true; St.WORK } else if (sensor) St.MODE else if (bt != null) St.FIND else St.HOTSPOT
             St.MODE -> if (bt != null) St.FIND else St.HOTSPOT
             St.HOTSPOT -> St.FIND
             else -> { onClose(); st }
@@ -270,58 +273,132 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
     BackHandler { back() }
     fun afterHotspot() { st = if (sensor) St.MODE else St.WIFI }
 
+    // Wi-Fi collegato, letto dal dispositivo (null: firmware che non lo dice)
+    suspend fun wifiUp(c: GateConn, type: String): Boolean? = try {
+        when (type) {
+            "sensor" -> SensorState.parse(c.read(SensorUuids.STATE))?.wifiOn
+            "gate" -> GateState.parse(c.read(GateUuids.STATE))?.wifiOn
+            else -> JSONObject(String(c.read(Uuids.INFO) ?: ByteArray(0))).let { if (it.has("wifi")) it.optBoolean("wifi") else null }
+        }
+    } catch (_: Exception) { null }
+
+    // Dopo l'invio: fino a 45 s che il dispositivo si colleghi (wifi.configure
+    // prova per 30 s, poi torna com'era). Firmware che non lo dice: si va avanti.
+    suspend fun waitWifi(c: GateConn, type: String): Boolean {
+        var seen = false
+        val ok = withTimeoutOrNull(45_000) {
+            var up = false
+            while (!up) {
+                delay(3000)
+                when (wifiUp(c, type)) { true -> up = true; false -> seen = true; null -> {} }
+            }
+            true
+        } ?: false
+        return ok || !seen
+    }
+
+    // Wi-Fi a posto (o lasciato per dopo): ingresso nel relay, poi Fatto
+    suspend fun finishBt(f: SetupDev, rid: String) {
+        if (rid.isNotBlank()) app.store.addPending(rid, rpw, dev?.name ?: f.name)
+        if (noWifi) { st = St.DONE; return }
+        step = 3
+        // il dispositivo entra nel relay: si prova per un minuto (poi ci
+        // riprova l'app da sola, ogni 30 s)
+        if (rid.isNotBlank()) withTimeoutOrNull(60_000) {
+            while (true) {
+                delay(5000)
+                when (withContext(Dispatchers.IO) { Relay.login(rid, rpw) }) {
+                    Relay.Login.OK -> { app.store.removePending(rid); relayIn = true; return@withTimeoutOrNull }
+                    Relay.Login.BAD -> return@withTimeoutOrNull
+                    else -> {}
+                }
+            }
+        }
+        step = 4
+        st = St.DONE
+    }
+
     // Trovato in Bluetooth: abbinamento col codice dell'annuncio, poi sullo
-    // stesso collegamento Wi-Fi e password del relay (o Solo ESP-NOW)
+    // stesso collegamento Wi-Fi e password del relay (o Solo ESP-NOW), e
+    // attesa che il Wi-Fi si colleghi. [retry]: gia' abbinato e configurato,
+    // si manda solo il Wi-Fi corretto.
+    var rid by remember { mutableStateOf("") }
     fun workBt(f: SetupDev) {
-        st = St.WORK; step = 0; err = null; relayIn = false; btAddr = null; hook = null; hookGiveUp = false; code = null
+        st = St.WORK; err = null; wifiKo = false; noWifi = false; relayIn = false; btAddr = null; hook = null; hookGiveUp = false; code = null
+        step = if (retry) 1 else 0
         job = scope.launch {
             val s = ssid.trim()
-            val cmd = when {
-                f.type == "sensor" && espnow -> "modo=espnow"
-                f.type == "sensor" -> "modo=wifi\t$s\t$wpass\t$rpw"
-                f.type == "gate" -> "setup\t$s\t$wpass\t$rpw"
-                else -> "setup=$s\t$wpass\t$rpw"
-            }
             val cmdUuid = when (f.type) { "sensor" -> SensorUuids.CMD; "gate" -> GateUuids.CMD; else -> Uuids.CMD }
-            var rid = ""
-            val e = app.pairer.bond(f.type, f.name, f.code, addr = f.addr, after = { c ->
-                step = 1
-                // codice del relay, per entrare nel relay appena il dispositivo e' in rete
-                rid = try {
-                    when (f.type) {
-                        "sensor" -> SensorState.parse(c.read(SensorUuids.STATE))?.id.orEmpty()
-                        "gate" -> JSONObject(String(c.read(GateUuids.STATE) ?: ByteArray(0))).optString("id")
-                        else -> JSONObject(String(c.read(Uuids.INFO) ?: ByteArray(0))).optString("id")
-                    }.lowercase()
-                } catch (_: Exception) { "" }
-                when (val r = c.write(cmdUuid, cmd.toByteArray(Charsets.UTF_8))) {
-                    0 -> null
-                    0x83 -> "Il dispositivo risulta già configurato: usa la sua pagina o \"Abbina Bluetooth\" dalla lista del relay."
-                    0x80 -> "Il dispositivo è occupato: riprova tra poco."
-                    -1 -> "Il dispositivo non ha risposto: avvicinati e riprova."
-                    else -> "Impostazioni non accettate ($r): firmware vecchio? Usa l'hotspot."
+            var wifiOk = true
+            fun result(r: Int): String? = when (r) {
+                0 -> null
+                0x83 -> "Il dispositivo risulta già configurato: usa la sua pagina o \"Abbina Bluetooth\" dalla lista del relay."
+                0x80 -> "Il dispositivo è occupato: riprova tra poco."
+                -1 -> "Il dispositivo non ha risposto: avvicinati e riprova."
+                else -> "Impostazioni non accettate ($r): firmware vecchio? Usa l'hotspot."
+            }
+            val e = if (retry) {
+                // gia' abbinato: collegamento normale, solo il Wi-Fi
+                val cmd = if (f.type == "gate") "wifi\t$s\t$wpass" else "wifi=$s\t$wpass"
+                val d = ctx.getSystemService(android.bluetooth.BluetoothManager::class.java)?.adapter?.getRemoteDevice(f.addr)
+                if (d == null) "Bluetooth del telefono spento." else {
+                    val svc = when (f.type) { "sensor" -> SensorUuids.SVC; "gate" -> GateUuids.SVC; else -> Uuids.SVC }
+                    val rev = when (f.type) { "sensor" -> SensorUuids.REV; "gate" -> GateUuids.REV; else -> Uuids.REV }
+                    val c = GateConn(ctx, d, scope, svc, rev)
+                    try {
+                        if (!c.connect(15_000)) "Il dispositivo non risponde in Bluetooth: avvicinati e riprova."
+                        else {
+                            val r = result(c.write(cmdUuid, cmd.toByteArray(Charsets.UTF_8)))
+                            if (r == null) { step = 2; wifiOk = waitWifi(c, f.type) }
+                            r
+                        }
+                    } finally { c.close() }
                 }
-            })
+            } else {
+                val cmd = when {
+                    f.type == "sensor" && espnow -> "modo=espnow"
+                    f.type == "sensor" -> "cfg=$s\t$wpass\t$rpw"
+                    f.type == "gate" -> "setup\t$s\t$wpass\t$rpw"
+                    else -> "setup=$s\t$wpass\t$rpw"
+                }
+                app.pairer.bond(f.type, f.name, f.code, addr = f.addr, after = { c ->
+                    step = 1
+                    // codice del relay, per entrare nel relay appena il dispositivo e' in rete
+                    rid = try {
+                        when (f.type) {
+                            "sensor" -> SensorState.parse(c.read(SensorUuids.STATE))?.id.orEmpty()
+                            "gate" -> JSONObject(String(c.read(GateUuids.STATE) ?: ByteArray(0))).optString("id")
+                            else -> JSONObject(String(c.read(Uuids.INFO) ?: ByteArray(0))).optString("id")
+                        }.lowercase()
+                    } catch (_: Exception) { "" }
+                    result(c.write(cmdUuid, cmd.toByteArray(Charsets.UTF_8))) ?: run {
+                        if (!espnow) { step = 2; wifiOk = waitWifi(c, f.type) }
+                        null
+                    }
+                })
+            }
             if (e != null) { err = e; return@launch }
             btAddr = f.addr
             dev = HotspotDev(f.code, app.store.sensors.value.firstOrNull { it.address == f.addr }?.name ?: f.name, rid, f.type)
             if (espnow) { step = 3; st = St.DONE; return@launch }
-            step = 2
-            if (rid.isNotBlank()) app.store.addPending(rid, rpw, dev?.name ?: f.name)
-            // il dispositivo entra in rete: si prova a entrare nel relay per un
-            // minuto (poi ci riprova l'app da sola, ogni 30 s)
-            if (rid.isNotBlank()) withTimeoutOrNull(60_000) {
-                while (true) {
-                    delay(5000)
-                    when (withContext(Dispatchers.IO) { Relay.login(rid, rpw) }) {
-                        Relay.Login.OK -> { app.store.removePending(rid); relayIn = true; return@withTimeoutOrNull }
-                        Relay.Login.BAD -> return@withTimeoutOrNull
-                        else -> {}
-                    }
-                }
+            if (!wifiOk) { wifiKo = true; return@launch }       // Correggi Wi-Fi o Continua senza Wi-Fi
+            finishBt(f, rid)
+        }
+    }
+
+    // Wi-Fi che non si collega: si va avanti senza (Bluetooth; il sensore in
+    // Bluetooth + ESP-NOW). Il Wi-Fi si imposta dopo dalle impostazioni.
+    fun withoutWifi(f: SetupDev) {
+        wifiKo = false
+        job = scope.launch {
+            if (f.type == "sensor") {
+                val e = app.sensors.cmd(f.addr, "modo=espnow")
+                if (e != null) { err = "Solo ESP-NOW non impostato: $e."; return@launch }
+                espnow = true; step = 3; st = St.DONE
+            } else {
+                noWifi = true
+                finishBt(f, rid)
             }
-            step = 3
-            st = St.DONE
         }
     }
 
@@ -436,7 +513,7 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
                             .border(1.dp, pal.border, RoundedCornerShape(16.dp)).clickable {
                                 bt = f
                                 dev = HotspotDev(f.code, f.name, "", f.type)
-                                espnow = false
+                                espnow = false; retry = false; wifiKo = false; noWifi = false; rid = ""
                                 st = if (f.type == "sensor") St.MODE else St.WIFI
                             }.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             SvgIcon(ico, col, 26.dp)
@@ -499,7 +576,7 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
                     val ok = ssid.isNotBlank() && ssid.length <= 32 && wpass.length in 8..63
                     if (wpass.isNotEmpty() && wpass.length < 8) Warn("La password del Wi-Fi ha almeno 8 caratteri.")
                     Spacer(Modifier.height(14.dp))
-                    Btn("Avanti", enabled = ok) { st = St.RELAY }
+                    Btn(if (retry) "Riprova" else "Avanti", enabled = ok) { if (retry) work() else st = St.RELAY }
                 }
                 St.RELAY -> {
                     H("Accesso da fuori casa")
@@ -522,21 +599,34 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
                     }
                     val steps = when {
                         bt != null && espnow -> listOf("Abbinamento Bluetooth, senza codice", "Solo ESP-NOW impostato", "Il sensore si riavvia")
-                        bt != null -> listOf("Abbinamento Bluetooth, senza codice", "Wi-Fi e password del relay inviati", "Il dispositivo entra nel relay")
+                        bt != null -> listOf("Abbinamento Bluetooth, senza codice",
+                            if (retry) "Wi-Fi corretto inviato" else "Wi-Fi e password del relay inviati",
+                            if (wifiKo) "Non si collega a «${ssid.trim()}»" else "Collegamento a «${ssid.trim()}»",
+                            "Il dispositivo entra nel relay")
                         espnow -> listOf("Collegato all'hotspot", "Codice dal dispositivo", "Abbinamento e Solo ESP-NOW")
                         else -> listOf("Collegato all'hotspot", "Wi-Fi e relay impostati", "Abbinamento Bluetooth", "Di nuovo sulla tua rete")
                     }
                     Column(Modifier.padding(top = 16.dp, start = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         steps.forEachIndexed { i, t ->
-                            StepRow(t, ok = i < step, now = i == step && err == null, bad = i == step && err != null)
+                            StepRow(t, ok = i < step, now = i == step && err == null && !wifiKo, bad = i == step && (err != null || wifiKo))
                         }
                     }
-                    if (bt != null && err == null) Note(if (step == 2) "Può volerci un paio di minuti: se è lungo, finisco io dopo, da solo."
-                        else "Niente hotspot e niente impostazioni Wi-Fi: fa tutto l'app. Se Android chiede di abbinare, conferma.", center = true)
+                    if (bt != null && err == null && !wifiKo) Note(when (step) {
+                        2 -> "Aspetto che si colleghi al Wi-Fi: al massimo 45 secondi."
+                        3 -> "Può volerci un paio di minuti: se è lungo, finisco io dopo, da solo."
+                        else -> "Niente hotspot e niente impostazioni Wi-Fi: fa tutto l'app. Se Android chiede di abbinare, conferma."
+                    }, center = true)
                     if (bt == null && step == 3 && !espnow) Note("Se il telefono resta sull'hotspot, torna sulla tua rete Wi-Fi o sui dati mobili.", center = true)
                     err?.let { Warn(it) }
+                    if (wifiKo && err == null) Warn("Password sbagliata o rete fuori portata. Il ${if (sensor) "sensore" else "dispositivo"} vede solo il Wi-Fi a 2,4 GHz.")
                     Spacer(Modifier.height(18.dp))
-                    if (err != null) {
+                    if (wifiKo && err == null) {
+                        Btn("Correggi Wi-Fi") { retry = true; wifiKo = false; st = St.WIFI }
+                        Spacer(Modifier.height(8.dp))
+                        Btn("Continua senza Wi-Fi", secondary = true) { bt?.let { withoutWifi(it) } }
+                        Note(if (sensor) "Senza Wi-Fi il sensore passa a Bluetooth + ESP-NOW. Il Wi-Fi lo imposti quando vuoi: Funzionamento → passa a Wi-Fi."
+                             else "Senza Wi-Fi ${if (dev?.type == "gate") "il dispositivo" else "il condizionatore"} resta in Bluetooth. Il Wi-Fi lo imposti quando vuoi da Impostazioni → Wi-Fi.", center = true)
+                    } else if (err != null) {
                         Btn("Riprova") { st = if (bt != null) St.FIND else St.HOTSPOT }
                         Spacer(Modifier.height(8.dp))
                         Btn("Chiudi", secondary = true, onClick = onClose)
@@ -560,16 +650,24 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
                             }
                         } else {
                             DoneRow(ICO_BT, "Bluetooth", "abbinato: da vicino anche senza internet", pal.ok)
-                            DoneRow(ICO_WIFI, "Wi-Fi", "«${ssid.trim()}» salvato: si collega da solo", pal.muted)
-                            if (relayIn) DoneRow(LOCK, "Relay", "nella tua lista", pal.ok)
-                            else DoneRow(LOCK, "Relay", "lo aggiungo alla lista appena è online", Color(0xFFE7C12C))
+                            when {
+                                noWifi -> DoneRow(ICO_WIFI, "Wi-Fi", "non collegato: impostalo da Impostazioni → Wi-Fi", Color(0xFFE7C12C))
+                                bt != null -> DoneRow(ICO_WIFI, "Wi-Fi", "collegato a «${ssid.trim()}»", pal.ok)
+                                else -> DoneRow(ICO_WIFI, "Wi-Fi", "«${ssid.trim()}» salvato: si collega da solo", pal.muted)
+                            }
+                            when {
+                                relayIn -> DoneRow(LOCK, "Relay", "nella tua lista", pal.ok)
+                                noWifi -> DoneRow(LOCK, "Relay", "quando c'è il Wi-Fi", Color(0xFFE7C12C))
+                                else -> DoneRow(LOCK, "Relay", "lo aggiungo alla lista appena è online", Color(0xFFE7C12C))
+                            }
                         }
                     }
                     if (espnow) {
                         val mac = hook?.mac ?: btAddr?.let { a -> app.sensors.stati.value[a]?.mac }
                         if (!mac.isNullOrBlank()) MacBox(mac)
                         Note("Sul termostato aggiungi il sensore ESP-NOW con questo MAC. Il MAC lo ritrovi sempre nella scheda del sensore.", center = true)
-                    } else Note("Tutto salvato sul dispositivo: senza Wi-Fi o senza internet resta in Bluetooth e passa al relay quando la rete c'è.", center = true)
+                    } else if (bt == null) Note("Tutto salvato sul dispositivo: senza Wi-Fi o senza internet resta in Bluetooth e passa al relay quando la rete c'è.", center = true)
+                    if (noWifi) Note("Resta in Bluetooth. Impostazioni → Wi-Fi quando vuoi: appena si collega lo aggiungo al relay.", center = true)
                     if (bt != null) Note("Configurazione finita: da ora un nuovo abbinamento Bluetooth chiede il codice, come sempre. Il tuo telefono resta abbinato.", center = true)
                     Spacer(Modifier.height(14.dp))
                     Btn("Fine", onClick = onClose)
@@ -670,4 +768,45 @@ private fun DoneRow(icon: List<IconPart>, t: String, s: String, c: Color) {
             Text(s, color = c, fontSize = 13.sp)
         }
     }
+}
+
+/**
+ * Wi-Fi nuovo di un dispositivo abbinato (sensore esterno, gate): rete e
+ * password. La rete proposta e' quella del telefono, o quella attuale.
+ */
+@Composable
+fun WifiNetAsk(name: String, current: String, onDismiss: () -> Unit, onOk: (String, String) -> Unit) {
+    val ctx = LocalContext.current
+    val phone = remember { Hotspot.phoneWifi(ctx)?.first.orEmpty() }
+    var ssid by remember { mutableStateOf(phone.ifBlank { current }) }
+    var pw by remember { mutableStateOf("") }
+    var show by remember { mutableStateOf(false) }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss, containerColor = pal.bg,
+        title = { Text("Wi-Fi di $name", color = pal.text, fontSize = 21.sp) },
+        text = {
+            Column {
+                Text("Rete a 2,4 GHz. Se non si collega resta sulla rete di prima.", color = pal.value, fontSize = 15.sp)
+                OutlinedTextField(
+                    value = ssid, onValueChange = { ssid = it.take(32) }, label = { Text("Rete") }, singleLine = true, colors = fieldColors(),
+                    trailingIcon = if (phone.isNotBlank() && ssid == phone) { { Text("del telefono", color = pal.accent, fontSize = 12.sp, modifier = Modifier.padding(end = 10.dp)) } } else null,
+                    modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                )
+                OutlinedTextField(
+                    value = pw, onValueChange = { pw = it.take(63) }, label = { Text("Password") }, singleLine = true, colors = fieldColors(),
+                    visualTransformation = if (show) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    trailingIcon = { ShowPw(show) { show = !show } },
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                )
+            }
+        },
+        confirmButton = {
+            val ok = ssid.isNotBlank() && pw.length >= 8 && !ssid.contains('\t') && !pw.contains('\t')
+            androidx.compose.material3.TextButton(enabled = ok, onClick = { onOk(ssid.trim(), pw) }) {
+                Text("Collega", color = if (ok) pal.accent else pal.muted, fontSize = 17.sp)
+            }
+        },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text("Annulla", color = pal.value, fontSize = 17.sp) } },
+    )
 }

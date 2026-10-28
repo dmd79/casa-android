@@ -43,6 +43,8 @@ data class BtSensor(val address: String, val name: String)
 data class SensorState(
     val name: String, val t: Double?, val h: Double?, val ts: Long, val id: String, val mode: Int,
     val mac: String, val hooked: Boolean, val ch: Int, val md5: String, val ota: String, val ver: String,
+    /** Wi-Fi collegato (null: firmware che non lo dice) e rete collegata o impostata. */
+    val wifiOn: Boolean? = null, val ssid: String = "",
     val read: Long = System.currentTimeMillis(),
 ) {
     companion object {
@@ -50,7 +52,8 @@ data class SensorState(
             val j = JSONObject(String(b ?: return null))
             fun n(k: String) = if (!j.has(k) || j.isNull(k)) null else j.optDouble(k).takeIf { !it.isNaN() }
             SensorState(j.optString("n"), n("t"), n("h"), j.optLong("ts"), j.optString("id").lowercase(), j.optInt("m"),
-                j.optString("mac"), j.optBoolean("ag"), j.optInt("ch"), j.optString("md5"), j.optString("ota"), j.optString("v"))
+                j.optString("mac"), j.optBoolean("ag"), j.optInt("ch"), j.optString("md5"), j.optString("ota"), j.optString("v"),
+                if (j.has("wc")) j.optBoolean("wc") else null, j.optString("ws"))
         } catch (e: Exception) { null }
     }
 }

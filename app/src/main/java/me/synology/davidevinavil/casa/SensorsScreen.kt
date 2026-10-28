@@ -308,6 +308,13 @@ private fun SensorDetail(app: CasaApp, addr: String, onBack: () -> Unit, onUpdat
             ask = null
             scope.launch { msg = sb.cmd(addr, "modo=espnow")?.let { "Non riuscito: $it" } ?: "Fatto: il sensore si riavvia in Solo ESP-NOW." }
         }
+        "net" -> WifiNetAsk(name, s?.ssid.orEmpty(), onDismiss = { ask = null }) { ssid, pw ->
+            ask = null
+            scope.launch {
+                msg = sb.cmd(addr, "wifi=$ssid\t$pw")?.let { "Non riuscito: $it" }
+                    ?: "Mi collego a «$ssid»: se non risponde resta sulla rete di prima."
+            }
+        }
         "wifi" -> WifiAsk(onDismiss = { ask = null }) { ssid, pw, rpw ->
             ask = null
             scope.launch {
@@ -335,6 +342,11 @@ private fun SensorDetail(app: CasaApp, addr: String, onBack: () -> Unit, onUpdat
             Column(Modifier.fillMaxWidth().padding(top = 10.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)
                 .border(1.dp, pal.border, RoundedCornerShape(16.dp)).padding(horizontal = 14.dp, vertical = 4.dp)) {
                 Kv("Funzionamento", modoNome(s.mode))
+                when {
+                    s.mode == 2 -> Kv("Wi-Fi", "spento", pal.muted)
+                    s.wifiOn == true -> Kv("Wi-Fi", "${s.ssid} · collegato", pal.ok)
+                    s.wifiOn == false -> Kv("Wi-Fi", if (s.ssid.isBlank()) "non impostato" else "${s.ssid} · non collegato", Color(0xFFE7C12C))
+                }
                 if (s.mode != 0) Kv("Termostato", if (s.hooked) "agganciato, canale ${s.ch}" else "non agganciato",
                     if (s.hooked) pal.ok else Color(0xFFE7C12C))
                 Kv("MAC", s.mac)
@@ -345,6 +357,8 @@ private fun SensorDetail(app: CasaApp, addr: String, onBack: () -> Unit, onUpdat
         if (msg.isNotBlank()) Text(msg, color = pal.value, fontSize = 14.sp, modifier = Modifier.padding(top = 10.dp))
         Spacer(Modifier.height(10.dp))
         if (s != null) {
+            Section("IMPOSTAZIONI")
+            if (s.mode == 1 && s.wifiOn != null) RowCard("Wi-Fi", s.ssid.ifBlank { "--" }) { ask = "net" }
             RowCard("Funzionamento", if (s.mode == 1) "passa a ESP-NOW" else "passa a Wi-Fi") { ask = if (s.mode == 1) "espnow" else "wifi" }
             if (s.mode == 1) Note("In Wi-Fi si aggiorna da solo: niente da fare qui.")
             else RowCard("Aggiorna firmware", "senza internet, dall'hotspot", onClick = onUpdate)

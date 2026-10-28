@@ -275,6 +275,7 @@ private fun GateCtl(gb: GateBle, store: Store, addr: String, setWho: (String) ->
     var askWho by remember { mutableStateOf(false) }
     var after by remember { mutableStateOf<String?>(null) }      // azione da aprire dopo aver chiesto il nome
     var forget by remember { mutableStateOf(false) }
+    var netAsk by remember { mutableStateOf(false) }
     val mark = remember { mutableStateMapOf<String, String>() }   // azione -> "busy" / "done"
     val scope = rememberCoroutineScope()
     val enable = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {}
@@ -327,11 +328,27 @@ private fun GateCtl(gb: GateBle, store: Store, addr: String, setWho: (String) ->
             log.take(8).forEach { e -> EventRow(e) }
         }
         Note("Funziona anche senza internet e senza Wi-Fi: basta essere vicino.")
+        // Wi-Fi del dispositivo (firmware che lo dice)
+        st?.takeIf { it.wifiOn != null }?.let { s ->
+            Section("IMPOSTAZIONI")
+            RowCard("Wi-Fi", when {
+                s.wifiOn == true -> "${s.ssid} · collegato"
+                s.ssid.isBlank() -> "non impostato"
+                else -> "${s.ssid} · non collegato"
+            }) { netAsk = true }
+        }
         Spacer(Modifier.height(24.dp))
         Btn("Dimentica questo cancello", secondary = true) { forget = true }
         Spacer(Modifier.height(16.dp))
     }
 
+    if (netAsk) WifiNetAsk(name, st?.ssid.orEmpty(), onDismiss = { netAsk = false }) { ssid, pw ->
+        netAsk = false
+        scope.launch {
+            val e = gb.cmd(addr, "wifi\t$ssid\t$pw")
+            gb.toasts.tryEmit(e?.let { "Wi-Fi: $it" } ?: "Mi collego a «$ssid»: se non risponde resta sulla rete di prima.")
+        }
+    }
     if (askWho) Ask("Apri come", "Il tuo nome: compare nello storico delle aperture.", who, ok = "Salva",
         onDismiss = { askWho = false; after = null }) { v ->
         val n = v.trim().take(15)

@@ -56,7 +56,9 @@ object GateUuids {
 /** Cancello Bluetooth salvato nell'app (gia' abbinato). */
 data class BtGate(val address: String, val name: String, val azioni: List<String>)
 
-data class GateState(val name: String, val azioni: List<String>, val stati: Map<String, String>, val t: Long) {
+/** [wifiOn]: Wi-Fi collegato (null: firmware che non lo dice), [ssid]: rete collegata o impostata. */
+data class GateState(val name: String, val azioni: List<String>, val stati: Map<String, String>, val t: Long,
+                     val wifiOn: Boolean? = null, val ssid: String = "") {
     companion object {
         fun parse(b: ByteArray?): GateState? = try {
             val j = JSONObject(String(b ?: return null))
@@ -67,6 +69,8 @@ data class GateState(val name: String, val azioni: List<String>, val stati: Map<
                 if (a == null) emptyList() else (0 until a.length()).map { a.getString(it) },
                 buildMap { s?.let { o -> o.keys().forEach { k -> put(k, o.optString(k)) } } },
                 j.optLong("t"),
+                if (j.has("wc")) j.optBoolean("wc") else null,
+                j.optString("ws"),
             )
         } catch (e: Exception) { null }
     }
@@ -349,6 +353,29 @@ class GateBle(private val ctx: Context, private val store: Store) {
                 val r = reason(c.write(GateUuids.CMD, cmd))
                 if (r == null) GateState.parse(c.read(GateUuids.STATE))?.let { keep(addr, it) }
                 r
+            } finally { c.close() }
+        }
+    }
+
+    /** Comando qualsiasi (es. "wifi<TAB>ssid<TAB>password"); null se accettato. */
+    suspend fun cmd(addr: String, cmd: String, timeout: Long = 9000): String? {
+        if (!hasPermissions()) return "permesso Bluetooth mancante"
+        val ad = adapter?.takeIf { it.isEnabled } ?: return "Bluetooth del telefono spento"
+        val dev = try { ad.getRemoteDevice(addr) } catch (e: Exception) { return "indirizzo non valido" }
+        if (dev.bondState != BluetoothDevice.BOND_BONDED) return "telefono non abbinato"
+        val b = cmd.toByteArray(Charsets.UTF_8)
+        if (watched == addr) {
+            val c = withTimeoutOrNull(timeout) {
+                while (conn?.alive != true) delay(200)
+                conn
+            } ?: return "fuori portata"
+            return reason(c.write(GateUuids.CMD, b))
+        }
+        return tempLock.withLock {
+            val c = GateConn(ctx, dev, scope)
+            try {
+                if (!c.connect(timeout)) return@withLock "fuori portata"
+                reason(c.write(GateUuids.CMD, b))
             } finally { c.close() }
         }
     }
