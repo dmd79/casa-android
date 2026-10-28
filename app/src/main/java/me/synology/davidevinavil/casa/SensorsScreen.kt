@@ -482,30 +482,81 @@ object FwUpdate {
     }
 }
 
+/** File del firmware scelto sul telefono, copiato nella cache. */
+private data class LocalFw(val file: java.io.File, val name: String, val size: Long)
+
+/** Copia il file scelto e controlla che sia un firmware ESP32 (primo byte 0xE9, almeno 100 KB). */
+private fun copyFw(ctx: Context, uri: android.net.Uri): Pair<LocalFw?, String?> = try {
+    var name = "firmware.bin"
+    ctx.contentResolver.query(uri, null, null, null, null)?.use { c ->
+        val i = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+        if (i >= 0 && c.moveToFirst()) name = c.getString(i) ?: name
+    }
+    val out = File(ctx.cacheDir, "fw_local.bin")
+    ctx.contentResolver.openInputStream(uri)?.use { inp -> out.outputStream().use { inp.copyTo(it) } }
+    val first = out.inputStream().use { it.read() }
+    when {
+        out.length() < 100_000 -> null to "file troppo piccolo per un firmware"
+        first != 0xE9 -> null to "non è un firmware ESP32 (.bin)"
+        else -> LocalFw(out, name, out.length()) to null
+    }
+} catch (e: Exception) { null to "file non letto (${e.message ?: "errore"})" }
+
 @Composable
 private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
     val ctx = LocalContext.current
     val sb = app.sensors
     val s = sb.stati.collectAsState().value[addr]
     val name = app.store.sensors.collectAsState().value.firstOrNull { it.address == addr }?.name ?: "sensore"
-    var step by remember { mutableStateOf(0) }          // 0 scarico, 1 hotspot, 2 collegati, 3 carico, 4 riavvio, 5 fatto
+    // scelta della fonte
+    var started by remember { mutableStateOf(false) }
+    var useFile by remember { mutableStateOf(false) }
+    var url by remember { mutableStateOf(app.store.fwUrl(addr).ifBlank { s?.ota ?: "" }) }
+    var avail by remember { mutableStateOf<String?>(null) }      // md5 disponibile all'indirizzo, "" = non trovato
+    var local by remember { mutableStateOf<LocalFw?>(null) }
+    var pickErr by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    val picker = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        scope.launch {
+            val (f, e) = withContext(Dispatchers.IO) { copyFw(ctx, uri) }
+            local = f; pickErr = e
+        }
+    }
+    // indirizzo del sensore appena letto (se nell'app non ce n'e' uno scelto)
+    LaunchedEffect(s?.ota) { if (url.isBlank() && s != null) url = s.ota }
+    if (s == null) LaunchedEffect(Unit) { sb.peek(addr) }
+    // versione disponibile all'indirizzo (con un attimo di pausa mentre si scrive)
+    LaunchedEffect(url, useFile) {
+        avail = null
+        if (useFile || !url.trim().startsWith("http")) return@LaunchedEffect
+        delay(700)
+        avail = withContext(Dispatchers.IO) { FwUpdate.md5(url) } ?: ""
+    }
+
+    // avanzamento: 0 firmware pronto, 1 hotspot, 2 collegati, 3 carico, 4 riavvio, 5 fatto
+    var step by remember { mutableStateOf(0) }
     var pct by remember { mutableStateOf(0) }
     var err by remember { mutableStateOf<String?>(null) }
-    var info by remember { mutableStateOf("") }
     var go by remember { mutableStateOf(0) }
     LaunchedEffect(go) {
+        if (go == 0) return@LaunchedEffect
         err = null; step = 0; pct = 0
-        val st = s ?: sb.peek(addr) ?: run { err = "Il sensore non risponde in Bluetooth: avvicinati."; return@LaunchedEffect }
-        if (!st.ota.startsWith("https://")) { err = "Indirizzo degli aggiornamenti non https (${st.ota.ifBlank { "vuoto" }}): l'app scarica solo da https, per esempio GitHub."; return@LaunchedEffect }
-        // 0. firmware, finche' c'e' internet
-        val nuovo = withContext(Dispatchers.IO) { FwUpdate.md5(st.ota) } ?: run { err = "Non trovo l'aggiornamento: serve internet per scaricarlo."; return@LaunchedEffect }
-        info = if (nuovo == st.md5.lowercase()) "Il firmware è già l'ultimo: lo ricarico lo stesso." else "Versione nuova disponibile."
-        val f = File(ctx.cacheDir, "fw_sensor.bin")
-        val e0 = withContext(Dispatchers.IO) { FwUpdate.download(st.ota, f) { p -> pct = p } }
-        if (e0 != null) { err = "Firmware non scaricato: $e0."; return@LaunchedEffect }
+        val st = s ?: sb.peek(addr)
+        // 0. firmware: dal telefono o scaricato, finche' c'e' la rete
+        val f: File = if (useFile) {
+            local?.file ?: run { err = "Scegli prima il file del firmware."; return@LaunchedEffect }
+        } else {
+            val u = url.trim()
+            app.store.setFwUrl(addr, if (u == st?.ota) "" else u)
+            val out = File(ctx.cacheDir, "fw_sensor.bin")
+            val e0 = withContext(Dispatchers.IO) { FwUpdate.download(u, out) { p -> pct = p } }
+            if (e0 != null) { err = "Firmware non scaricato: $e0. Senza rete scegli «File sul telefono»."; return@LaunchedEffect }
+            out
+        }
         step = 1; pct = 0
-        // 1. hotspot del sensore (da configurare c'e' gia')
-        if (st.mode == 2) {
+        // 1. hotspot del sensore (da configurare c'e' gia'; in Wi-Fi arriva da solo se la rete manca)
+        if (st?.mode == 2) {
             val e1 = sb.cmd(addr, "ota")
             if (e1 != null) { err = "Il sensore non ha acceso l'hotspot: $e1."; return@LaunchedEffect }
         }
@@ -519,16 +570,55 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
         if (e3 != null) { err = "Aggiornamento non riuscito: $e3."; return@LaunchedEffect }
         step = 4
         delay(8000)
-        f.delete()
+        if (!useFile) f.delete()
         step = 5
     }
+
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Back("Aggiorna $name", onBack)
-        if (info.isNotBlank()) Text(info, color = pal.value, fontSize = 15.sp, modifier = Modifier.padding(top = 10.dp))
+        if (!started) {
+            Text("Da dove prendo il firmware?", color = pal.text, fontSize = 20.sp, modifier = Modifier.padding(top = 14.dp, bottom = 12.dp))
+            SrcOpt(ICO_NET, "Da indirizzo", !useFile, { useFile = false }) {
+                Text("Cartella con firmware.bin e firmware.md5", color = pal.muted, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
+                androidx.compose.material3.OutlinedTextField(value = url, onValueChange = { url = it }, singleLine = false,
+                    colors = fieldColors(), modifier = Modifier.fillMaxWidth(),
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Uri))
+                if (s != null && url.trim() != s.ota) Text("Ripristina quello del sensore", color = pal.accent, fontSize = 13.sp,
+                    modifier = Modifier.padding(top = 8.dp).clickable { url = s.ota })
+                val inst = s?.md5?.lowercase().orEmpty()
+                Text(when (val a = avail) {
+                    null -> if (url.trim().startsWith("http")) "Controllo l'indirizzo…" else "Indirizzo http:// o https://"
+                    "" -> "Nessun firmware.md5 a questo indirizzo (o niente rete)"
+                    inst -> "Già aggiornato: si può ricaricare lo stesso"
+                    else -> "Versione nuova disponibile"
+                }, color = if (avail != null && avail != "" && avail != inst) pal.ok else pal.muted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
+            }
+            SrcOpt(ICO_FILE, "File sul telefono", useFile, { useFile = true }) {
+                val l = local
+                Row(Modifier.fillMaxWidth().padding(top = 10.dp).clip(RoundedCornerShape(10.dp)).background(pal.bg)
+                    .border(1.dp, pal.border, RoundedCornerShape(10.dp)).clickable { picker.launch(arrayOf("*/*")) }.padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text(l?.name ?: "Nessun file scelto", color = pal.text, fontSize = 15.sp)
+                        Text(l?.let { String.format(Locale.ITALY, "%.2f MB", it.size / 1048576.0) } ?: "tocca per scegliere il .bin", color = pal.muted, fontSize = 12.sp)
+                    }
+                    Text(if (l == null) "Scegli" else "Cambia", color = pal.accent, fontSize = 14.sp)
+                }
+                pickErr?.let { Text(it, color = Color(0xFFE7C12C), fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp)) }
+            }
+            Note(if (useFile) "Nessuna rete necessaria: il file va direttamente al sensore dall'hotspot."
+                 else "Scarico prima, finché c'è la rete; poi ti colleghi all'hotspot del sensore.", center = true)
+            Spacer(Modifier.height(6.dp))
+            Btn(if (useFile) "Aggiorna" else "Scarica e aggiorna", enabled = if (useFile) local != null else url.trim().startsWith("http")) {
+                started = true; go++
+            }
+            return@Column
+        }
         Column(Modifier.padding(top = 16.dp, start = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            listOf(if (step == 0 && pct > 0) "Scarico il firmware $pct %" else "Firmware scaricato", "Hotspot del sensore acceso",
-                "Collegati all'hotspot", if (step == 3) "Caricamento $pct %" else "Caricamento", "Riavvio").forEachIndexed { i, t ->
-                val ok = i < step; val now = i == step && err == null; val bad = i == step && err != null
+            listOf(when { useFile -> "File pronto"; step == 0 && pct > 0 -> "Scarico il firmware $pct %"; else -> "Firmware scaricato" },
+                "Hotspot del sensore acceso", "Collegati all'hotspot", if (step == 3) "Caricamento $pct %" else "Caricamento", "Riavvio").forEachIndexed { i, t ->
+                val ok = i < step; val now = i == step && err == null && step < 5; val bad = i == step && err != null
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.width(26.dp), contentAlignment = Alignment.CenterStart) {
                         when {
@@ -550,7 +640,28 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
         if (step == 5) Note("Fatto: il sensore si è riavviato e torna nel suo modo. Puoi tornare sulla tua rete.", center = true)
         err?.let { Text(it, color = Color(0xFFE7C12C), fontSize = 14.sp, modifier = Modifier.padding(top = 12.dp)) }
         Spacer(Modifier.height(16.dp))
-        if (err != null) Btn("Riprova") { go++ }
+        if (err != null) {
+            Btn("Riprova") { go++ }
+            Btn("Cambia fonte", secondary = true, modifier = Modifier.padding(top = 8.dp)) { started = false; err = null; step = 0 }
+        }
         Btn(if (step == 5 || err != null) "Chiudi" else "Annulla", secondary = true, modifier = Modifier.padding(top = 8.dp), onClick = onBack)
+    }
+}
+
+private val ICO_NET = listOf(IconPart("M12 3a9 9 0 1 1 0 18a9 9 0 1 1 0-18z"), IconPart("M3 12h18"), IconPart("M12 3a14 14 0 0 1 0 18"), IconPart("M12 3a14 14 0 0 0 0 18"))
+private val ICO_FILE = listOf(IconPart("M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z"), IconPart("M14 3v5h5"))
+
+@Composable
+private fun SrcOpt(icon: List<IconPart>, t: String, on: Boolean, onPick: () -> Unit, body: @Composable () -> Unit) {
+    Column(
+        Modifier.fillMaxWidth().padding(bottom = 10.dp).clip(RoundedCornerShape(16.dp)).background(if (on) pal.sel else pal.card)
+            .border(1.dp, if (on) pal.accent else pal.border, RoundedCornerShape(16.dp)).clickable(onClick = onPick).padding(12.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SvgIcon(icon, if (on) pal.accent else pal.value, 22.dp)
+            Text(t, color = pal.text, fontSize = 17.sp, modifier = Modifier.weight(1f).padding(start = 10.dp))
+            Box(Modifier.size(20.dp).clip(RoundedCornerShape(10.dp)).border(if (on) 6.dp else 2.dp, if (on) pal.accent else pal.border, RoundedCornerShape(10.dp)))
+        }
+        if (on) body()
     }
 }

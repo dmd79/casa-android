@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Tutto cifrato, tranne la pagina dell'hotspot dei dispositivi
-     (192.168.4.1, senza certificato): "Nuovo dispositivo". -->
+<!-- Collegamenti non cifrati permessi: la pagina dell'hotspot dei dispositivi
+     (192.168.4.1) e gli indirizzi http degli aggiornamenti (per esempio Home
+     Assistant in casa). Il relay e' sempre in https. -->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="false" />
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">192.168.4.1</domain>
-    </domain-config>
+    <base-config cleartextTrafficPermitted="true" />
 </network-security-config>

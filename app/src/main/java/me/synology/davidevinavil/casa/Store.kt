@@ -72,6 +72,10 @@ class Store(ctx: Context) {
     } catch (e: Exception) { emptyList() }
 
     /** Cancelli e garage Bluetooth abbinati (indirizzo, nome, pulsanti). */
+    /** Indirizzo degli aggiornamenti scelto nell'app per un dispositivo (vuoto = quello del dispositivo). */
+    fun fwUrl(address: String): String = p.getString("fwUrl:$address", "") ?: ""
+    fun setFwUrl(address: String, url: String) = p.edit().putString("fwUrl:$address", url.trim()).apply()
+
     /** Sensori esterni abbinati in Bluetooth. */
     private val _sensors = MutableStateFlow(loadSensors())
     val sensors: StateFlow<List<BtSensor>> = _sensors
