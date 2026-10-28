@@ -174,8 +174,9 @@ private fun AcCard(modifier: Modifier, name: String, cur: Double?, tgt: Double?,
     val off = status != null || mode == "off" || mode.isBlank()
     val col = if (status != null) Color(0xFF6B7479) else acColor(mode)
     Column(
-        modifier.heightIn(min = 128.dp).clip(RoundedCornerShape(16.dp)).background(col.copy(alpha = if (off) .05f else .12f))
-            .border(2.dp, col.copy(alpha = if (off) .35f else 1f), RoundedCornerShape(16.dp))
+        // fondo e bordo uguali ai riquadri dei Sensori; il modo si vede dalla scritta colorata in fondo
+        modifier.heightIn(min = 128.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)
+            .border(1.dp, pal.border, RoundedCornerShape(16.dp))
             .combinedClickable(onClick = onClick, onLongClick = onLong)
             .padding(horizontal = 13.dp, vertical = 12.dp),
     ) {
