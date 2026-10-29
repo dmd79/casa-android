@@ -61,9 +61,11 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
     val scope = rememberCoroutineScope()
     var started by remember { mutableStateOf(false) }
     var useFile by remember { mutableStateOf(false) }
-    // quello del dispositivo; quello ricordato nell'app solo se il dispositivo non lo dice
-    var url by remember { mutableStateOf(devOta.ifBlank { store.fwUrl(key) }) }
+    // quello scritto nell'app (ricordato per questo dispositivo); se non c'e', quello del dispositivo
+    var url by remember { mutableStateOf(store.fwUrl(key).ifBlank { devOta }) }
     var edited by remember { mutableStateOf(false) }
+    // si ricorda subito, anche senza aggiornare
+    LaunchedEffect(url) { val u = url.trim().trimEnd('/'); if (edited && u.startsWith("http")) store.setFwUrl(key, u) }
     var avail by remember { mutableStateOf<String?>(null) }
     var local by remember { mutableStateOf<LocalFw?>(null) }
     var pickErr by remember { mutableStateOf<String?>(null) }
@@ -74,7 +76,7 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
             local = f; pickErr = e
         }
     }
-    LaunchedEffect(devOta) { if (devOta.isNotBlank() && (!edited || url.isBlank())) url = devOta }
+    LaunchedEffect(devOta) { if (url.isBlank() && devOta.isNotBlank()) url = devOta }
     LaunchedEffect(url, useFile) {
         avail = null
         if (useFile || !url.trim().startsWith("http")) return@LaunchedEffect
@@ -146,7 +148,7 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
                     textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Uri))
                 if (devOta.isNotBlank() && url.trim() != devOta) Text("Ripristina quello del $word", color = pal.accent, fontSize = 13.sp,
-                    modifier = Modifier.padding(top = 8.dp).clickable { url = devOta })
+                    modifier = Modifier.padding(top = 8.dp).clickable { url = devOta; edited = true })
                 val inst = devMd5.lowercase()
                 Text(when (val a = avail) {
                     null -> if (url.trim().startsWith("http")) "Controllo l'indirizzo…" else "Indirizzo http:// o https://"

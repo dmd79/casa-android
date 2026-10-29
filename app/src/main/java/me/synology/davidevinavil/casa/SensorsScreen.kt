@@ -561,9 +561,11 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
     // scelta della fonte
     var started by remember { mutableStateOf(false) }
     var useFile by remember { mutableStateOf(false) }
-    // quello del sensore; quello ricordato nell'app solo se il sensore non lo dice
-    var url by remember { mutableStateOf((s?.ota ?: "").ifBlank { app.store.fwUrl(addr) }) }
+    // quello scritto nell'app (ricordato per questo sensore); se non c'e', quello del sensore
+    var url by remember { mutableStateOf(app.store.fwUrl(addr).ifBlank { s?.ota ?: "" }) }
     var edited by remember { mutableStateOf(false) }
+    // si ricorda subito, anche senza aggiornare
+    LaunchedEffect(url) { val u = url.trim().trimEnd('/'); if (edited && u.startsWith("http")) app.store.setFwUrl(addr, u) }
     var avail by remember { mutableStateOf<String?>(null) }      // md5 disponibile all'indirizzo, "" = non trovato
     var local by remember { mutableStateOf<LocalFw?>(null) }
     var pickErr by remember { mutableStateOf<String?>(null) }
@@ -576,7 +578,7 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
         }
     }
     // indirizzo del sensore appena letto (se nell'app non ce n'e' uno scelto)
-    LaunchedEffect(s?.ota) { if (s != null && s.ota.isNotBlank() && (!edited || url.isBlank())) url = s.ota }
+    LaunchedEffect(s?.ota) { if (url.isBlank() && s != null && s.ota.isNotBlank()) url = s.ota }
     if (s == null) LaunchedEffect(Unit) { sb.peek(addr) }
     // versione disponibile all'indirizzo (con un attimo di pausa mentre si scrive)
     LaunchedEffect(url, useFile) {
@@ -643,7 +645,7 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
                     textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Uri))
                 if (s != null && url.trim() != s.ota) Text("Ripristina quello del sensore", color = pal.accent, fontSize = 13.sp,
-                    modifier = Modifier.padding(top = 8.dp).clickable { url = s.ota })
+                    modifier = Modifier.padding(top = 8.dp).clickable { url = s.ota; edited = true })
                 val inst = s?.md5?.lowercase().orEmpty()
                 Text(when (val a = avail) {
                     null -> if (url.trim().startsWith("http")) "Controllo l'indirizzo…" else "Indirizzo http:// o https://"
