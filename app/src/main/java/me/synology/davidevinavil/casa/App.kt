@@ -305,6 +305,8 @@ fun SettingsScreen(ble: Ble, store: Store, onBack: () -> Unit, onWifi: () -> Uni
         val rows = if (i == null) listOf((if (ble.hasInfo) "Lettura…" else "Aggiorna il firmware per vedere le info") to "")
         else listOf(
             "Memoria libera" to kb(i.heap), "Blocco più grande" to kb(i.block), "Acceso da" to uptime(i.uptime),
+            // ora dell'ESP: da internet o, senza, dal telefono al collegamento Bluetooth
+            "Ora del condizionatore" to when { i.time == null -> "--"; i.time.isBlank() -> "non impostata"; else -> i.time },
             "Ultimo riavvio" to i.reset.ifBlank { "--" }, "Indirizzo IP" to (if (i.wifi && i.ip.isNotBlank()) i.ip else "--"),
             "Hotspot" to (if (i.ap) "acceso" else "spento"), "Firmware" to i.fw)
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(pal.card)

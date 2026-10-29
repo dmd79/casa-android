@@ -65,6 +65,8 @@ data class AcInfo(
     /** Indirizzo degli aggiornamenti e md5 del firmware installato (per "Aggiorna firmware"). */
     val ota: String = "",
     val md5: String = "",
+    /** Ora del condizionatore ("gio 29/10 13:17"), vuota se non la sa ancora; null col firmware vecchio. */
+    val time: String? = null,
 ) {
     companion object {
         fun parse(j: JSONObject) = AcInfo(
@@ -81,6 +83,7 @@ data class AcInfo(
             fw = j.optString("fw", ""),
             ota = j.optString("ota", ""),
             md5 = j.optString("md5", ""),
+            time = if (j.has("tm")) j.optString("tm", "") else null,
         )
     }
 }

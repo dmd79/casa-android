@@ -5,6 +5,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,12 +41,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import java.util.Calendar
 
 private val DAYS = listOf("Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom")
@@ -66,12 +69,14 @@ private fun today() = (Calendar.getInstance().get(Calendar.DAY_OF_WEEK) + 5) % 7
  * giorni coi grafici, grafico del giorno, orari del giorno con la modifica,
  * copia di un giorno su altri. Sul condizionatore un orario puo' valere per
  * piu' giorni (24 orari in tutto): cambiarlo lo cambia per tutti i suoi giorni.
+ * I giorni di un orario si cambiano con "Copia … su", come nella pagina web.
  */
 @Composable
 fun SchedScreen(ble: Ble, name: String, onBack: () -> Unit) {
     val sc by ble.sched.collectAsState()
     var day by remember { mutableStateOf(today()) }
     var edit by remember { mutableStateOf(false) }
+    var editSel by remember { mutableStateOf<Int?>(null) }      // orario aperto dal pallino del grafico
     var copy by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { ble.launch { readSched() } }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
@@ -102,20 +107,22 @@ fun SchedScreen(ble: Ble, name: String, onBack: () -> Unit) {
                     }
                 }
             }
-            DayGraph(s, day, Modifier.fillMaxWidth().height(170.dp).padding(top = 8.dp), big = true)
+            // toccando un pallino si apre quell'orario, come sul termostato e sulla pagina web
+            DayGraph(s, day, Modifier.fillMaxWidth().height(170.dp).padding(top = 8.dp), big = true,
+                onDot = { editSel = it; edit = true })
             Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Programma ${DAYS[day]}", color = pal.accent, fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f).clip(RoundedCornerShape(22.dp)).background(pal.accent.copy(alpha = .1f))
-                        .border(2.dp, pal.accent, RoundedCornerShape(22.dp)).clickable { edit = true }.padding(vertical = 11.dp))
+                        .border(2.dp, pal.accent, RoundedCornerShape(22.dp)).clickable { editSel = null; edit = true }.padding(vertical = 11.dp))
                 Text("Copia ${DAYS[day]} su…", color = pal.value, fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f).clip(RoundedCornerShape(22.dp)).border(1.dp, pal.border, RoundedCornerShape(22.dp))
                         .clickable { copy = true }.padding(vertical = 11.dp))
             }
         }
-        Note("Senza internet il condizionatore prende l'ora dal telefono quando ti colleghi.", center = true)
+        Note("Tocca un giorno per vederne il grafico, un pallino per aprire quell'orario. Senza internet il condizionatore prende l'ora dal telefono quando ti colleghi in Bluetooth.", center = true)
     }
     val s = sc ?: return
-    if (edit) DaySheet(ble, s, day) { edit = false }
+    if (edit) DaySheet(ble, s, day, editSel) { edit = false }
     if (copy) CopySheet(ble, s, day) { copy = false }
 }
 
@@ -135,8 +142,9 @@ private fun OnPill(on: Boolean, onClick: () -> Unit) {
  * [big]: assi, punti con ora e temperatura, linea dell'ora attuale.
  */
 @Composable
-private fun DayGraph(s: Sched, day: Int, modifier: Modifier, big: Boolean) {
-    val list = s.day(day).map { it.value }.filter { it.enabled }
+private fun DayGraph(s: Sched, day: Int, modifier: Modifier, big: Boolean, onDot: ((Int) -> Unit)? = null) {
+    val idx = s.day(day).filter { it.value.enabled }
+    val list = idx.map { it.value }
     val nowMin = Calendar.getInstance().let { it.get(Calendar.HOUR_OF_DAY) * 60 + it.get(Calendar.MINUTE) }
     val isToday = day == today()
     val muted = pal.muted
@@ -144,7 +152,21 @@ private fun DayGraph(s: Sched, day: Int, modifier: Modifier, big: Boolean) {
     val txt = pal.text
     val ctx = LocalContext.current
     val dens = ctx.resources.displayMetrics.scaledDensity
-    Canvas(modifier) {
+    // tocco su un pallino (entro ~20 dp): stesse coordinate del disegno
+    val tap = if (onDot == null || list.isEmpty()) Modifier else Modifier.pointerInput(s, day) {
+        detectTapGestures { o ->
+            val left = 26.dp.toPx(); val right = size.width - 6.dp.toPx()
+            val top = 40.dp.toPx(); val bottom = size.height - 20.dp.toPx()
+            fun x(min: Int) = left + (right - left) * min / 1440f
+            fun y(t: Int, m: String) = if (!withTemp(m)) bottom - 3f else bottom - (bottom - top) * (t - 16) / 14f
+            val hit = idx.minByOrNull { val dx = x(it.value.min) - o.x; val dy = y(it.value.temp, it.value.modeKey) - o.y; dx * dx + dy * dy }
+            if (hit != null) {
+                val dx = x(hit.value.min) - o.x; val dy = y(hit.value.temp, hit.value.modeKey) - o.y
+                if (dx * dx + dy * dy < (20.dp.toPx()).let { it * it }) onDot(hit.index)
+            }
+        }
+    }
+    Canvas(modifier.then(tap)) {
         val left = if (big) 26.dp.toPx() else 0f
         val right = size.width - if (big) 6.dp.toPx() else 0f
         val top = if (big) 40.dp.toPx() else 2f
@@ -198,10 +220,18 @@ private fun DayGraph(s: Sched, day: Int, modifier: Modifier, big: Boolean) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DaySheet(ble: Ble, s: Sched, day: Int, onClose: () -> Unit) {
+private fun DaySheet(ble: Ble, s: Sched, day: Int, start: Int?, onClose: () -> Unit) {
     val ctx = LocalContext.current
     val list = s.day(day)
-    var sel by remember { mutableStateOf<Int?>(null) }          // indice nello store
+    var sel by remember { mutableStateOf(start) }               // indice nello store
+    // −/+ della temperatura: si mostra subito e si manda una volta sola quando ci si ferma
+    var pendT by remember { mutableStateOf<Pair<Int, Int>?>(null) }   // (orario, temperatura)
+    LaunchedEffect(pendT) {
+        val p = pendT ?: return@LaunchedEffect
+        delay(600)
+        ble.launch { schedCmd("set ${p.first} temp ${p.second}") }
+    }
+    LaunchedEffect(s) { pendT?.let { p -> if (s.slots.getOrNull(p.first)?.temp == p.second) pendT = null } }
     var adding by remember { mutableStateOf(false) }
     // orario appena aggiunto: si seleziona quando arriva
     LaunchedEffect(s.slots.size) { if (adding) { sel = s.slots.size - 1; adding = false } }
@@ -212,6 +242,7 @@ private fun DaySheet(ble: Ble, s: Sched, day: Int, onClose: () -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(DAYS_FULL[day], color = pal.accent, fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 Text("${list.size} orari · ${s.slots.size}/24", color = pal.muted, fontSize = 13.sp)
+                CloseX(onClose)
             }
             DayGraph(s, day, Modifier.fillMaxWidth().height(56.dp).padding(vertical = 6.dp), big = false)
             list.forEach { (i, x) ->
@@ -258,25 +289,13 @@ private fun DaySheet(ble: Ble, s: Sched, day: Int, onClose: () -> Unit) {
                                     .padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Text(MODE_LBL[m] ?: m, color = if (on) c else pal.value, fontSize = 13.sp, modifier = Modifier.weight(1f), maxLines = 1)
                                     if (on && withTemp(m)) {
-                                        Text("−", color = c, fontSize = 17.sp, modifier = Modifier.clickable { if (x.temp > 16) cmd("set $i temp ${x.temp - 1}") }.padding(horizontal = 5.dp))
-                                        Text("${x.temp}°", color = c, fontSize = 14.sp, fontFamily = FontFamily.Monospace)
-                                        Text("+", color = c, fontSize = 17.sp, modifier = Modifier.clickable { if (x.temp < 30) cmd("set $i temp ${x.temp + 1}") }.padding(horizontal = 5.dp))
+                                        val t = pendT?.takeIf { it.first == i }?.second ?: x.temp
+                                        Text("−", color = c, fontSize = 17.sp, modifier = Modifier.clickable { if (t > 16) pendT = i to t - 1 }.padding(horizontal = 5.dp))
+                                        Text("$t°", color = c, fontSize = 14.sp, fontFamily = FontFamily.Monospace)
+                                        Text("+", color = c, fontSize = 17.sp, modifier = Modifier.clickable { if (t < 30) pendT = i to t + 1 }.padding(horizontal = 5.dp))
                                     }
                                 }
                             }
-                        }
-                    }
-                    Lbl("VALE ANCHE PER")
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                        listOf("L", "M", "M", "G", "V", "S", "D").forEachIndexed { b, l ->
-                            val on = x.has(b)
-                            Text(l, color = if (on) pal.accent else pal.muted, fontSize = 12.sp, textAlign = TextAlign.Center,
-                                modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
-                                    .background(if (b == day) pal.accent.copy(alpha = .2f) else Color.Transparent)
-                                    .border(1.dp, if (on) pal.accent else pal.border, RoundedCornerShape(8.dp))
-                                    // il giorno aperto resta: per toglierlo c'e' il cestino
-                                    .clickable(enabled = b != day) { cmd("set $i day $b ${if (on) "off" else "on"}") }
-                                    .padding(vertical = 4.dp))
                         }
                     }
                     Lbl("ALTRO")
@@ -301,6 +320,13 @@ private fun DaySheet(ble: Ble, s: Sched, day: Int, onClose: () -> Unit) {
             }
         }
     }
+}
+
+/** ✕ per chiudere un riquadro, come nella pagina web. */
+@Composable
+private fun CloseX(onClick: () -> Unit) {
+    Box(Modifier.padding(start = 10.dp).size(32.dp).clip(CircleShape).border(1.dp, pal.border, CircleShape).clickable(onClick = onClick),
+        contentAlignment = Alignment.Center) { Text("✕", color = pal.text, fontSize = 15.sp) }
 }
 
 private fun swLbl(v: String) = when (v) {
@@ -333,7 +359,10 @@ private fun CopySheet(ble: Ble, s: Sched, src: Int, onClose: () -> Unit) {
     var busy by remember { mutableStateOf(false) }
     ModalBottomSheet(onDismissRequest = onClose, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = pal.bg) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 24.dp)) {
-            Text("Copia ${DAYS_FULL[src]}", color = pal.accent, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Copia ${DAYS_FULL[src]}", color = pal.accent, fontSize = 19.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                CloseX(onClose)
+            }
             DayGraph(s, src, Modifier.fillMaxWidth().height(70.dp).padding(vertical = 8.dp), big = false)
             Text("Sostituisci la programmazione di:", color = pal.text, fontSize = 16.sp, modifier = Modifier.padding(vertical = 8.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -355,7 +384,9 @@ private fun CopySheet(ble: Ble, s: Sched, src: Int, onClose: () -> Unit) {
             }
             Note("Gli orari di quei giorni vengono sostituiti.")
             Spacer(Modifier.height(10.dp))
-            Btn(if (busy) "Copio…" else "Copia", enabled = dst.isNotEmpty() && !busy) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Btn("Annulla", Modifier.weight(1f), secondary = true, onClick = onClose)
+            Btn(if (busy) "Copio…" else "Copia", Modifier.weight(1f), enabled = dst.isNotEmpty() && !busy) {
                 busy = true
                 val mask = dst.fold(0) { a, d -> a or (1 shl d) }
                 val sets = mutableListOf<String>()
@@ -370,6 +401,7 @@ private fun CopySheet(ble: Ble, s: Sched, src: Int, onClose: () -> Unit) {
                 val all = sets + dels.sortedDescending().map { "del $it" }
                 ble.launch { schedCmd(*all.toTypedArray()) }
                 onClose()
+            }
             }
         }
     }
