@@ -126,6 +126,7 @@ fun GateApp(gb: GateBle, store: Store, go: MutableStateFlow<String?>, setWho: (S
                         gst?.ota.orEmpty(), gst?.md5.orEmpty(), "",
                         where = { gb.state.value?.let { if (it.wifiOn == true && it.ip.isNotBlank()) it.ip else null } },
                         setOta = { u -> gb.cmd(a, "ota\t$u") },
+                        readMd5 = { gb.state.value?.md5 },
                         onBack = { scr = GScr.CTL })
                 }
                 else -> GateList(gb, store, onAdd = { scr = GScr.SCAN }) { sel = it; scr = GScr.CTL }

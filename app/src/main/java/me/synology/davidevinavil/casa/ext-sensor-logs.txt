@@ -1,0 +1,2708 @@
+[23:15:04]I (305) esp_image: segment 4: paddr=00137018 vaddr=40379250 size=123d8h ( 74712) load
+[23:15:04]I (322) esp_image: segment 5: paddr=001493f8 vaddr=50000070 size=00020h (    32) load
+[23:15:04]I (332) boot: Loaded app from partition at offset 0x10000
+[23:15:04]I (358) boot: Set actual ota_seq=1 in otadata[0]
+[23:15:05][I][logger:136]: Log initialized
+[23:15:05][C][safe_mode:205]: Unsuccessful boot attempts: 0
+[23:15:05][D][preferences:255]: Writing 1 items: 0 cached, 1 written, 0 failed
+[23:15:05][I][app:073]: Running through setup()
+[23:15:05][I][i2c:237]: Performing bus recovery
+[23:15:05][C][component:164]: Setup i2c took 135ms
+[23:15:05][D][template.text:015]: State from initial: In attesa
+[23:15:05][C][wifi:713]: Starting
+[23:15:05][C][wifi:1137]: Setting up AP:
+[23:15:05][C][wifi:1137]:   AP SSID: 'Ext-Sensor Hotspot'
+[23:15:05][C][wifi:1137]:   AP Password: '12345678'
+[23:15:05][C][wifi:1137]:   IP Address: 192.168.4.1
+[23:15:05][D][wifi:1541]: Starting scan
+[23:15:05][C][component:164]: Setup wifi took 199ms
+[23:15:05][D][esp-idf:000]: I (594) ESPNOW: espnow [version: 2.0] init
+[23:15:05][D][main:5169]: Da configurare: hotspot e Bluetooth accesi finche' non si sceglie il modo (app Casa)
+[23:15:05][I][sensor_ble:123]: Bluetooth avviato come 'ext-sensor 26026c'
+[23:15:05][I][app:130]: setup() finished successfully!
+[23:15:05][I][sensor_ble:193]: Da configurare: abbinamento aperto, codice nell'annuncio
+[23:15:05][I][app:163]: ESPHome version 2026.11.0-dev compiled on 2026-10-29 23:03:00 +0100
+[23:15:05][I][app:170]: ESP32 Chip: ESP32-S3 rev0.2, 2 core(s)
+[23:15:05][W][app:188]: Set flash_chip: gd under esp32 > framework > advanced to save IRAM
+[23:15:05][C][logger:311]: Logger:
+[23:15:05][C][logger:311]:   Max Level: DEBUG
+[23:15:05][C][logger:311]:   Initial Level: DEBUG
+[23:15:05][C][logger:318]:   Log Baud Rate: 115200
+[23:15:05][C][logger:318]:   Hardware UART: UART0
+[23:15:05][C][logger:327]:   Task Log Buffer Size: 768 bytes
+[23:15:05][C][i2c:110]: I2C Bus:
+[23:15:05][C][i2c:111]:   SDA Pin: GPIO39
+[23:15:05][C][i2c:111]:   SCL Pin: GPIO40
+[23:15:05][C][i2c:111]:   Frequency: 10000 Hz
+[23:15:05][C][i2c:121]:   Recovery: bus successfully recovered
+[23:15:05][C][i2c:027]: Results from bus scan:
+[23:15:05][C][i2c:034]: Found device at address 0x44
+[23:15:05][C][switch.gpio:105]: GPIO Switch 'Alimentazione sensore'
+[23:15:05][C][switch.gpio:105]:   Restore Mode: always ON
+[23:15:05][C][switch.gpio:199]:   Icon: 'mdi:power-plug'
+[23:15:05][C][switch.gpio:137]:   Pin: GPIO2
+[23:15:05][C][template.text_sensor:191]: Template Sensor 'Remote access status'
+[23:15:05][C][template.text_sensor:199]:   Icon: 'mdi:earth'
+[23:15:05][C][template.text_sensor:191]: Template Sensor 'Remote access URL'
+[23:15:05][C][template.text_sensor:199]:   Icon: 'mdi:link-variant'
+[23:15:05][C][template.text_sensor:191]: Template Sensor 'Bluetooth status'
+[23:15:05][C][template.text_sensor:199]:   Icon: 'mdi:bluetooth'
+[23:15:05][C][template.text_sensor:191]: Template Sensor 'Reset reason'
+[23:15:05][C][template.text_sensor:199]:   Icon: 'mdi:restart-alert'
+[23:15:05][C][template.text_sensor:191]: Template Sensor 'Crash info'
+[23:15:05][C][template.text_sensor:199]:   Icon: 'mdi:alert-box'
+[23:15:05][C][template.text_sensor:191]: Template Sensor 'Modo di funzionamento'
+[23:15:05][C][template.text_sensor:199]:   Icon: 'mdi:access-point-network'
+[23:15:05][C][template.text:191]: Template Text Input 'remote_code'
+[23:15:05][C][template.text:063]:   Optimistic: YES
+[23:15:05][C][template.text:367]:   Update Interval: 60.000s
+[23:15:05][C][template.text:191]: Template Text Input 'remote_token'
+[23:15:05][C][template.text:063]:   Optimistic: YES
+[23:15:05][C][template.text:367]:   Update Interval: 60.000s
+[23:15:05][C][template.text:191]: Template Text Input 'remote_pwhash'
+[23:15:05][C][template.text:063]:   Optimistic: YES
+[23:15:05][C][template.text:367]:   Update Interval: 60.000s
+[23:15:05][C][template.text:191]: Template Text Input 'Remote access password'
+[23:15:05][C][template.text:199]:   Icon: 'mdi:form-textbox-password'
+[23:15:05][C][template.text:063]:   Optimistic: YES
+[23:15:05][C][template.text:367]:   Update Interval: 60.000s
+[23:15:05][C][template.text:191]: Template Text Input 'sb_passkey'
+[23:15:05][C][template.text:063]:   Optimistic: YES
+[23:15:05][C][template.text:367]:   Update Interval: 60.000s
+[23:15:05][C][template.text:191]: Template Text Input 'SSID text'
+[23:15:05][C][template.text:063]:   Optimistic: YES
+[23:15:05][C][template.text:367]:   Update Interval: 60.000s
+[23:15:05][C][template.text:191]: Template Text Input 'WiFi password'
+[23:15:05][C][template.text:063]:   Optimistic: YES
+[23:15:06][C][template.text:367]:   Update Interval: 60.000s
+[23:15:06][C][template.text:191]: Template Text Input 'Static IP'
+[23:15:06][C][template.text:063]:   Optimistic: YES
+[23:15:06][C][template.text:367]:   Update Interval: 60.000s
+[23:15:06][C][template.text:191]: Template Text Input 'Gateway'
+[23:15:06][C][template.text:063]:   Optimistic: YES
+[23:15:06][C][template.text:367]:   Update Interval: 60.000s
+[23:15:06][C][template.text:191]: Template Text Input 'Subnet'
+[23:15:06][C][template.text:063]:   Optimistic: YES
+[23:15:06][C][template.text:367]:   Update Interval: 60.000s
+[23:15:06][C][template.text:191]: Template Text Input 'DNS 1'
+[23:15:06][C][template.text:063]:   Optimistic: YES
+[23:15:06][C][template.text:367]:   Update Interval: 60.000s
+[23:15:06][C][template.text:191]: Template Text Input 'DNS 2'
+[23:15:06][C][template.text:063]:   Optimistic: YES
+[23:15:06][C][template.text:367]:   Update Interval: 60.000s
+[23:15:06][C][template.text:191]: Template Text Input 'OTA Server Address'
+[23:15:06][C][template.text:063]:   Optimistic: YES
+[23:15:06][C][template.text:367]:   Update Interval: 60.000s
+[23:15:06][C][template.text:191]: Template Text Input 'OTA firmware md5'
+[23:15:06][C][template.text:063]:   Optimistic: YES
+[23:15:06][C][template.text:367]:   Update Interval: 60.000s
+[23:15:06][C][template.text:191]: Template Text Input 'Installed firmware md5'
+[23:15:06][C][template.text:063]:   Optimistic: YES
+[23:15:06][C][template.text:367]:   Update Interval: 60.000s
+[23:15:06][C][template.text:191]: Template Text Input 'OTA check status'
+[23:15:06][C][template.text:063]:   Optimistic: YES
+[23:15:06][C][template.text:367]:   Update Interval: 60.000s
+[23:15:06][C][template.text:191]: Template Text Input 'Device Name'
+[23:15:06][C][template.text:063]:   Optimistic: YES
+[23:15:06][C][template.text:367]:   Update Interval: 60.000s
+[23:15:06][C][template.sensor:017]: Template Sensor 'Bluetooth paired phones'
+[23:15:06][C][template.sensor:017]:   State Class: ''
+[23:15:06][C][template.sensor:017]:   Unit of Measurement: ''
+[23:15:06][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:15:06][C][template.sensor:199]:   Icon: 'mdi:cellphone-link'
+[23:15:06][C][template.sensor:365]:   Update Interval: never
+[23:15:06][C][template.sensor:017]: Template Sensor 'Bluetooth pairing left'
+[23:15:06][C][template.sensor:017]:   State Class: ''
+[23:15:06][C][template.sensor:017]:   Unit of Measurement: 's'
+[23:15:06][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:15:06][C][template.sensor:365]:   Update Interval: never
+[23:15:06][C][template.sensor:017]: Template Sensor 'Free memory'
+[23:15:06][C][template.sensor:017]:   State Class: ''
+[23:15:06][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:15:06][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:15:06][C][template.sensor:367]:   Update Interval: 10.000s
+[23:15:06][C][template.sensor:017]: Template Sensor 'Largest free block'
+[23:15:06][C][template.sensor:017]:   State Class: ''
+[23:15:06][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:15:06][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:15:06][C][template.sensor:367]:   Update Interval: 10.000s
+[23:15:06][C][template.sensor:017]: Template Sensor 'Free memory minimum'
+[23:15:06][C][template.sensor:017]:   State Class: ''
+[23:15:06][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:15:06][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:15:06][C][template.sensor:367]:   Update Interval: 10.000s
+[23:15:06][D][sht3xd:075]: Got temperature=24.30°C humidity=62.28%
+[23:15:06][C][template.sensor:017]: Template Sensor 'Free PSRAM'
+[23:15:06][C][template.sensor:017]:   State Class: ''
+[23:15:06][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:15:06][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:15:06][C][template.sensor:367]:   Update Interval: 60.000s
+[23:15:06][C][template.sensor:017]: Template Sensor 'Total PSRAM'
+[23:15:06][C][template.sensor:017]:   State Class: ''
+[23:15:06][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:15:06][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:15:06][C][template.sensor:367]:   Update Interval: 60.000s
+[23:15:06][C][template.sensor:017]: Template Sensor 'MAC Byte 0'
+[23:15:06][C][template.sensor:017]:   State Class: ''
+[23:15:06][C][template.sensor:017]:   Unit of Measurement: ''
+[23:15:06][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:15:06][C][template.sensor:367]:   Update Interval: 60.000s
+[23:15:06][C][template.sensor:017]: Template Sensor 'MAC Byte 1'
+[23:15:06][C][template.sensor:017]:   State Class: ''
+[23:15:06][C][template.sensor:017]:   Unit of Measurement: ''
+[23:15:06][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:15:06][C][template.sensor:367]:   Update Interval: 60.000s
+[23:15:06][C][template.sensor:017]: Template Sensor 'MAC Byte 2'
+[23:15:06][C][template.sensor:017]:   State Class: ''
+[23:15:06][C][template.sensor:017]:   Unit of Measurement: ''
+[23:15:06][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:15:06][C][template.sensor:367]:   Update Interval: 60.000s
+[23:15:06][C][template.sensor:017]: Template Sensor 'MAC Byte 3'
+[23:15:06][C][template.sensor:017]:   State Class: ''
+[23:15:06][C][template.sensor:017]:   Unit of Measurement: ''
+[23:15:06][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:15:06][C][template.sensor:367]:   Update Interval: 60.000s
+[23:15:06][C][template.sensor:017]: Template Sensor 'MAC Byte 4'
+[23:15:06][C][template.sensor:017]:   State Class: ''
+[23:15:06][C][template.sensor:017]:   Unit of Measurement: ''
+[23:15:06][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:15:06][C][template.sensor:367]:   Update Interval: 60.000s
+[23:15:06][C][template.sensor:017]: Template Sensor 'MAC Byte 5'
+[23:15:06][C][template.sensor:017]:   State Class: ''
+[23:15:06][C][template.sensor:017]:   Unit of Measurement: ''
+[23:15:06][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:15:06][C][template.sensor:367]:   Update Interval: 60.000s
+[23:15:06][C][uptime.sensor:017]: Uptime Sensor 'Uptime'
+[23:15:06][C][uptime.sensor:017]:   State Class: 'total_increasing'
+[23:15:06][C][uptime.sensor:017]:   Unit of Measurement: 's'
+[23:15:06][C][uptime.sensor:017]:   Accuracy Decimals: 0
+[23:15:06][C][uptime.sensor:207]:   Device Class: 'duration'
+[23:15:06][C][uptime.sensor:199]:   Icon: 'mdi:timer-outline'
+[23:15:06][C][uptime.sensor:019]:   Type: Seconds
+[23:15:06][C][template.number:191]: Template Number 'OTA md5 status code'
+[23:15:06][C][template.number:049]:   Optimistic: YES
+[23:15:06][C][template.number:367]:   Update Interval: 60.000s
+[23:15:06][C][template.number:191]: Template Number 'OTA progress'
+[23:15:06][C][template.number:049]:   Optimistic: YES
+[23:15:06][C][template.number:367]:   Update Interval: 60.000s
+[23:15:06][C][template.number:191]: Template Number 'Temperature Offset'
+[23:15:06][C][template.number:049]:   Optimistic: YES
+[23:15:06][C][template.number:367]:   Update Interval: 60.000s
+[23:15:06][C][gpio.binary_sensor:191]: GPIO Binary Sensor 'Boot pin'
+[23:15:06][C][gpio.binary_sensor:137]:   Pin: GPIO0
+[23:15:06][C][gpio.binary_sensor:068]:   Mode: interrupt
+[23:15:06][C][gpio.binary_sensor:070]:   Interrupt Type: ANY_EDGE
+[23:15:06][C][template.switch:105]: Template Switch 'Remote access'
+[23:15:06][C][template.switch:105]:   Restore Mode: restore defaults to OFF
+[23:15:06][C][template.switch:199]:   Icon: 'mdi:earth'
+[23:15:06][C][template.switch:044]:   Optimistic: YES
+[23:15:06][C][template.switch:105]: Template Switch 'OTA available'
+[23:15:06][C][template.switch:105]:   Restore Mode: always OFF
+[23:15:06][C][template.switch:044]:   Optimistic: YES
+[23:15:06][C][template.switch:105]: Template Switch 'Manual IP'
+[23:15:06][C][template.switch:105]:   Restore Mode: restore defaults to OFF
+[23:15:06][C][template.switch:044]:   Optimistic: YES
+[23:15:06][C][version.text_sensor:191]: Version Text Sensor 'ESPHome Version'
+[23:15:06][C][version.text_sensor:199]:   Icon: 'mdi:new-box'
+[23:15:06][C][wifi_info:191]: SSID 'Connected SSID'
+[23:15:06][C][wifi_info:191]: BSSID 'BSSID'
+[23:15:06][C][wifi_info:191]: MAC Address 'ESP Mac Wifi Address'
+[23:15:06][C][wifi_info:191]: IP Address 'IP'
+[23:15:06][C][sht3xd:044]: SHT3xD:
+[23:15:06][C][sht3xd:044]:   Serial Number: 0x2D5ADB27
+[23:15:06][C][sht3xd:044]:   Heater Enabled: FALSE
+[23:15:06][C][sht3xd:049]:   Address: 0x44
+[23:15:06][C][sht3xd:367]:   Update Interval: 2.000s
+[23:15:06][C][sht3xd:017]:   Temperature 'Temperature'
+[23:15:06][C][sht3xd:017]:     State Class: 'measurement'
+[23:15:06][C][sht3xd:017]:     Unit of Measurement: '°C'
+[23:15:06][C][sht3xd:017]:     Accuracy Decimals: 2
+[23:15:06][C][sht3xd:207]:     Device Class: 'temperature'
+[23:15:06][C][sht3xd:017]:   Humidity 'Humidity'
+[23:15:06][C][sht3xd:017]:     State Class: 'measurement'
+[23:15:06][C][sht3xd:017]:     Unit of Measurement: '%'
+[23:15:06][C][sht3xd:017]:     Accuracy Decimals: 2
+[23:15:06][C][sht3xd:207]:     Device Class: 'humidity'
+[23:15:06][C][internal_temperature:017]: Internal Temperature Sensor 'Internal Temperature'
+[23:15:06][C][internal_temperature:017]:   State Class: 'measurement'
+[23:15:06][C][internal_temperature:017]:   Unit of Measurement: '°C'
+[23:15:06][C][internal_temperature:017]:   Accuracy Decimals: 1
+[23:15:06][C][internal_temperature:207]:   Device Class: 'temperature'
+[23:15:06][C][web_handler:015]: Listening on path '/bt/abbina'
+[23:15:06][C][web_handler:015]: Listening on path '/bt/config'
+[23:15:06][C][web_handler:015]: Listening on path '/bt/codice'
+[23:15:06][C][web_handler:015]: Listening on path '/history'
+[23:15:06][C][web_handler:015]: Listening on path '/data'
+[23:15:06][C][psram:015]: PSRAM:
+[23:15:06][C][psram:018]:   Available: YES
+[23:15:06][C][psram:020]:   Size: 8192 KB
+[23:15:06][C][network:050]: Network:
+[23:15:06][C][network:050]:   TCP send buffer: 5760 bytes
+[23:15:06][C][captive_portal:134]: Captive Portal:
+[23:15:06][C][wifi:1772]: WiFi:
+[23:15:06][C][wifi:1772]:   Local MAC: D0:CF:13:26:02:6C
+[23:15:06][C][wifi:1772]:   Connected: NO
+[23:15:06][C][web_server:506]: Web Server:
+[23:15:06][C][web_server:506]:   Address: ext-sensor-26026c.local:80
+[23:15:06][C][sntp:058]: SNTP Time:
+[23:15:06][C][sntp:061]:   Server 0: '0.pool.ntp.org'
+[23:15:06][C][sntp:061]:   Server 1: '1.pool.ntp.org'
+[23:15:06][C][sntp:061]:   Server 2: '2.pool.ntp.org'
+[23:15:06][C][time:049]: Timezone: UTC+1:00 (DST UTC+2:00)
+[23:15:06][C][time:055]: Current time: 1970-01-01 01:00:01
+[23:15:06][C][safe_mode:058]: Safe Mode:
+[23:15:06][C][safe_mode:058]:   Successful after: 60s
+[23:15:06][C][safe_mode:058]:   Invoke after: 10 attempts
+[23:15:07][C][safe_mode:058]:   Duration: 300s
+[23:15:07][C][safe_mode:075]:   Bootloader rollback: support unknown
+[23:15:07][C][web_server.ota:245]: Web Server OTA
+[23:15:07][C][api:373]: Server:
+[23:15:07][C][api:373]:   Address: ext-sensor-26026c.local:6053
+[23:15:07][C][api:373]:   Listen backlog: 4
+[23:15:07][C][api:373]:   Max connections: 5
+[23:15:07][C][api:385]:   Noise encryption: NO
+[23:15:07][C][wifi_info:191]: Scan Results 'Device Latest Scan Results'
+[23:15:07][C][wifi_signal.sensor:017]: WiFi Signal 'WiFi Signal dB'
+[23:15:07][C][wifi_signal.sensor:017]:   State Class: 'measurement'
+[23:15:07][C][wifi_signal.sensor:017]:   Unit of Measurement: 'dBm'
+[23:15:07][C][wifi_signal.sensor:017]:   Accuracy Decimals: 0
+[23:15:07][C][wifi_signal.sensor:207]:   Device Class: 'signal_strength'
+[23:15:07][C][http_request:014]: HTTP Request:
+[23:15:07][C][http_request:014]:   Timeout: 20000ms
+[23:15:07][C][http_request:014]:   User-Agent: ESPHome/2026.11.0-dev (https://esphome.io)
+[23:15:07][C][http_request:014]:   Follow redirects: YES
+[23:15:07][C][http_request:014]:   Redirect limit: 3
+[23:15:07][C][http_request:014]:   Max concurrent requests: 1
+[23:15:07][C][http_request:024]:   Watchdog Timeout: 61000ms
+[23:15:07][C][http_request:036]:   Buffer Size RX: 512
+[23:15:07][C][http_request:036]:   Buffer Size TX: 512
+[23:15:07][C][http_request:036]:   Custom CA Certificate: NO
+[23:15:07][C][http_request.ota:016]: Over-The-Air updates via HTTP request
+[23:15:07][C][mdns:336]: mDNS:
+[23:15:07][C][mdns:336]:   Hostname: ext-sensor-26026c
+[23:15:07][C][debug:017]: Debug component:
+[23:15:07][D][debug:031]: ESPHome version 2026.11.0-dev
+[23:15:07][D][debug:035]: Free Heap Size: 139124 bytes
+[23:15:07][D][debug:044]: Uptime: 0d 00h 00m 01s
+[23:15:07][D][debug:260]: ESP32 debug info:
+[23:15:07][D][debug:260]:   Chip: ESP32-S3
+[23:15:07][D][debug:260]:   Cores: 2
+[23:15:07][D][debug:260]:   Revision: 2
+[23:15:07][D][debug:260]:   CPU Frequency: 80 MHz
+[23:15:07][D][debug:260]:   ESP-IDF Version: v5.5.6
+[23:15:07][D][debug:260]:   EFuse MAC: D0:CF:13:26:02:6C
+[23:15:07][D][debug:260]:   Reset Reason: power-on event
+[23:15:07][D][debug:260]:   Wakeup Cause: undefined
+[23:15:07][D][debug:280]:   Framework: ESP-IDF
+[23:15:07][C][debug:163]: Partition table:
+[23:15:07][C][debug:163]:   Name         Type Subtype  Address    Size      
+[23:15:07][C][debug:170]:   otadata      1    0        0x00009000 0x00002000
+[23:15:07][C][debug:170]:   phy_init     1    1        0x0000B000 0x00001000
+[23:15:07][C][debug:170]:   app0         0    16       0x00010000 0x007C0000
+[23:15:07][C][debug:170]:   app1         0    17       0x007D0000 0x007C0000
+[23:15:07][C][debug:170]:   nvs          1    2        0x00F90000 0x00070000
+[23:15:07][C][espnow:120]: espnow:
+[23:15:07][C][espnow:131]:   Own address: D0:CF:13:26:02:6C
+[23:15:07][C][espnow:131]:   Wi-Fi channel: 3
+[23:15:07][C][espnow:137]:   Version: v2
+[23:15:07][C][espnow:140]:   Wi-Fi enabled: YES
+[23:15:07][D][preferences:255]: Writing 5 items: 0 cached, 5 written, 0 failed
+[23:15:08][I][ota:1159]: md5 del firmware in uso: 600f632c716d4b146fe771472e4348c0 (era )
+[23:15:08][D][sht3xd:075]: Got temperature=24.27°C humidity=62.21%
+[23:15:10][D][sht3xd:075]: Got temperature=24.26°C humidity=62.12%
+[23:15:11]E BOD: Brownout detector was triggered
+[23:15:11]
+[23:15:11]
+[23:15:11]ESP-ROM:esp32s3-20210327
+[23:15:11]Build:Mar 27 2021
+[23:15:11]rst:0x3 (RTC_SW_SYS_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+[23:15:11]Saved PC:0x40375e4d
+[23:15:11]SPIWP:0xee
+[23:15:11]mode:DIO, clock div:1
+[23:15:11]load:0x3fce2820,len:0x13d0
+[23:15:11]load:0x403c8700,len:0xcb4
+[23:15:11]load:0x403cb700,len:0x2f28
+[23:15:11]entry 0x403c8914
+[23:15:11]I (29) boot: ESP-IDF v5.5.6 2nd stage bootloader
+[23:15:11]I (29) boot: chip revision: v0.2
+[23:15:11]I (29) boot.esp32s3: Boot SPI Speed : 80MHz
+[23:15:11]I (29) boot.esp32s3: SPI Mode       : DIO
+[23:15:11]I (33) boot.esp32s3: SPI Flash Size : 16MB
+[23:15:11]I (36) boot: Partition Table:
+[23:15:11]I (39) boot: ## Label            Usage          Type ST Offset   Length
+[23:15:11]I (45) boot:  0 otadata          OTA data         01 00 00009000 00002000
+[23:15:11]I (52) boot:  1 phy_init         RF data          01 01 0000b000 00001000
+[23:15:11]I (58) boot:  2 app0             OTA app          00 10 00010000 007c0000
+[23:15:11]I (65) boot:  3 app1             OTA app          00 11 007d0000 007c0000
+[23:15:11]I (71) boot:  4 nvs              WiFi data        01 02 00f90000 00070000
+[23:15:11]I (78) esp_image: segment 0: paddr=00010020 vaddr=3c0f0020 size=35d50h (220496) map
+[23:15:11]I (125) esp_image: segment 1: paddr=00045d78 vaddr=3fc9b700 size=05048h ( 20552) load
+[23:15:11]I (130) esp_image: segment 2: paddr=0004adc8 vaddr=40374000 size=05250h ( 21072) load
+[23:15:11]I (135) esp_image: segment 3: paddr=00050020 vaddr=42000020 size=e6ff0h (946160) map
+[23:15:12]I (306) esp_image: segment 4: paddr=00137018 vaddr=40379250 size=123d8h ( 74712) load
+[23:15:12]I (323) esp_image: segment 5: paddr=001493f8 vaddr=50000070 size=00020h (    32) load
+[23:15:12]I (332) boot: Loaded app from partition at offset 0x10000
+[23:15:12][I][logger:136]: Log initialized
+[23:15:12][C][safe_mode:205]: Unsuccessful boot attempts: 1
+[23:15:12][D][preferences:255]: Writing 1 items: 0 cached, 1 written, 0 failed
+[23:15:12][I][app:073]: Running through setup()
+[23:15:12][I][i2c:237]: Performing bus recovery
+[23:15:12][C][component:164]: Setup i2c took 135ms
+[23:15:12][D][template.text:015]: State from initial: In attesa
+[23:15:12][C][wifi:713]: Starting
+[23:15:13][C][wifi:1137]: Setting up AP:
+[23:15:13][C][wifi:1137]:   AP SSID: 'Ext-Sensor Hotspot'
+[23:15:13][C][wifi:1137]:   AP Password: '12345678'
+[23:15:13][C][wifi:1137]:   IP Address: 192.168.4.1
+[23:15:13][D][wifi:1541]: Starting scan
+[23:15:13][C][component:164]: Setup wifi took 191ms
+[23:15:13][D][esp-idf:000]: I (612) ESPNOW: espnow [version: 2.0] init
+[23:15:13][D][main:5169]: Da configurare: hotspot e Bluetooth accesi finche' non si sceglie il modo (app Casa)
+[23:15:13][I][sensor_ble:123]: Bluetooth avviato come 'ext-sensor 26026c'
+[23:15:13][I][app:130]: setup() finished successfully!
+[23:15:13][I][app:163]: ESPHome version 2026.11.0-dev compiled on 2026-10-29 23:03:00 +0100
+[23:15:13][I][app:170]: ESP32 Chip: ESP32-S3 rev0.2, 2 core(s)
+[23:15:13][W][app:188]: Set flash_chip: gd under esp32 > framework > advanced to save IRAM
+[23:15:13][C][logger:311]: Logger:
+[23:15:13][C][logger:311]:   Max Level: DEBUG
+[23:15:13][C][logger:311]:   Initial Level: DEBUG
+[23:15:13][C][logger:318]:   Log Baud Rate: 115200
+[23:15:13][C][logger:318]:   Hardware UART: UART0
+[23:15:13][C][logger:327]:   Task Log Buffer Size: 768 bytes
+[23:15:13][C][i2c:110]: I2C Bus:
+[23:15:13][C][i2c:111]:   SDA Pin: GPIO39
+[23:15:13][C][i2c:111]:   SCL Pin: GPIO40
+[23:15:13][C][i2c:111]:   Frequency: 10000 Hz
+[23:15:13][C][i2c:121]:   Recovery: bus successfully recovered
+[23:15:13][C][i2c:027]: Results from bus scan:
+[23:15:13][C][i2c:034]: Found device at address 0x44
+[23:15:13][C][switch.gpio:105]: GPIO Switch 'Alimentazione sensore'
+[23:15:13][C][switch.gpio:105]:   Restore Mode: always ON
+[23:15:13][C][switch.gpio:199]:   Icon: 'mdi:power-plug'
+[23:15:13][C][switch.gpio:137]:   Pin: GPIO2
+[23:15:13][C][template.text_sensor:191]: Template Sensor 'Remote access status'
+[23:15:13][C][template.text_sensor:199]:   Icon: 'mdi:earth'
+[23:15:13][C][template.text_sensor:191]: Template Sensor 'Remote access URL'
+[23:15:13][C][template.text_sensor:199]:   Icon: 'mdi:link-variant'
+[23:15:13][C][template.text_sensor:191]: Template Sensor 'Bluetooth status'
+[23:15:13][C][template.text_sensor:199]:   Icon: 'mdi:bluetooth'
+[23:15:13][C][template.text_sensor:191]: Template Sensor 'Reset reason'
+[23:15:13][C][template.text_sensor:199]:   Icon: 'mdi:restart-alert'
+[23:15:13][C][template.text_sensor:191]: Template Sensor 'Crash info'
+[23:15:13][C][template.text_sensor:199]:   Icon: 'mdi:alert-box'
+[23:15:13][C][template.text_sensor:191]: Template Sensor 'Modo di funzionamento'
+[23:15:13][C][template.text_sensor:199]:   Icon: 'mdi:access-point-network'
+[23:15:13][C][template.text:191]: Template Text Input 'remote_code'
+[23:15:13][C][template.text:063]:   Optimistic: YES
+[23:15:13][C][template.text:367]:   Update Interval: 60.000s
+[23:15:13][C][template.text:191]: Template Text Input 'remote_token'
+[23:15:13][C][template.text:063]:   Optimistic: YES
+[23:15:13][C][template.text:367]:   Update Interval: 60.000s
+[23:15:13][C][template.text:191]: Template Text Input 'remote_pwhash'
+[23:15:13][C][template.text:063]:   Optimistic: YES
+[23:15:13][C][template.text:367]:   Update Interval: 60.000s
+[23:15:13][C][template.text:191]: Template Text Input 'Remote access password'
+[23:15:13][C][template.text:199]:   Icon: 'mdi:form-textbox-password'
+[23:15:13][C][template.text:063]:   Optimistic: YES
+[23:15:13][C][template.text:367]:   Update Interval: 60.000s
+[23:15:13][C][template.text:191]: Template Text Input 'sb_passkey'
+[23:15:13][C][template.text:063]:   Optimistic: YES
+[23:15:13][C][template.text:367]:   Update Interval: 60.000s
+[23:15:13][C][template.text:191]: Template Text Input 'SSID text'
+[23:15:13][C][template.text:063]:   Optimistic: YES
+[23:15:13][C][template.text:367]:   Update Interval: 60.000s
+[23:15:13][I][sensor_ble:193]: Da configurare: abbinamento aperto, codice nell'annuncio
+[23:15:13][C][template.text:191]: Template Text Input 'WiFi password'
+[23:15:13][C][template.text:063]:   Optimistic: YES
+[23:15:13][C][template.text:367]:   Update Interval: 60.000s
+[23:15:13][C][template.text:191]: Template Text Input 'Static IP'
+[23:15:13][C][template.text:063]:   Optimistic: YES
+[23:15:13][C][template.text:367]:   Update Interval: 60.000s
+[23:15:13][C][template.text:191]: Template Text Input 'Gateway'
+[23:15:13][C][template.text:063]:   Optimistic: YES
+[23:15:13][C][template.text:367]:   Update Interval: 60.000s
+[23:15:13][C][template.text:191]: Template Text Input 'Subnet'
+[23:15:13][C][template.text:063]:   Optimistic: YES
+[23:15:13][C][template.text:367]:   Update Interval: 60.000s
+[23:15:13][C][template.text:191]: Template Text Input 'DNS 1'
+[23:15:13][C][template.text:063]:   Optimistic: YES
+[23:15:13][C][template.text:367]:   Update Interval: 60.000s
+[23:15:13][C][template.text:191]: Template Text Input 'DNS 2'
+[23:15:13][C][template.text:063]:   Optimistic: YES
+[23:15:13][C][template.text:367]:   Update Interval: 60.000s
+[23:15:13][C][template.text:191]: Template Text Input 'OTA Server Address'
+[23:15:13][C][template.text:063]:   Optimistic: YES
+[23:15:13][C][template.text:367]:   Update Interval: 60.000s
+[23:15:13][C][template.text:191]: Template Text Input 'OTA firmware md5'
+[23:15:13][C][template.text:063]:   Optimistic: YES
+[23:15:13][C][template.text:367]:   Update Interval: 60.000s
+[23:15:13][C][template.text:191]: Template Text Input 'Installed firmware md5'
+[23:15:13][C][template.text:063]:   Optimistic: YES
+[23:15:13][C][template.text:367]:   Update Interval: 60.000s
+[23:15:13][C][template.text:191]: Template Text Input 'OTA check status'
+[23:15:13][C][template.text:063]:   Optimistic: YES
+[23:15:13][C][template.text:367]:   Update Interval: 60.000s
+[23:15:13][C][template.text:191]: Template Text Input 'Device Name'
+[23:15:13][C][template.text:063]:   Optimistic: YES
+[23:15:13][C][template.text:367]:   Update Interval: 60.000s
+[23:15:13][C][template.sensor:017]: Template Sensor 'Bluetooth paired phones'
+[23:15:13][C][template.sensor:017]:   State Class: ''
+[23:15:13][C][template.sensor:017]:   Unit of Measurement: ''
+[23:15:13][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:15:13][C][template.sensor:199]:   Icon: 'mdi:cellphone-link'
+[23:15:13][C][template.sensor:365]:   Update Interval: never
+[23:15:13][C][template.sensor:017]: Template Sensor 'Bluetooth pairing left'
+[23:15:13][C][template.sensor:017]:   State Class: ''
+[23:15:13][C][template.sensor:017]:   Unit of Measurement: 's'
+[23:15:13][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:15:13][C][template.sensor:365]:   Update Interval: never
+[23:15:13][C][template.sensor:017]: Template Sensor 'Free memory'
+[23:15:13][C][template.sensor:017]:   State Class: ''
+[23:15:13][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:15:13][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:15:13][C][template.sensor:367]:   Update Interval: 10.000s
+[23:15:13][C][template.sensor:017]: Template Sensor 'Largest free block'
+[23:15:13][C][template.sensor:017]:   State Class: ''
+[23:15:13][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:15:13][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:15:13][C][template.sensor:367]:   Update Interval: 10.000s
+[23:15:13][C][template.sensor:017]: Template Sensor 'Free memory minimum'
+[23:15:13][C][template.sensor:017]:   State Class: ''
+[23:15:13][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:15:13][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:15:13][C][template.sensor:367]:   Update Interval: 10.000s
+[23:15:13][C][template.sensor:017]: Template Sensor 'Free PSRAM'
+[23:15:13][C][template.sensor:017]:   State Class: ''
+[23:15:13][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:15:13][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:15:13][C][template.sensor:367]:   Update Interval: 60.000s
+[23:15:13][C][template.sensor:017]: Template Sensor 'Total PSRAM'
+[23:15:13][C][template.sensor:017]:   State Class: ''
+[23:15:13][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:15:13][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:15:13][C][template.sensor:367]:   Update Interval: 60.000s
+[23:15:13][C][template.sensor:017]: Template Sensor 'MAC Byte 0'
+[23:15:13][C][template.sensor:017]:   State Class: ''
+[23:15:13][C][template.sensor:017]:   Unit of Measurement: ''
+[23:15:13][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:15:13][C][template.sensor:367]:   Update Interval: 60.000s
+[23:15:13][C][template.sensor:017]: Template Sensor 'MAC Byte 1'
+[23:15:13][C][template.sensor:017]:   State Class: ''
+[23:15:13][C][template.sensor:017]:   Unit of Measurement: ''
+[23:15:13][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:15:13][C][template.sensor:367]:   Update Interval: 60.000s
+[23:15:13][C][template.sensor:017]: Template Sensor 'MAC Byte 2'
+[23:15:13][C][template.sensor:017]:   State Class: ''
+[23:15:13][C][template.sensor:017]:   Unit of Measurement: ''
+[23:15:13][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:15:13][C][template.sensor:367]:   Update Interval: 60.000s
+[23:15:13][C][template.sensor:017]: Template Sensor 'MAC Byte 3'
+[23:15:13][C][template.sensor:017]:   State Class: ''
+[23:15:13][C][template.sensor:017]:   Unit of Measurement: ''
+[23:15:13][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:15:13][C][template.sensor:367]:   Update Interval: 60.000s
+[23:15:13][C][template.sensor:017]: Template Sensor 'MAC Byte 4'
+[23:15:13][C][template.sensor:017]:   State Class: ''
+[23:15:13][C][template.sensor:017]:   Unit of Measurement: ''
+[23:15:13][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:15:13][C][template.sensor:367]:   Update Interval: 60.000s
+[23:15:13][C][template.sensor:017]: Template Sensor 'MAC Byte 5'
+[23:15:13][C][template.sensor:017]:   State Class: ''
+[23:15:13][C][template.sensor:017]:   Unit of Measurement: ''
+[23:15:13][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:15:13][C][template.sensor:367]:   Update Interval: 60.000s
+[23:15:13][C][uptime.sensor:017]: Uptime Sensor 'Uptime'
+[23:15:13][C][uptime.sensor:017]:   State Class: 'total_increasing'
+[23:15:13][C][uptime.sensor:017]:   Unit of Measurement: 's'
+[23:15:13][C][uptime.sensor:017]:   Accuracy Decimals: 0
+[23:15:13][C][uptime.sensor:207]:   Device Class: 'duration'
+[23:15:13][C][uptime.sensor:199]:   Icon: 'mdi:timer-outline'
+[23:15:13][C][uptime.sensor:019]:   Type: Seconds
+[23:15:13][C][template.number:191]: Template Number 'OTA md5 status code'
+[23:15:13][C][template.number:049]:   Optimistic: YES
+[23:15:13][C][template.number:367]:   Update Interval: 60.000s
+[23:15:13][C][template.number:191]: Template Number 'OTA progress'
+[23:15:13][C][template.number:049]:   Optimistic: YES
+[23:15:13][C][template.number:367]:   Update Interval: 60.000s
+[23:15:13][C][template.number:191]: Template Number 'Temperature Offset'
+[23:15:13][C][template.number:049]:   Optimistic: YES
+[23:15:13][C][template.number:367]:   Update Interval: 60.000s
+[23:15:13][C][gpio.binary_sensor:191]: GPIO Binary Sensor 'Boot pin'
+[23:15:13][C][gpio.binary_sensor:137]:   Pin: GPIO0
+[23:15:13][C][gpio.binary_sensor:068]:   Mode: interrupt
+[23:15:13][C][gpio.binary_sensor:070]:   Interrupt Type: ANY_EDGE
+[23:15:13][C][template.switch:105]: Template Switch 'Remote access'
+[23:15:13][C][template.switch:105]:   Restore Mode: restore defaults to OFF
+[23:15:13][C][template.switch:199]:   Icon: 'mdi:earth'
+[23:15:13][C][template.switch:044]:   Optimistic: YES
+[23:15:13][C][template.switch:105]: Template Switch 'OTA available'
+[23:15:13][C][template.switch:105]:   Restore Mode: always OFF
+[23:15:13][C][template.switch:044]:   Optimistic: YES
+[23:15:13][C][template.switch:105]: Template Switch 'Manual IP'
+[23:15:13][C][template.switch:105]:   Restore Mode: restore defaults to OFF
+[23:15:13][C][template.switch:044]:   Optimistic: YES
+[23:15:14][C][version.text_sensor:191]: Version Text Sensor 'ESPHome Version'
+[23:15:14][C][version.text_sensor:199]:   Icon: 'mdi:new-box'
+[23:15:14][C][wifi_info:191]: SSID 'Connected SSID'
+[23:15:14][C][wifi_info:191]: BSSID 'BSSID'
+[23:15:14][C][wifi_info:191]: MAC Address 'ESP Mac Wifi Address'
+[23:15:14][C][wifi_info:191]: IP Address 'IP'
+[23:15:14][C][sht3xd:044]: SHT3xD:
+[23:15:14][C][sht3xd:044]:   Serial Number: 0x2D5ADB27
+[23:15:14][C][sht3xd:044]:   Heater Enabled: FALSE
+[23:15:14][C][sht3xd:049]:   Address: 0x44
+[23:15:14][C][sht3xd:367]:   Update Interval: 2.000s
+[23:15:14][C][sht3xd:017]:   Temperature 'Temperature'
+[23:15:14][C][sht3xd:017]:     State Class: 'measurement'
+[23:15:14][C][sht3xd:017]:     Unit of Measurement: '°C'
+[23:15:14][C][sht3xd:017]:     Accuracy Decimals: 2
+[23:15:14][C][sht3xd:207]:     Device Class: 'temperature'
+[23:15:14][C][sht3xd:017]:   Humidity 'Humidity'
+[23:15:14][C][sht3xd:017]:     State Class: 'measurement'
+[23:15:14][C][sht3xd:017]:     Unit of Measurement: '%'
+[23:15:14][C][sht3xd:017]:     Accuracy Decimals: 2
+[23:15:14][C][sht3xd:207]:     Device Class: 'humidity'
+[23:15:14][C][internal_temperature:017]: Internal Temperature Sensor 'Internal Temperature'
+[23:15:14][C][internal_temperature:017]:   State Class: 'measurement'
+[23:15:14][C][internal_temperature:017]:   Unit of Measurement: '°C'
+[23:15:14][C][internal_temperature:017]:   Accuracy Decimals: 1
+[23:15:14][C][internal_temperature:207]:   Device Class: 'temperature'
+[23:15:14][C][web_handler:015]: Listening on path '/bt/abbina'
+[23:15:14][C][web_handler:015]: Listening on path '/bt/config'
+[23:15:14][C][web_handler:015]: Listening on path '/bt/codice'
+[23:15:14][C][web_handler:015]: Listening on path '/history'
+[23:15:14][C][web_handler:015]: Listening on path '/data'
+[23:15:14][D][sht3xd:075]: Got temperature=24.25°C humidity=62.10%
+[23:15:14][C][psram:015]: PSRAM:
+[23:15:14][C][psram:018]:   Available: YES
+[23:15:14][C][psram:020]:   Size: 8192 KB
+[23:15:14][C][network:050]: Network:
+[23:15:14][C][network:050]:   TCP send buffer: 5760 bytes
+[23:15:14][C][captive_portal:134]: Captive Portal:
+[23:15:14][C][wifi:1772]: WiFi:
+[23:15:14][C][wifi:1772]:   Local MAC: D0:CF:13:26:02:6C
+[23:15:14][C][wifi:1772]:   Connected: NO
+[23:15:14][C][web_server:506]: Web Server:
+[23:15:14][C][web_server:506]:   Address: ext-sensor-26026c.local:80
+[23:15:14][C][sntp:058]: SNTP Time:
+[23:15:14][C][sntp:061]:   Server 0: '0.pool.ntp.org'
+[23:15:14][C][sntp:061]:   Server 1: '1.pool.ntp.org'
+[23:15:14][C][sntp:061]:   Server 2: '2.pool.ntp.org'
+[23:15:14][C][time:049]: Timezone: UTC+1:00 (DST UTC+2:00)
+[23:15:14][C][time:055]: Current time: 1970-01-01 01:00:09
+[23:15:14][C][safe_mode:058]: Safe Mode:
+[23:15:14][C][safe_mode:058]:   Successful after: 60s
+[23:15:14][C][safe_mode:058]:   Invoke after: 10 attempts
+[23:15:14][C][safe_mode:058]:   Duration: 300s
+[23:15:14][C][safe_mode:075]:   Bootloader rollback: support unknown
+[23:15:14][C][web_server.ota:245]: Web Server OTA
+[23:15:14][C][api:373]: Server:
+[23:15:14][C][api:373]:   Address: ext-sensor-26026c.local:6053
+[23:15:14][C][api:373]:   Listen backlog: 4
+[23:15:14][C][api:373]:   Max connections: 5
+[23:15:14][C][api:385]:   Noise encryption: NO
+[23:15:14][C][wifi_info:191]: Scan Results 'Device Latest Scan Results'
+[23:15:14][C][wifi_signal.sensor:017]: WiFi Signal 'WiFi Signal dB'
+[23:15:14][C][wifi_signal.sensor:017]:   State Class: 'measurement'
+[23:15:14][C][wifi_signal.sensor:017]:   Unit of Measurement: 'dBm'
+[23:15:14][C][wifi_signal.sensor:017]:   Accuracy Decimals: 0
+[23:15:14][C][wifi_signal.sensor:207]:   Device Class: 'signal_strength'
+[23:15:14][C][http_request:014]: HTTP Request:
+[23:15:14][C][http_request:014]:   Timeout: 20000ms
+[23:15:14][C][http_request:014]:   User-Agent: ESPHome/2026.11.0-dev (https://esphome.io)
+[23:15:14][C][http_request:014]:   Follow redirects: YES
+[23:15:14][C][http_request:014]:   Redirect limit: 3
+[23:15:14][C][http_request:014]:   Max concurrent requests: 1
+[23:15:14][C][http_request:024]:   Watchdog Timeout: 61000ms
+[23:15:14][C][http_request:036]:   Buffer Size RX: 512
+[23:15:14][C][http_request:036]:   Buffer Size TX: 512
+[23:15:14][C][http_request:036]:   Custom CA Certificate: NO
+[23:15:14][C][http_request.ota:016]: Over-The-Air updates via HTTP request
+[23:15:14][C][mdns:336]: mDNS:
+[23:15:14][C][mdns:336]:   Hostname: ext-sensor-26026c
+[23:15:14][C][debug:017]: Debug component:
+[23:15:14][D][debug:031]: ESPHome version 2026.11.0-dev
+[23:15:14][D][debug:035]: Free Heap Size: 139204 bytes
+[23:15:14][D][debug:044]: Uptime: 0d 00h 00m 02s
+[23:15:14][D][debug:260]: ESP32 debug info:
+[23:15:14][D][debug:260]:   Chip: ESP32-S3
+[23:15:14][D][debug:260]:   Cores: 2
+[23:15:14][D][debug:260]:   Revision: 2
+[23:15:14][D][debug:260]:   CPU Frequency: 80 MHz
+[23:15:14][D][debug:260]:   ESP-IDF Version: v5.5.6
+[23:15:14][D][debug:260]:   EFuse MAC: D0:CF:13:26:02:6C
+[23:15:14][D][debug:260]:   Reset Reason: brownout
+[23:15:14][D][debug:260]:   Wakeup Cause: undefined
+[23:15:14][D][debug:280]:   Framework: ESP-IDF
+[23:15:14][C][debug:163]: Partition table:
+[23:15:14][C][debug:163]:   Name         Type Subtype  Address    Size      
+[23:15:14][C][debug:170]:   otadata      1    0        0x00009000 0x00002000
+[23:15:14][C][debug:170]:   phy_init     1    1        0x0000B000 0x00001000
+[23:15:14][C][debug:170]:   app0         0    16       0x00010000 0x007C0000
+[23:15:14][C][debug:170]:   app1         0    17       0x007D0000 0x007C0000
+[23:15:14][C][debug:170]:   nvs          1    2        0x00F90000 0x00070000
+[23:15:14][C][espnow:120]: espnow:
+[23:15:14][C][espnow:131]:   Own address: D0:CF:13:26:02:6C
+[23:15:14][C][espnow:131]:   Wi-Fi channel: 3
+[23:15:14][C][espnow:137]:   Version: v2
+[23:15:14][C][espnow:140]:   Wi-Fi enabled: YES
+[23:15:15][I][ota:1159]: md5 del firmware in uso: 600f632c716d4b146fe771472e4348c0 (era )
+[23:15:16][D][sht3xd:075]: Got temperature=24.20°C humidity=62.16%
+[23:15:18][D][sht3xd:075]: Got temperature=24.23°C humidity=62.20%
+[23:15:20][D][sht3xd:075]: Got temperature=24.23°C humidity=62.21%
+[23:15:22][D][sht3xd:075]: Got temperature=24.23°C humidity=62.26%
+[23:15:24][D][sht3xd:075]: Got temperature=24.23°C humidity=62.26%
+[23:15:26][D][sht3xd:075]: Got temperature=24.23°C humidity=62.25%
+[23:15:28][D][sht3xd:075]: Got temperature=24.25°C humidity=62.27%
+[23:15:30][D][sht3xd:075]: Got temperature=24.25°C humidity=62.25%
+[23:15:32][D][sht3xd:075]: Got temperature=24.25°C humidity=62.25%
+[23:15:34][D][sht3xd:075]: Got temperature=24.26°C humidity=62.28%
+[23:15:36][D][sht3xd:075]: Got temperature=24.26°C humidity=62.25%
+[23:15:38][D][sht3xd:075]: Got temperature=24.26°C humidity=62.15%
+[23:15:40][D][sht3xd:075]: Got temperature=24.29°C humidity=62.10%
+[23:15:42][D][sht3xd:075]: Got temperature=24.26°C humidity=62.12%
+[23:15:44][D][sht3xd:075]: Got temperature=24.26°C humidity=62.19%
+[23:15:46][D][sht3xd:075]: Got temperature=24.27°C humidity=62.21%
+[23:15:48][D][sht3xd:075]: Got temperature=24.27°C humidity=62.22%
+[23:15:50][D][sht3xd:075]: Got temperature=24.27°C humidity=62.15%
+[23:15:52][D][sht3xd:075]: Got temperature=24.29°C humidity=62.15%
+[23:15:54][D][sht3xd:075]: Got temperature=24.30°C humidity=62.10%
+[23:15:56][D][sht3xd:075]: Got temperature=24.26°C humidity=62.06%
+[23:15:58][D][sht3xd:075]: Got temperature=24.27°C humidity=62.03%
+[23:16:00][D][sht3xd:075]: Got temperature=24.27°C humidity=62.03%
+[23:16:02][D][sht3xd:075]: Got temperature=24.29°C humidity=62.04%
+[23:16:04][D][sht3xd:075]: Got temperature=24.25°C humidity=62.03%
+[23:16:06][D][sht3xd:075]: Got temperature=24.26°C humidity=62.02%
+[23:16:08][D][sht3xd:075]: Got temperature=24.26°C humidity=62.03%
+[23:16:10][D][sht3xd:075]: Got temperature=24.26°C humidity=62.05%
+[23:16:12][D][sht3xd:075]: Got temperature=24.23°C humidity=62.10%
+[23:16:12][I][safe_mode:150]: Boot seems successful; resetting boot loop counter
+[23:16:14][D][sht3xd:075]: Got temperature=24.22°C humidity=62.05%
+[23:16:14][D][preferences:255]: Writing 2 items: 0 cached, 2 written, 0 failed
+[23:16:16][D][sht3xd:075]: Got temperature=24.23°C humidity=62.04%
+[23:16:18][D][sht3xd:075]: Got temperature=24.22°C humidity=62.01%
+[23:16:20][D][sht3xd:075]: Got temperature=24.22°C humidity=62.04%
+[23:16:22][D][sht3xd:075]: Got temperature=24.20°C humidity=62.08%
+[23:16:24][D][sht3xd:075]: Got temperature=24.11°C humidity=62.24%
+[23:16:26][D][sht3xd:075]: Got temperature=24.05°C humidity=62.39%
+[23:16:28][D][sht3xd:075]: Got temperature=24.02°C humidity=62.50%
+[23:16:30][D][sht3xd:075]: Got temperature=23.96°C humidity=62.50%
+[23:16:32][D][sht3xd:075]: Got temperature=23.94°C humidity=62.63%
+[23:16:34][D][sht3xd:075]: Got temperature=23.92°C humidity=62.79%
+[23:16:36][D][sht3xd:075]: Got temperature=23.89°C humidity=63.00%
+[23:16:37][I][sensor_ble:333][nimble_host]: Telefono collegato (1)
+[23:16:38][D][sht3xd:075]: Got temperature=23.94°C humidity=63.11%
+[23:16:40][D][sht3xd:075]: Got temperature=23.92°C humidity=63.26%
+[23:16:42][D][sht3xd:075]: Got temperature=23.95°C humidity=63.27%
+[23:16:44][D][sht3xd:075]: Got temperature=23.94°C humidity=63.32%
+[23:16:45][I][sensor_ble:346][nimble_host]: Cifratura attiva
+[23:16:46][D][sht3xd:075]: Got temperature=23.92°C humidity=63.38%
+[23:16:48][D][sht3xd:075]: Got temperature=23.89°C humidity=63.38%
+[23:16:50][D][sht3xd:075]: Got temperature=23.89°C humidity=63.38%
+[23:16:50][I][sensor_ble:144]: Comando dall'app: modo=espnow
+[23:16:50][I][rete:282]: Modo Solo ESP-NOW scelto dall'app: riavvio
+[23:16:51][I][sensor_ble:193]: Configurato: codice tolto dall'annuncio
+[23:16:51][I][sensor_ble:121]: Configurato: codice di abbinamento nuovo
+[23:16:51][I][app:300]: Rebooting safely
+[23:16:51][D][debug:058]: Storing reboot source: 
+[23:16:51][D][preferences:255]: Writing 4 items: 1 cached, 3 written, 0 failed
+[23:16:51]���ESP-ROM:esp32s3-20210327
+[23:16:51]Build:Mar 27 2021
+[23:16:51]rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+[23:16:51]Saved PC:0x4206e157
+[23:16:51]SPIWP:0xee
+[23:16:51]mode:DIO, clock div:1
+[23:16:51]load:0x3fce2820,len:0x13d0
+[23:16:51]load:0x403c8700,len:0xcb4
+[23:16:51]load:0x403cb700,len:0x2f28
+[23:16:51]entry 0x403c8914
+[23:16:51]I (29) boot: ESP-IDF v5.5.6 2nd stage bootloader
+[23:16:51]I (29) boot: chip revision: v0.2
+[23:16:51]I (29) boot.esp32s3: Boot SPI Speed : 80MHz
+[23:16:51]I (29) boot.esp32s3: SPI Mode       : DIO
+[23:16:51]I (33) boot.esp32s3: SPI Flash Size : 16MB
+[23:16:51]I (36) boot: Partition Table:
+[23:16:52]I (39) boot: ## Label            Usage          Type ST Offset   Length
+[23:16:52]I (45) boot:  0 otadata          OTA data         01 00 00009000 00002000
+[23:16:52]I (52) boot:  1 phy_init         RF data          01 01 0000b000 00001000
+[23:16:52]I (58) boot:  2 app0             OTA app          00 10 00010000 007c0000
+[23:16:52]I (65) boot:  3 app1             OTA app          00 11 007d0000 007c0000
+[23:16:52]I (71) boot:  4 nvs              WiFi data        01 02 00f90000 00070000
+[23:16:52]I (78) esp_image: segment 0: paddr=00010020 vaddr=3c0f0020 size=35d50h (220496) map
+[23:16:52]I (125) esp_image: segment 1: paddr=00045d78 vaddr=3fc9b700 size=05048h ( 20552) load
+[23:16:52]I (130) esp_image: segment 2: paddr=0004adc8 vaddr=40374000 size=05250h ( 21072) load
+[23:16:52]I (135) esp_image: segment 3: paddr=00050020 vaddr=42000020 size=e6ff0h (946160) map
+[23:16:52]I (307) esp_image: segment 4: paddr=00137018 vaddr=40379250 size=123d8h ( 74712) load
+[23:16:52]I (324) esp_image: segment 5: paddr=001493f8 vaddr=50000070 size=00020h (    32) load
+[23:16:52]I (333) boot: Loaded app from partition at offset 0x10000
+[23:16:52][I][logger:136]: Log initialized
+[23:16:52][C][safe_mode:205]: Unsuccessful boot attempts: 0
+[23:16:52][D][preferences:255]: Writing 1 items: 0 cached, 1 written, 0 failed
+[23:16:52][I][app:073]: Running through setup()
+[23:16:52][I][i2c:237]: Performing bus recovery
+[23:16:53][C][component:164]: Setup i2c took 135ms
+[23:16:53][D][template.text:015]: State from initial: In attesa
+[23:16:53][C][wifi:713]: Starting
+[23:16:53][C][wifi:1137]: Setting up AP:
+[23:16:53][C][wifi:1137]:   AP SSID: 'Ext-Sensor Hotspot'
+[23:16:53][C][wifi:1137]:   AP Password: '12345678'
+[23:16:53][C][wifi:1137]:   IP Address: 192.168.4.1
+[23:16:53][D][wifi:1541]: Starting scan
+[23:16:53][C][component:164]: Setup wifi took 195ms
+[23:16:53][D][esp-idf:000]: I (629) ESPNOW: espnow [version: 2.0] init
+[23:16:53][D][wifi:1520]: Disabling
+[23:16:53][I][ens:944]: Solo ESP-NOW: WiFi spento, cerco il termostato
+[23:16:53][I][espnow:241]: Channel set to 1.
+[23:16:53][I][sensor_ble:123]: Bluetooth avviato come 'ext-sensor 26026c'
+[23:16:53][I][app:130]: setup() finished successfully!
+[23:16:53][I][app:163]: ESPHome version 2026.11.0-dev compiled on 2026-10-29 23:03:00 +0100
+[23:16:53][I][app:170]: ESP32 Chip: ESP32-S3 rev0.2, 2 core(s)
+[23:16:53][W][app:188]: Set flash_chip: gd under esp32 > framework > advanced to save IRAM
+[23:16:53][C][logger:311]: Logger:
+[23:16:53][C][logger:311]:   Max Level: DEBUG
+[23:16:53][C][logger:311]:   Initial Level: DEBUG
+[23:16:53][C][logger:318]:   Log Baud Rate: 115200
+[23:16:53][C][logger:318]:   Hardware UART: UART0
+[23:16:53][C][logger:327]:   Task Log Buffer Size: 768 bytes
+[23:16:53][I][ens:159]: Agganciato al termostato A0:85:E3:FC:1E:D8 sul canale 1 (dice 1)
+[23:16:53][C][i2c:110]: I2C Bus:
+[23:16:53][C][i2c:111]:   SDA Pin: GPIO39
+[23:16:53][C][i2c:111]:   SCL Pin: GPIO40
+[23:16:53][C][i2c:111]:   Frequency: 10000 Hz
+[23:16:53][C][i2c:121]:   Recovery: bus successfully recovered
+[23:16:53][C][i2c:027]: Results from bus scan:
+[23:16:53][C][i2c:034]: Found device at address 0x44
+[23:16:53][I][ens:189]: Nome dal termostato: 'ESP-NOW 26026C'
+[23:16:53][C][switch.gpio:105]: GPIO Switch 'Alimentazione sensore'
+[23:16:53][C][switch.gpio:105]:   Restore Mode: always ON
+[23:16:53][C][switch.gpio:199]:   Icon: 'mdi:power-plug'
+[23:16:53][C][switch.gpio:137]:   Pin: GPIO2
+[23:16:53][C][template.text_sensor:191]: Template Sensor 'Remote access status'
+[23:16:53][C][template.text_sensor:199]:   Icon: 'mdi:earth'
+[23:16:53][C][template.text_sensor:191]: Template Sensor 'Remote access URL'
+[23:16:53][C][template.text_sensor:199]:   Icon: 'mdi:link-variant'
+[23:16:53][C][template.text_sensor:191]: Template Sensor 'Bluetooth status'
+[23:16:53][C][template.text_sensor:199]:   Icon: 'mdi:bluetooth'
+[23:16:53][C][template.text_sensor:191]: Template Sensor 'Reset reason'
+[23:16:53][C][template.text_sensor:199]:   Icon: 'mdi:restart-alert'
+[23:16:53][C][template.text_sensor:191]: Template Sensor 'Crash info'
+[23:16:53][C][template.text_sensor:199]:   Icon: 'mdi:alert-box'
+[23:16:53][C][template.text_sensor:191]: Template Sensor 'Modo di funzionamento'
+[23:16:53][C][template.text_sensor:199]:   Icon: 'mdi:access-point-network'
+[23:16:53][C][template.text:191]: Template Text Input 'remote_code'
+[23:16:53][C][template.text:063]:   Optimistic: YES
+[23:16:53][C][template.text:367]:   Update Interval: 60.000s
+[23:16:53][C][template.text:191]: Template Text Input 'remote_token'
+[23:16:53][C][template.text:063]:   Optimistic: YES
+[23:16:53][C][template.text:367]:   Update Interval: 60.000s
+[23:16:53][C][template.text:191]: Template Text Input 'remote_pwhash'
+[23:16:53][C][template.text:063]:   Optimistic: YES
+[23:16:53][C][template.text:367]:   Update Interval: 60.000s
+[23:16:53][C][template.text:191]: Template Text Input 'Remote access password'
+[23:16:53][C][template.text:199]:   Icon: 'mdi:form-textbox-password'
+[23:16:53][C][template.text:063]:   Optimistic: YES
+[23:16:53][C][template.text:367]:   Update Interval: 60.000s
+[23:16:53][C][template.text:191]: Template Text Input 'sb_passkey'
+[23:16:53][C][template.text:063]:   Optimistic: YES
+[23:16:53][C][template.text:367]:   Update Interval: 60.000s
+[23:16:53][C][template.text:191]: Template Text Input 'SSID text'
+[23:16:53][C][template.text:063]:   Optimistic: YES
+[23:16:53][C][template.text:367]:   Update Interval: 60.000s
+[23:16:53][C][template.text:191]: Template Text Input 'WiFi password'
+[23:16:53][C][template.text:063]:   Optimistic: YES
+[23:16:53][C][template.text:367]:   Update Interval: 60.000s
+[23:16:53][C][template.text:191]: Template Text Input 'Static IP'
+[23:16:53][C][template.text:063]:   Optimistic: YES
+[23:16:53][C][template.text:367]:   Update Interval: 60.000s
+[23:16:53][C][template.text:191]: Template Text Input 'Gateway'
+[23:16:53][C][template.text:063]:   Optimistic: YES
+[23:16:53][C][template.text:367]:   Update Interval: 60.000s
+[23:16:53][C][template.text:191]: Template Text Input 'Subnet'
+[23:16:53][C][template.text:063]:   Optimistic: YES
+[23:16:53][C][template.text:367]:   Update Interval: 60.000s
+[23:16:53][C][template.text:191]: Template Text Input 'DNS 1'
+[23:16:53][C][template.text:063]:   Optimistic: YES
+[23:16:53][C][template.text:367]:   Update Interval: 60.000s
+[23:16:53][C][template.text:191]: Template Text Input 'DNS 2'
+[23:16:53][C][template.text:063]:   Optimistic: YES
+[23:16:53][C][template.text:367]:   Update Interval: 60.000s
+[23:16:53][C][template.text:191]: Template Text Input 'OTA Server Address'
+[23:16:53][C][template.text:063]:   Optimistic: YES
+[23:16:53][C][template.text:367]:   Update Interval: 60.000s
+[23:16:53][C][template.text:191]: Template Text Input 'OTA firmware md5'
+[23:16:53][C][template.text:063]:   Optimistic: YES
+[23:16:53][C][template.text:367]:   Update Interval: 60.000s
+[23:16:53][C][template.text:191]: Template Text Input 'Installed firmware md5'
+[23:16:53][C][template.text:063]:   Optimistic: YES
+[23:16:53][C][template.text:367]:   Update Interval: 60.000s
+[23:16:53][C][template.text:191]: Template Text Input 'OTA check status'
+[23:16:53][C][template.text:063]:   Optimistic: YES
+[23:16:53][C][template.text:367]:   Update Interval: 60.000s
+[23:16:53][C][template.text:191]: Template Text Input 'Device Name'
+[23:16:53][C][template.text:063]:   Optimistic: YES
+[23:16:53][C][template.text:367]:   Update Interval: 60.000s
+[23:16:53][C][template.sensor:017]: Template Sensor 'Bluetooth paired phones'
+[23:16:53][C][template.sensor:017]:   State Class: ''
+[23:16:53][C][template.sensor:017]:   Unit of Measurement: ''
+[23:16:53][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:16:53][C][template.sensor:199]:   Icon: 'mdi:cellphone-link'
+[23:16:53][C][template.sensor:365]:   Update Interval: never
+[23:16:53][C][template.sensor:017]: Template Sensor 'Bluetooth pairing left'
+[23:16:53][C][template.sensor:017]:   State Class: ''
+[23:16:53][C][template.sensor:017]:   Unit of Measurement: 's'
+[23:16:53][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:16:53][C][template.sensor:365]:   Update Interval: never
+[23:16:53][C][template.sensor:017]: Template Sensor 'Free memory'
+[23:16:53][C][template.sensor:017]:   State Class: ''
+[23:16:53][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:16:53][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:16:53][C][template.sensor:367]:   Update Interval: 10.000s
+[23:16:53][C][template.sensor:017]: Template Sensor 'Largest free block'
+[23:16:53][C][template.sensor:017]:   State Class: ''
+[23:16:53][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:16:53][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:16:53][C][template.sensor:367]:   Update Interval: 10.000s
+[23:16:53][C][template.sensor:017]: Template Sensor 'Free memory minimum'
+[23:16:53][C][template.sensor:017]:   State Class: ''
+[23:16:53][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:16:53][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:16:53][C][template.sensor:367]:   Update Interval: 10.000s
+[23:16:53][C][template.sensor:017]: Template Sensor 'Free PSRAM'
+[23:16:53][C][template.sensor:017]:   State Class: ''
+[23:16:53][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:16:53][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:16:53][C][template.sensor:367]:   Update Interval: 60.000s
+[23:16:53][C][template.sensor:017]: Template Sensor 'Total PSRAM'
+[23:16:53][C][template.sensor:017]:   State Class: ''
+[23:16:53][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:16:53][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:16:53][C][template.sensor:367]:   Update Interval: 60.000s
+[23:16:53][C][template.sensor:017]: Template Sensor 'MAC Byte 0'
+[23:16:53][C][template.sensor:017]:   State Class: ''
+[23:16:53][C][template.sensor:017]:   Unit of Measurement: ''
+[23:16:53][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:16:54][C][template.sensor:367]:   Update Interval: 60.000s
+[23:16:54][C][template.sensor:017]: Template Sensor 'MAC Byte 1'
+[23:16:54][C][template.sensor:017]:   State Class: ''
+[23:16:54][C][template.sensor:017]:   Unit of Measurement: ''
+[23:16:54][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:16:54][C][template.sensor:367]:   Update Interval: 60.000s
+[23:16:54][C][template.sensor:017]: Template Sensor 'MAC Byte 2'
+[23:16:54][C][template.sensor:017]:   State Class: ''
+[23:16:54][C][template.sensor:017]:   Unit of Measurement: ''
+[23:16:54][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:16:54][C][template.sensor:367]:   Update Interval: 60.000s
+[23:16:54][C][template.sensor:017]: Template Sensor 'MAC Byte 3'
+[23:16:54][C][template.sensor:017]:   State Class: ''
+[23:16:54][C][template.sensor:017]:   Unit of Measurement: ''
+[23:16:54][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:16:54][C][template.sensor:367]:   Update Interval: 60.000s
+[23:16:54][C][template.sensor:017]: Template Sensor 'MAC Byte 4'
+[23:16:54][C][template.sensor:017]:   State Class: ''
+[23:16:54][C][template.sensor:017]:   Unit of Measurement: ''
+[23:16:54][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:16:54][C][template.sensor:367]:   Update Interval: 60.000s
+[23:16:54][C][template.sensor:017]: Template Sensor 'MAC Byte 5'
+[23:16:54][C][template.sensor:017]:   State Class: ''
+[23:16:54][C][template.sensor:017]:   Unit of Measurement: ''
+[23:16:54][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:16:54][C][template.sensor:367]:   Update Interval: 60.000s
+[23:16:54][C][uptime.sensor:017]: Uptime Sensor 'Uptime'
+[23:16:54][C][uptime.sensor:017]:   State Class: 'total_increasing'
+[23:16:54][C][uptime.sensor:017]:   Unit of Measurement: 's'
+[23:16:54][C][uptime.sensor:017]:   Accuracy Decimals: 0
+[23:16:54][C][uptime.sensor:207]:   Device Class: 'duration'
+[23:16:54][C][uptime.sensor:199]:   Icon: 'mdi:timer-outline'
+[23:16:54][C][uptime.sensor:019]:   Type: Seconds
+[23:16:54][C][template.number:191]: Template Number 'OTA md5 status code'
+[23:16:54][C][template.number:049]:   Optimistic: YES
+[23:16:54][C][template.number:367]:   Update Interval: 60.000s
+[23:16:54][C][template.number:191]: Template Number 'OTA progress'
+[23:16:54][C][template.number:049]:   Optimistic: YES
+[23:16:54][C][template.number:367]:   Update Interval: 60.000s
+[23:16:54][C][template.number:191]: Template Number 'Temperature Offset'
+[23:16:54][C][template.number:049]:   Optimistic: YES
+[23:16:54][C][template.number:367]:   Update Interval: 60.000s
+[23:16:54][C][gpio.binary_sensor:191]: GPIO Binary Sensor 'Boot pin'
+[23:16:54][C][gpio.binary_sensor:137]:   Pin: GPIO0
+[23:16:54][C][gpio.binary_sensor:068]:   Mode: interrupt
+[23:16:54][C][gpio.binary_sensor:070]:   Interrupt Type: ANY_EDGE
+[23:16:54][C][template.switch:105]: Template Switch 'Remote access'
+[23:16:54][C][template.switch:105]:   Restore Mode: restore defaults to OFF
+[23:16:54][C][template.switch:199]:   Icon: 'mdi:earth'
+[23:16:54][C][template.switch:044]:   Optimistic: YES
+[23:16:54][C][template.switch:105]: Template Switch 'OTA available'
+[23:16:54][C][template.switch:105]:   Restore Mode: always OFF
+[23:16:54][C][template.switch:044]:   Optimistic: YES
+[23:16:54][C][template.switch:105]: Template Switch 'Manual IP'
+[23:16:54][C][template.switch:105]:   Restore Mode: restore defaults to OFF
+[23:16:54][C][template.switch:044]:   Optimistic: YES
+[23:16:54][C][version.text_sensor:191]: Version Text Sensor 'ESPHome Version'
+[23:16:54][C][version.text_sensor:199]:   Icon: 'mdi:new-box'
+[23:16:54][C][wifi_info:191]: SSID 'Connected SSID'
+[23:16:54][C][wifi_info:191]: BSSID 'BSSID'
+[23:16:54][C][wifi_info:191]: MAC Address 'ESP Mac Wifi Address'
+[23:16:54][C][wifi_info:191]: IP Address 'IP'
+[23:16:54][C][sht3xd:044]: SHT3xD:
+[23:16:54][C][sht3xd:044]:   Serial Number: 0x2D5ADB27
+[23:16:54][C][sht3xd:044]:   Heater Enabled: FALSE
+[23:16:54][C][sht3xd:049]:   Address: 0x44
+[23:16:54][C][sht3xd:367]:   Update Interval: 2.000s
+[23:16:54][C][sht3xd:017]:   Temperature 'Temperature'
+[23:16:54][C][sht3xd:017]:     State Class: 'measurement'
+[23:16:54][C][sht3xd:017]:     Unit of Measurement: '°C'
+[23:16:54][C][sht3xd:017]:     Accuracy Decimals: 2
+[23:16:54][C][sht3xd:207]:     Device Class: 'temperature'
+[23:16:54][C][sht3xd:017]:   Humidity 'Humidity'
+[23:16:54][C][sht3xd:017]:     State Class: 'measurement'
+[23:16:54][C][sht3xd:017]:     Unit of Measurement: '%'
+[23:16:54][C][sht3xd:017]:     Accuracy Decimals: 2
+[23:16:54][C][sht3xd:207]:     Device Class: 'humidity'
+[23:16:54][C][internal_temperature:017]: Internal Temperature Sensor 'Internal Temperature'
+[23:16:54][C][internal_temperature:017]:   State Class: 'measurement'
+[23:16:54][C][internal_temperature:017]:   Unit of Measurement: '°C'
+[23:16:54][C][internal_temperature:017]:   Accuracy Decimals: 1
+[23:16:54][C][internal_temperature:207]:   Device Class: 'temperature'
+[23:16:54][C][web_handler:015]: Listening on path '/bt/abbina'
+[23:16:54][C][web_handler:015]: Listening on path '/bt/config'
+[23:16:54][I][sensor_ble:269][nimble_host]: Nome Bluetooth: 'ESP-NOW 26026C'
+[23:16:54][C][web_handler:015]: Listening on path '/bt/codice'
+[23:16:54][D][sht3xd:075]: Got temperature=23.88°C humidity=63.38%
+[23:16:54][I][espnow:472]: TX float 23.878464 con MAC D0:CF:13:26:02:6C al termostato
+[23:16:54][I][espnow:499]: TX float 63.381401 con MAC D0:CF:13:26:02:6C al termostato
+[23:16:54][C][web_handler:015]: Listening on path '/history'
+[23:16:54][C][web_handler:015]: Listening on path '/data'
+[23:16:54][C][psram:015]: PSRAM:
+[23:16:54][C][psram:018]:   Available: YES
+[23:16:54][C][psram:020]:   Size: 8192 KB
+[23:16:54][C][network:050]: Network:
+[23:16:54][C][network:050]:   TCP send buffer: 5760 bytes
+[23:16:54][C][captive_portal:134]: Captive Portal:
+[23:16:54][C][wifi:1772]: WiFi:
+[23:16:54][C][wifi:1772]:   Local MAC: D0:CF:13:26:02:6C
+[23:16:54][C][wifi:1772]:   Connected: NO
+[23:16:54][C][wifi:1778]:   Disabled
+[23:16:54][C][web_server:506]: Web Server:
+[23:16:54][C][web_server:506]:   Address: ext-sensor-26026c.local:80
+[23:16:54][C][sntp:058]: SNTP Time:
+[23:16:54][C][sntp:061]:   Server 0: '0.pool.ntp.org'
+[23:16:54][C][sntp:061]:   Server 1: '1.pool.ntp.org'
+[23:16:54][C][sntp:061]:   Server 2: '2.pool.ntp.org'
+[23:16:54][C][time:049]: Timezone: UTC+1:00 (DST UTC+2:00)
+[23:16:54][C][time:055]: Current time: 1970-01-01 01:01:49
+[23:16:54][C][safe_mode:058]: Safe Mode:
+[23:16:54][C][safe_mode:058]:   Successful after: 60s
+[23:16:54][C][safe_mode:058]:   Invoke after: 10 attempts
+[23:16:54][C][safe_mode:058]:   Duration: 300s
+[23:16:54][C][safe_mode:075]:   Bootloader rollback: support unknown
+[23:16:54][C][web_server.ota:245]: Web Server OTA
+[23:16:54][C][api:373]: Server:
+[23:16:54][C][api:373]:   Address: ext-sensor-26026c.local:6053
+[23:16:54][C][api:373]:   Listen backlog: 4
+[23:16:54][C][api:373]:   Max connections: 5
+[23:16:54][C][api:385]:   Noise encryption: NO
+[23:16:54][C][wifi_info:191]: Scan Results 'Device Latest Scan Results'
+[23:16:54][C][wifi_signal.sensor:017]: WiFi Signal 'WiFi Signal dB'
+[23:16:54][C][wifi_signal.sensor:017]:   State Class: 'measurement'
+[23:16:54][C][wifi_signal.sensor:017]:   Unit of Measurement: 'dBm'
+[23:16:54][C][wifi_signal.sensor:017]:   Accuracy Decimals: 0
+[23:16:54][C][wifi_signal.sensor:207]:   Device Class: 'signal_strength'
+[23:16:54][C][http_request:014]: HTTP Request:
+[23:16:54][C][http_request:014]:   Timeout: 20000ms
+[23:16:54][C][http_request:014]:   User-Agent: ESPHome/2026.11.0-dev (https://esphome.io)
+[23:16:54][C][http_request:014]:   Follow redirects: YES
+[23:16:54][C][http_request:014]:   Redirect limit: 3
+[23:16:54][C][http_request:014]:   Max concurrent requests: 1
+[23:16:54][C][http_request:024]:   Watchdog Timeout: 61000ms
+[23:16:54][C][http_request:036]:   Buffer Size RX: 512
+[23:16:54][C][http_request:036]:   Buffer Size TX: 512
+[23:16:54][C][http_request:036]:   Custom CA Certificate: NO
+[23:16:54][C][http_request.ota:016]: Over-The-Air updates via HTTP request
+[23:16:54][C][mdns:336]: mDNS:
+[23:16:54][C][mdns:336]:   Hostname: ext-sensor-26026c
+[23:16:54][C][debug:017]: Debug component:
+[23:16:54][D][debug:031]: ESPHome version 2026.11.0-dev
+[23:16:54][D][debug:035]: Free Heap Size: 145568 bytes
+[23:16:54][D][debug:044]: Uptime: 0d 00h 00m 02s
+[23:16:54][D][debug:260]: ESP32 debug info:
+[23:16:54][D][debug:260]:   Chip: ESP32-S3
+[23:16:54][D][debug:260]:   Cores: 2
+[23:16:54][D][debug:260]:   Revision: 2
+[23:16:54][D][debug:260]:   CPU Frequency: 80 MHz
+[23:16:54][D][debug:260]:   ESP-IDF Version: v5.5.6
+[23:16:54][D][debug:260]:   EFuse MAC: D0:CF:13:26:02:6C
+[23:16:54][D][debug:260]:   Reset Reason: software via esp_restart
+[23:16:54][D][debug:260]:   Wakeup Cause: undefined
+[23:16:54][D][debug:280]:   Framework: ESP-IDF
+[23:16:54][C][debug:163]: Partition table:
+[23:16:54][C][debug:163]:   Name         Type Subtype  Address    Size      
+[23:16:54][C][debug:170]:   otadata      1    0        0x00009000 0x00002000
+[23:16:54][C][debug:170]:   phy_init     1    1        0x0000B000 0x00001000
+[23:16:54][C][debug:170]:   app0         0    16       0x00010000 0x007C0000
+[23:16:54][C][debug:170]:   app1         0    17       0x007D0000 0x007C0000
+[23:16:54][C][debug:170]:   nvs          1    2        0x00F90000 0x00070000
+[23:16:54][C][espnow:120]: espnow:
+[23:16:54][C][espnow:131]:   Own address: D0:CF:13:26:02:6C
+[23:16:54][C][espnow:131]:   Wi-Fi channel: 1
+[23:16:54][C][espnow:137]:   Version: v2
+[23:16:54][C][espnow:140]:   Wi-Fi enabled: NO
+[23:16:55][D][preferences:255]: Writing 4 items: 2 cached, 2 written, 0 failed
+[23:16:56][D][sht3xd:075]: Got temperature=23.91°C humidity=63.37%
+[23:16:58][D][sht3xd:075]: Got temperature=23.92°C humidity=63.37%
+[23:16:58][I][espnow:472]: TX float 23.902496 con MAC D0:CF:13:26:02:6C al termostato
+[23:16:58][I][espnow:499]: TX float 63.371735 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:00][D][sht3xd:075]: Got temperature=23.92°C humidity=63.34%
+[23:17:02][D][sht3xd:075]: Got temperature=23.92°C humidity=63.30%
+[23:17:02][I][espnow:472]: TX float 23.911041 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:02][I][espnow:499]: TX float 63.350880 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:04][D][sht3xd:075]: Got temperature=23.91°C humidity=63.29%
+[23:17:06][D][sht3xd:075]: Got temperature=23.89°C humidity=63.29%
+[23:17:06][I][espnow:472]: TX float 23.907455 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:06][I][espnow:499]: TX float 63.332790 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:06][I][sensor_ble:333][nimble_host]: Telefono collegato (1)
+[23:17:06][I][sensor_ble:346][nimble_host]: Cifratura attiva
+[23:17:08][D][sht3xd:075]: Got temperature=23.88°C humidity=63.34%
+[23:17:10][D][sht3xd:075]: Got temperature=23.86°C humidity=63.32%
+[23:17:10][I][espnow:472]: TX float 23.899233 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:10][I][espnow:499]: TX float 63.332745 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:12][D][sht3xd:075]: Got temperature=23.86°C humidity=63.32%
+[23:17:13][I][sensor_ble:339][nimble_host]: Telefono scollegato (motivo 0x213)
+[23:17:14][D][sht3xd:075]: Got temperature=23.88°C humidity=63.37%
+[23:17:14][I][espnow:472]: TX float 23.893999 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:14][I][espnow:499]: TX float 63.335487 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:14][I][sensor_ble:333][nimble_host]: Telefono collegato (1)
+[23:17:15][I][sensor_ble:346][nimble_host]: Cifratura attiva
+[23:17:16][D][sht3xd:075]: Got temperature=23.88°C humidity=63.33%
+[23:17:18][D][sht3xd:075]: Got temperature=23.92°C humidity=63.30%
+[23:17:18][I][espnow:472]: TX float 23.895102 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:18][I][espnow:499]: TX float 63.332577 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:20][I][sensor_ble:339][nimble_host]: Telefono scollegato (motivo 0x213)
+[23:17:20][D][sht3xd:075]: Got temperature=23.91°C humidity=63.32%
+[23:17:22][D][sht3xd:075]: Got temperature=23.89°C humidity=63.32%
+[23:17:22][I][espnow:472]: TX float 23.895555 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:22][I][espnow:499]: TX float 63.331051 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:24][D][sht3xd:075]: Got temperature=23.91°C humidity=63.35%
+[23:17:26][D][sht3xd:075]: Got temperature=23.89°C humidity=63.40%
+[23:17:26][I][espnow:472]: TX float 23.895901 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:26][I][espnow:499]: TX float 63.336166 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:28][D][sht3xd:075]: Got temperature=23.91°C humidity=63.49%
+[23:17:30][D][sht3xd:075]: Got temperature=23.91°C humidity=63.49%
+[23:17:30][I][espnow:472]: TX float 23.896875 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:30][I][espnow:499]: TX float 63.351845 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:32][D][sht3xd:075]: Got temperature=23.91°C humidity=63.42%
+[23:17:34][D][sht3xd:075]: Got temperature=23.94°C humidity=63.42%
+[23:17:34][I][espnow:472]: TX float 23.900227 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:34][I][espnow:499]: TX float 63.356911 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:36][D][sht3xd:075]: Got temperature=23.92°C humidity=63.36%
+[23:17:38][D][sht3xd:075]: Got temperature=23.91°C humidity=63.33%
+[23:17:38][I][espnow:472]: TX float 23.900227 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:38][I][espnow:499]: TX float 63.354774 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:40][D][sht3xd:075]: Got temperature=23.89°C humidity=63.35%
+[23:17:42][D][sht3xd:075]: Got temperature=23.89°C humidity=63.38%
+[23:17:42][I][espnow:472]: TX float 23.897022 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:42][I][espnow:499]: TX float 63.359200 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:44][D][sht3xd:075]: Got temperature=23.89°C humidity=63.38%
+[23:17:46][D][sht3xd:075]: Got temperature=23.89°C humidity=63.35%
+[23:17:46][I][espnow:472]: TX float 23.896353 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:46][I][espnow:499]: TX float 63.367287 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:48][D][sht3xd:075]: Got temperature=23.91°C humidity=63.32%
+[23:17:50][D][sht3xd:075]: Got temperature=23.89°C humidity=63.26%
+[23:17:50][I][espnow:472]: TX float 23.899158 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:50][I][espnow:499]: TX float 63.362938 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:52][D][sht3xd:075]: Got temperature=23.89°C humidity=63.27%
+[23:17:52][I][safe_mode:150]: Boot seems successful; resetting boot loop counter
+[23:17:54][D][sht3xd:075]: Got temperature=23.89°C humidity=63.21%
+[23:17:54][I][espnow:472]: TX float 23.901293 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:54][I][espnow:499]: TX float 63.352406 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:55][D][preferences:255]: Writing 1 items: 0 cached, 1 written, 0 failed
+[23:17:56][D][sht3xd:075]: Got temperature=23.89°C humidity=63.27%
+[23:17:58][D][sht3xd:075]: Got temperature=23.89°C humidity=63.27%
+[23:17:58][I][espnow:472]: TX float 23.900362 con MAC D0:CF:13:26:02:6C al termostato
+[23:17:58][I][espnow:499]: TX float 63.347748 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:00][D][sht3xd:075]: Got temperature=23.91°C humidity=63.28%
+[23:18:02][D][sht3xd:075]: Got temperature=23.91°C humidity=63.26%
+[23:18:02][I][espnow:472]: TX float 23.901028 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:02][I][espnow:499]: TX float 63.342491 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:04][D][sht3xd:075]: Got temperature=23.89°C humidity=63.20%
+[23:18:06][D][sht3xd:075]: Got temperature=23.94°C humidity=63.23%
+[23:18:06][I][espnow:472]: TX float 23.902630 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:06][I][espnow:499]: TX float 63.326546 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:08][D][sht3xd:075]: Got temperature=23.94°C humidity=63.15%
+[23:18:10][D][sht3xd:075]: Got temperature=23.94°C humidity=63.09%
+[23:18:10][I][espnow:472]: TX float 23.905832 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:10][I][espnow:499]: TX float 63.290070 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:12][D][sht3xd:075]: Got temperature=23.94°C humidity=63.10%
+[23:18:14][D][sht3xd:075]: Got temperature=23.92°C humidity=63.03%
+[23:18:14][I][espnow:472]: TX float 23.906767 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:14][I][espnow:499]: TX float 63.254982 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:16][D][sht3xd:075]: Got temperature=23.91°C humidity=63.04%
+[23:18:18][D][sht3xd:075]: Got temperature=23.91°C humidity=63.09%
+[23:18:18][I][espnow:472]: TX float 23.905832 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:18][I][espnow:499]: TX float 63.227135 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:20][D][sht3xd:075]: Got temperature=23.88°C humidity=63.11%
+[23:18:22][D][sht3xd:075]: Got temperature=23.86°C humidity=63.14%
+[23:18:22][I][espnow:472]: TX float 23.903696 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:22][I][espnow:499]: TX float 63.203259 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:24][D][sht3xd:075]: Got temperature=23.86°C humidity=63.16%
+[23:18:26][D][sht3xd:075]: Got temperature=23.84°C humidity=63.18%
+[23:18:26][I][espnow:472]: TX float 23.899424 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:26][I][espnow:499]: TX float 63.183418 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:28][D][sht3xd:075]: Got temperature=23.82°C humidity=63.27%
+[23:18:30][D][sht3xd:075]: Got temperature=23.81°C humidity=63.33%
+[23:18:30][I][espnow:472]: TX float 23.891014 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:30][I][espnow:499]: TX float 63.184559 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:32][D][sht3xd:075]: Got temperature=23.82°C humidity=63.38%
+[23:18:34][D][sht3xd:075]: Got temperature=23.79°C humidity=63.38%
+[23:18:34][I][espnow:472]: TX float 23.882603 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:34][I][espnow:499]: TX float 63.198372 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:36][D][sht3xd:075]: Got temperature=23.82°C humidity=63.44%
+[23:18:38][D][sht3xd:075]: Got temperature=23.85°C humidity=63.41%
+[23:18:38][I][espnow:472]: TX float 23.876995 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:38][I][espnow:499]: TX float 63.213631 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:40][D][sht3xd:075]: Got temperature=23.85°C humidity=63.40%
+[23:18:42][I][sensor_ble:333][nimble_host]: Telefono collegato (1)
+[23:18:42][I][sensor_ble:346][nimble_host]: Cifratura attiva
+[23:18:42][D][sht3xd:075]: Got temperature=23.85°C humidity=63.35%
+[23:18:42][I][espnow:472]: TX float 23.871387 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:42][I][espnow:499]: TX float 63.224457 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:44][D][sht3xd:075]: Got temperature=23.85°C humidity=63.30%
+[23:18:46][D][sht3xd:075]: Got temperature=23.85°C humidity=63.26%
+[23:18:46][I][espnow:472]: TX float 23.864845 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:46][I][espnow:499]: TX float 63.230946 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:48][D][sht3xd:075]: Got temperature=23.84°C humidity=63.24%
+[23:18:49][I][sensor_ble:144]: Comando dall'app: ota
+[23:18:49][I][rete:310]: Aggiornamento dall'app: riavvio con l'hotspot acceso
+[23:18:50][I][app:300]: Rebooting safely
+[23:18:50][D][debug:058]: Storing reboot source: 
+[23:18:50][D][preferences:255]: Writing 3 items: 2 cached, 1 written, 0 failed
+[23:18:50]ESP-ROM:esp32s3-20210327
+[23:18:50]Build:Mar 27 2021
+[23:18:50]rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+[23:18:50]Saved PC:0x4206df82
+[23:18:50]SPIWP:0xee
+[23:18:50]mode:DIO, clock div:1
+[23:18:50]load:0x3fce2820,len:0x13d0
+[23:18:50]load:0x403c8700,len:0xcb4
+[23:18:50]load:0x403cb700,len:0x2f28
+[23:18:50]entry 0x403c8914
+[23:18:50]I (29) boot: ESP-IDF v5.5.6 2nd stage bootloader
+[23:18:50]I (29) boot: chip revision: v0.2
+[23:18:50]I (29) boot.esp32s3: Boot SPI Speed : 80MHz
+[23:18:50]I (29) boot.esp32s3: SPI Mode       : DIO
+[23:18:50]I (33) boot.esp32s3: SPI Flash Size : 16MB
+[23:18:50]I (36) boot: Partition Table:
+[23:18:50]I (39) boot: ## Label            Usage          Type ST Offset   Length
+[23:18:50]I (45) boot:  0 otadata          OTA data         01 00 00009000 00002000
+[23:18:50]I (52) boot:  1 phy_init         RF data          01 01 0000b000 00001000
+[23:18:50]I (58) boot:  2 app0             OTA app          00 10 00010000 007c0000
+[23:18:50]I (65) boot:  3 app1             OTA app          00 11 007d0000 007c0000
+[23:18:50]I (71) boot:  4 nvs              WiFi data        01 02 00f90000 00070000
+[23:18:50]I (78) esp_image: segment 0: paddr=00010020 vaddr=3c0f0020 size=35d50h (220496) map
+[23:18:50]I (125) esp_image: segment 1: paddr=00045d78 vaddr=3fc9b700 size=05048h ( 20552) load
+[23:18:50]I (130) esp_image: segment 2: paddr=0004adc8 vaddr=40374000 size=05250h ( 21072) load
+[23:18:50]I (135) esp_image: segment 3: paddr=00050020 vaddr=42000020 size=e6ff0h (946160) map
+[23:18:50]I (307) esp_image: segment 4: paddr=00137018 vaddr=40379250 size=123d8h ( 74712) load
+[23:18:50]I (324) esp_image: segment 5: paddr=001493f8 vaddr=50000070 size=00020h (    32) load
+[23:18:50]I (333) boot: Loaded app from partition at offset 0x10000
+[23:18:51][I][logger:136]: Log initialized
+[23:18:51][C][safe_mode:205]: Unsuccessful boot attempts: 0
+[23:18:51][D][preferences:255]: Writing 1 items: 0 cached, 1 written, 0 failed
+[23:18:51][I][app:073]: Running through setup()
+[23:18:51][I][i2c:237]: Performing bus recovery
+[23:18:51][C][component:164]: Setup i2c took 135ms
+[23:18:51][D][template.text:015]: State from initial: In attesa
+[23:18:51][C][wifi:713]: Starting
+[23:18:51][C][wifi:1137]: Setting up AP:
+[23:18:51][C][wifi:1137]:   AP SSID: 'Ext-Sensor Hotspot'
+[23:18:51][C][wifi:1137]:   AP Password: '12345678'
+[23:18:51][C][wifi:1137]:   IP Address: 192.168.4.1
+[23:18:51][D][wifi:1541]: Starting scan
+[23:18:51][C][component:164]: Setup wifi took 193ms
+[23:18:51][D][esp-idf:000]: I (634) ESPNOW: espnow [version: 2.0] init
+[23:18:51][D][main:5096]: Manutenzione: hotspot acceso per 10 minuti
+[23:18:51][I][sensor_ble:123]: Bluetooth avviato come 'ESP-NOW 26026C'
+[23:18:51][I][app:130]: setup() finished successfully!
+[23:18:51][I][app:163]: ESPHome version 2026.11.0-dev compiled on 2026-10-29 23:03:00 +0100
+[23:18:51][I][app:170]: ESP32 Chip: ESP32-S3 rev0.2, 2 core(s)
+[23:18:51][W][app:188]: Set flash_chip: gd under esp32 > framework > advanced to save IRAM
+[23:18:51][C][logger:311]: Logger:
+[23:18:51][C][logger:311]:   Max Level: DEBUG
+[23:18:51][C][logger:311]:   Initial Level: DEBUG
+[23:18:51][C][logger:318]:   Log Baud Rate: 115200
+[23:18:51][C][logger:318]:   Hardware UART: UART0
+[23:18:51][C][logger:327]:   Task Log Buffer Size: 768 bytes
+[23:18:51][C][i2c:110]: I2C Bus:
+[23:18:51][C][i2c:111]:   SDA Pin: GPIO39
+[23:18:51][C][i2c:111]:   SCL Pin: GPIO40
+[23:18:51][C][i2c:111]:   Frequency: 10000 Hz
+[23:18:51][C][i2c:121]:   Recovery: bus successfully recovered
+[23:18:51][C][i2c:027]: Results from bus scan:
+[23:18:51][C][i2c:034]: Found device at address 0x44
+[23:18:52][D][sht3xd:075]: Got temperature=23.86°C humidity=63.21%
+[23:18:52][C][switch.gpio:105]: GPIO Switch 'Alimentazione sensore'
+[23:18:52][C][switch.gpio:105]:   Restore Mode: always ON
+[23:18:52][C][switch.gpio:199]:   Icon: 'mdi:power-plug'
+[23:18:52][C][switch.gpio:137]:   Pin: GPIO2
+[23:18:52][C][template.text_sensor:191]: Template Sensor 'Remote access status'
+[23:18:52][C][template.text_sensor:199]:   Icon: 'mdi:earth'
+[23:18:52][C][template.text_sensor:191]: Template Sensor 'Remote access URL'
+[23:18:52][C][template.text_sensor:199]:   Icon: 'mdi:link-variant'
+[23:18:52][C][template.text_sensor:191]: Template Sensor 'Bluetooth status'
+[23:18:52][C][template.text_sensor:199]:   Icon: 'mdi:bluetooth'
+[23:18:52][C][template.text_sensor:191]: Template Sensor 'Reset reason'
+[23:18:52][C][template.text_sensor:199]:   Icon: 'mdi:restart-alert'
+[23:18:52][C][template.text_sensor:191]: Template Sensor 'Crash info'
+[23:18:52][C][template.text_sensor:199]:   Icon: 'mdi:alert-box'
+[23:18:52][C][template.text_sensor:191]: Template Sensor 'Modo di funzionamento'
+[23:18:52][C][template.text_sensor:199]:   Icon: 'mdi:access-point-network'
+[23:18:52][C][template.text:191]: Template Text Input 'remote_code'
+[23:18:52][C][template.text:063]:   Optimistic: YES
+[23:18:52][C][template.text:367]:   Update Interval: 60.000s
+[23:18:52][C][template.text:191]: Template Text Input 'remote_token'
+[23:18:52][C][template.text:063]:   Optimistic: YES
+[23:18:52][C][template.text:367]:   Update Interval: 60.000s
+[23:18:52][D][sht3xd:075]: Got temperature=23.86°C humidity=63.20%
+[23:18:52][C][template.text:191]: Template Text Input 'remote_pwhash'
+[23:18:52][C][template.text:063]:   Optimistic: YES
+[23:18:52][C][template.text:367]:   Update Interval: 60.000s
+[23:18:52][C][template.text:191]: Template Text Input 'Remote access password'
+[23:18:52][C][template.text:199]:   Icon: 'mdi:form-textbox-password'
+[23:18:52][C][template.text:063]:   Optimistic: YES
+[23:18:52][C][template.text:367]:   Update Interval: 60.000s
+[23:18:52][C][template.text:191]: Template Text Input 'sb_passkey'
+[23:18:52][C][template.text:063]:   Optimistic: YES
+[23:18:52][C][template.text:367]:   Update Interval: 60.000s
+[23:18:52][C][template.text:191]: Template Text Input 'SSID text'
+[23:18:52][C][template.text:063]:   Optimistic: YES
+[23:18:52][C][template.text:367]:   Update Interval: 60.000s
+[23:18:52][C][template.text:191]: Template Text Input 'WiFi password'
+[23:18:52][C][template.text:063]:   Optimistic: YES
+[23:18:52][C][template.text:367]:   Update Interval: 60.000s
+[23:18:52][C][template.text:191]: Template Text Input 'Static IP'
+[23:18:52][C][template.text:063]:   Optimistic: YES
+[23:18:52][C][template.text:367]:   Update Interval: 60.000s
+[23:18:52][C][template.text:191]: Template Text Input 'Gateway'
+[23:18:52][C][template.text:063]:   Optimistic: YES
+[23:18:52][C][template.text:367]:   Update Interval: 60.000s
+[23:18:52][C][template.text:191]: Template Text Input 'Subnet'
+[23:18:52][C][template.text:063]:   Optimistic: YES
+[23:18:52][C][template.text:367]:   Update Interval: 60.000s
+[23:18:52][C][template.text:191]: Template Text Input 'DNS 1'
+[23:18:52][C][template.text:063]:   Optimistic: YES
+[23:18:52][C][template.text:367]:   Update Interval: 60.000s
+[23:18:52][C][template.text:191]: Template Text Input 'DNS 2'
+[23:18:52][C][template.text:063]:   Optimistic: YES
+[23:18:52][C][template.text:367]:   Update Interval: 60.000s
+[23:18:52][C][template.text:191]: Template Text Input 'OTA Server Address'
+[23:18:52][C][template.text:063]:   Optimistic: YES
+[23:18:52][C][template.text:367]:   Update Interval: 60.000s
+[23:18:52][C][template.text:191]: Template Text Input 'OTA firmware md5'
+[23:18:52][C][template.text:063]:   Optimistic: YES
+[23:18:52][C][template.text:367]:   Update Interval: 60.000s
+[23:18:52][C][template.text:191]: Template Text Input 'Installed firmware md5'
+[23:18:52][C][template.text:063]:   Optimistic: YES
+[23:18:52][C][template.text:367]:   Update Interval: 60.000s
+[23:18:52][C][template.text:191]: Template Text Input 'OTA check status'
+[23:18:52][C][template.text:063]:   Optimistic: YES
+[23:18:52][C][template.text:367]:   Update Interval: 60.000s
+[23:18:52][C][template.text:191]: Template Text Input 'Device Name'
+[23:18:52][C][template.text:063]:   Optimistic: YES
+[23:18:52][C][template.text:367]:   Update Interval: 60.000s
+[23:18:52][C][template.sensor:017]: Template Sensor 'Bluetooth paired phones'
+[23:18:52][C][template.sensor:017]:   State Class: ''
+[23:18:52][C][template.sensor:017]:   Unit of Measurement: ''
+[23:18:52][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:18:52][C][template.sensor:199]:   Icon: 'mdi:cellphone-link'
+[23:18:52][C][template.sensor:365]:   Update Interval: never
+[23:18:52][C][template.sensor:017]: Template Sensor 'Bluetooth pairing left'
+[23:18:52][C][template.sensor:017]:   State Class: ''
+[23:18:52][C][template.sensor:017]:   Unit of Measurement: 's'
+[23:18:52][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:18:52][C][template.sensor:365]:   Update Interval: never
+[23:18:52][C][template.sensor:017]: Template Sensor 'Free memory'
+[23:18:52][C][template.sensor:017]:   State Class: ''
+[23:18:52][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:18:52][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:18:52][C][template.sensor:367]:   Update Interval: 10.000s
+[23:18:52][C][template.sensor:017]: Template Sensor 'Largest free block'
+[23:18:52][C][template.sensor:017]:   State Class: ''
+[23:18:52][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:18:52][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:18:52][C][template.sensor:367]:   Update Interval: 10.000s
+[23:18:52][C][template.sensor:017]: Template Sensor 'Free memory minimum'
+[23:18:52][C][template.sensor:017]:   State Class: ''
+[23:18:52][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:18:52][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:18:52][C][template.sensor:367]:   Update Interval: 10.000s
+[23:18:52][C][template.sensor:017]: Template Sensor 'Free PSRAM'
+[23:18:52][C][template.sensor:017]:   State Class: ''
+[23:18:52][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:18:52][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:18:52][C][template.sensor:367]:   Update Interval: 60.000s
+[23:18:52][C][template.sensor:017]: Template Sensor 'Total PSRAM'
+[23:18:52][C][template.sensor:017]:   State Class: ''
+[23:18:52][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:18:52][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:18:52][C][template.sensor:367]:   Update Interval: 60.000s
+[23:18:52][C][template.sensor:017]: Template Sensor 'MAC Byte 0'
+[23:18:52][C][template.sensor:017]:   State Class: ''
+[23:18:52][C][template.sensor:017]:   Unit of Measurement: ''
+[23:18:52][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:18:52][C][template.sensor:367]:   Update Interval: 60.000s
+[23:18:52][C][template.sensor:017]: Template Sensor 'MAC Byte 1'
+[23:18:52][C][template.sensor:017]:   State Class: ''
+[23:18:52][C][template.sensor:017]:   Unit of Measurement: ''
+[23:18:52][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:18:52][C][template.sensor:367]:   Update Interval: 60.000s
+[23:18:52][C][template.sensor:017]: Template Sensor 'MAC Byte 2'
+[23:18:52][C][template.sensor:017]:   State Class: ''
+[23:18:52][C][template.sensor:017]:   Unit of Measurement: ''
+[23:18:52][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:18:52][C][template.sensor:367]:   Update Interval: 60.000s
+[23:18:52][C][template.sensor:017]: Template Sensor 'MAC Byte 3'
+[23:18:52][C][template.sensor:017]:   State Class: ''
+[23:18:52][C][template.sensor:017]:   Unit of Measurement: ''
+[23:18:52][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:18:52][C][template.sensor:367]:   Update Interval: 60.000s
+[23:18:52][C][template.sensor:017]: Template Sensor 'MAC Byte 4'
+[23:18:52][C][template.sensor:017]:   State Class: ''
+[23:18:52][C][template.sensor:017]:   Unit of Measurement: ''
+[23:18:52][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:18:52][C][template.sensor:367]:   Update Interval: 60.000s
+[23:18:52][C][template.sensor:017]: Template Sensor 'MAC Byte 5'
+[23:18:52][C][template.sensor:017]:   State Class: ''
+[23:18:52][C][template.sensor:017]:   Unit of Measurement: ''
+[23:18:52][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:18:52][C][template.sensor:367]:   Update Interval: 60.000s
+[23:18:52][C][uptime.sensor:017]: Uptime Sensor 'Uptime'
+[23:18:52][C][uptime.sensor:017]:   State Class: 'total_increasing'
+[23:18:52][C][uptime.sensor:017]:   Unit of Measurement: 's'
+[23:18:52][C][uptime.sensor:017]:   Accuracy Decimals: 0
+[23:18:52][C][uptime.sensor:207]:   Device Class: 'duration'
+[23:18:52][C][uptime.sensor:199]:   Icon: 'mdi:timer-outline'
+[23:18:52][C][uptime.sensor:019]:   Type: Seconds
+[23:18:52][C][template.number:191]: Template Number 'OTA md5 status code'
+[23:18:52][C][template.number:049]:   Optimistic: YES
+[23:18:52][C][template.number:367]:   Update Interval: 60.000s
+[23:18:52][C][template.number:191]: Template Number 'OTA progress'
+[23:18:52][C][template.number:049]:   Optimistic: YES
+[23:18:52][C][template.number:367]:   Update Interval: 60.000s
+[23:18:52][C][template.number:191]: Template Number 'Temperature Offset'
+[23:18:52][C][template.number:049]:   Optimistic: YES
+[23:18:52][C][template.number:367]:   Update Interval: 60.000s
+[23:18:52][C][gpio.binary_sensor:191]: GPIO Binary Sensor 'Boot pin'
+[23:18:52][C][gpio.binary_sensor:137]:   Pin: GPIO0
+[23:18:52][C][gpio.binary_sensor:068]:   Mode: interrupt
+[23:18:52][C][gpio.binary_sensor:070]:   Interrupt Type: ANY_EDGE
+[23:18:52][C][template.switch:105]: Template Switch 'Remote access'
+[23:18:52][C][template.switch:105]:   Restore Mode: restore defaults to OFF
+[23:18:52][C][template.switch:199]:   Icon: 'mdi:earth'
+[23:18:52][C][template.switch:044]:   Optimistic: YES
+[23:18:52][C][template.switch:105]: Template Switch 'OTA available'
+[23:18:52][C][template.switch:105]:   Restore Mode: always OFF
+[23:18:52][C][template.switch:044]:   Optimistic: YES
+[23:18:52][C][template.switch:105]: Template Switch 'Manual IP'
+[23:18:52][C][template.switch:105]:   Restore Mode: restore defaults to OFF
+[23:18:52][C][template.switch:044]:   Optimistic: YES
+[23:18:52][C][version.text_sensor:191]: Version Text Sensor 'ESPHome Version'
+[23:18:52][C][version.text_sensor:199]:   Icon: 'mdi:new-box'
+[23:18:52][C][wifi_info:191]: SSID 'Connected SSID'
+[23:18:52][C][wifi_info:191]: BSSID 'BSSID'
+[23:18:52][C][wifi_info:191]: MAC Address 'ESP Mac Wifi Address'
+[23:18:52][C][wifi_info:191]: IP Address 'IP'
+[23:18:52][C][sht3xd:044]: SHT3xD:
+[23:18:52][C][sht3xd:044]:   Serial Number: 0x2D5ADB27
+[23:18:52][C][sht3xd:044]:   Heater Enabled: FALSE
+[23:18:52][C][sht3xd:049]:   Address: 0x44
+[23:18:52][C][sht3xd:367]:   Update Interval: 2.000s
+[23:18:52][C][sht3xd:017]:   Temperature 'Temperature'
+[23:18:52][C][sht3xd:017]:     State Class: 'measurement'
+[23:18:52][C][sht3xd:017]:     Unit of Measurement: '°C'
+[23:18:52][C][sht3xd:017]:     Accuracy Decimals: 2
+[23:18:52][C][sht3xd:207]:     Device Class: 'temperature'
+[23:18:52][C][sht3xd:017]:   Humidity 'Humidity'
+[23:18:52][C][sht3xd:017]:     State Class: 'measurement'
+[23:18:52][C][sht3xd:017]:     Unit of Measurement: '%'
+[23:18:52][C][sht3xd:017]:     Accuracy Decimals: 2
+[23:18:52][C][sht3xd:207]:     Device Class: 'humidity'
+[23:18:52][C][internal_temperature:017]: Internal Temperature Sensor 'Internal Temperature'
+[23:18:52][C][internal_temperature:017]:   State Class: 'measurement'
+[23:18:52][C][internal_temperature:017]:   Unit of Measurement: '°C'
+[23:18:52][C][internal_temperature:017]:   Accuracy Decimals: 1
+[23:18:52][C][internal_temperature:207]:   Device Class: 'temperature'
+[23:18:52][C][web_handler:015]: Listening on path '/bt/abbina'
+[23:18:52][C][web_handler:015]: Listening on path '/bt/config'
+[23:18:52][C][web_handler:015]: Listening on path '/bt/codice'
+[23:18:52][C][web_handler:015]: Listening on path '/history'
+[23:18:52][C][web_handler:015]: Listening on path '/data'
+[23:18:53][C][psram:015]: PSRAM:
+[23:18:53][C][psram:018]:   Available: YES
+[23:18:53][C][psram:020]:   Size: 8192 KB
+[23:18:53][C][network:050]: Network:
+[23:18:53][C][network:050]:   TCP send buffer: 5760 bytes
+[23:18:53][C][captive_portal:134]: Captive Portal:
+[23:18:53][C][wifi:1772]: WiFi:
+[23:18:53][C][wifi:1772]:   Local MAC: D0:CF:13:26:02:6C
+[23:18:53][C][wifi:1772]:   Connected: NO
+[23:18:53][C][web_server:506]: Web Server:
+[23:18:53][C][web_server:506]:   Address: ext-sensor-26026c.local:80
+[23:18:53][C][sntp:058]: SNTP Time:
+[23:18:53][C][sntp:061]:   Server 0: '0.pool.ntp.org'
+[23:18:53][C][sntp:061]:   Server 1: '1.pool.ntp.org'
+[23:18:53][C][sntp:061]:   Server 2: '2.pool.ntp.org'
+[23:18:53][C][time:049]: Timezone: UTC+1:00 (DST UTC+2:00)
+[23:18:53][C][time:055]: Current time: 1970-01-01 01:03:48
+[23:18:53][C][safe_mode:058]: Safe Mode:
+[23:18:53][C][safe_mode:058]:   Successful after: 60s
+[23:18:53][C][safe_mode:058]:   Invoke after: 10 attempts
+[23:18:53][C][safe_mode:058]:   Duration: 300s
+[23:18:53][C][safe_mode:075]:   Bootloader rollback: support unknown
+[23:18:53][C][web_server.ota:245]: Web Server OTA
+[23:18:53][C][api:373]: Server:
+[23:18:53][C][api:373]:   Address: ext-sensor-26026c.local:6053
+[23:18:53][C][api:373]:   Listen backlog: 4
+[23:18:53][C][api:373]:   Max connections: 5
+[23:18:53][C][api:385]:   Noise encryption: NO
+[23:18:53][C][wifi_info:191]: Scan Results 'Device Latest Scan Results'
+[23:18:53][C][wifi_signal.sensor:017]: WiFi Signal 'WiFi Signal dB'
+[23:18:53][C][wifi_signal.sensor:017]:   State Class: 'measurement'
+[23:18:53][C][wifi_signal.sensor:017]:   Unit of Measurement: 'dBm'
+[23:18:53][C][wifi_signal.sensor:017]:   Accuracy Decimals: 0
+[23:18:53][C][wifi_signal.sensor:207]:   Device Class: 'signal_strength'
+[23:18:53][C][http_request:014]: HTTP Request:
+[23:18:53][C][http_request:014]:   Timeout: 20000ms
+[23:18:53][C][http_request:014]:   User-Agent: ESPHome/2026.11.0-dev (https://esphome.io)
+[23:18:53][C][http_request:014]:   Follow redirects: YES
+[23:18:53][C][http_request:014]:   Redirect limit: 3
+[23:18:53][C][http_request:014]:   Max concurrent requests: 1
+[23:18:53][C][http_request:024]:   Watchdog Timeout: 61000ms
+[23:18:53][C][http_request:036]:   Buffer Size RX: 512
+[23:18:53][C][http_request:036]:   Buffer Size TX: 512
+[23:18:53][C][http_request:036]:   Custom CA Certificate: NO
+[23:18:53][C][http_request.ota:016]: Over-The-Air updates via HTTP request
+[23:18:53][C][mdns:336]: mDNS:
+[23:18:53][C][mdns:336]:   Hostname: ext-sensor-26026c
+[23:18:53][C][debug:017]: Debug component:
+[23:18:53][D][debug:031]: ESPHome version 2026.11.0-dev
+[23:18:53][D][debug:035]: Free Heap Size: 138544 bytes
+[23:18:53][D][debug:044]: Uptime: 0d 00h 00m 02s
+[23:18:53][D][debug:260]: ESP32 debug info:
+[23:18:53][D][debug:260]:   Chip: ESP32-S3
+[23:18:53][D][debug:260]:   Cores: 2
+[23:18:53][D][debug:260]:   Revision: 2
+[23:18:53][D][debug:260]:   CPU Frequency: 80 MHz
+[23:18:53][D][debug:260]:   ESP-IDF Version: v5.5.6
+[23:18:53][D][debug:260]:   EFuse MAC: D0:CF:13:26:02:6C
+[23:18:53][D][debug:260]:   Reset Reason: software via esp_restart
+[23:18:53][D][debug:260]:   Wakeup Cause: undefined
+[23:18:53][D][debug:280]:   Framework: ESP-IDF
+[23:18:53][C][debug:163]: Partition table:
+[23:18:53][C][debug:163]:   Name         Type Subtype  Address    Size      
+[23:18:53][C][debug:170]:   otadata      1    0        0x00009000 0x00002000
+[23:18:53][C][debug:170]:   phy_init     1    1        0x0000B000 0x00001000
+[23:18:53][C][debug:170]:   app0         0    16       0x00010000 0x007C0000
+[23:18:53][C][debug:170]:   app1         0    17       0x007D0000 0x007C0000
+[23:18:53][C][debug:170]:   nvs          1    2        0x00F90000 0x00070000
+[23:18:53][C][espnow:120]: espnow:
+[23:18:53][C][espnow:131]:   Own address: D0:CF:13:26:02:6C
+[23:18:53][C][espnow:131]:   Wi-Fi channel: 3
+[23:18:53][C][espnow:137]:   Version: v2
+[23:18:53][C][espnow:140]:   Wi-Fi enabled: YES
+[23:18:54][D][sht3xd:075]: Got temperature=23.85°C humidity=63.22%
+[23:18:54][D][preferences:255]: Writing 3 items: 2 cached, 1 written, 0 failed
+[23:18:56][D][sht3xd:075]: Got temperature=23.91°C humidity=63.19%
+[23:18:57]E BOD: Brownout detector was triggered
+[23:18:57]
+[23:18:57]
+[23:18:57]ESP-ROM:esp32s3-20210327
+[23:18:57]Build:Mar 27 2021
+[23:18:57]rst:0x3 (RTC_SW_SYS_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+[23:18:57]Saved PC:0x40375e4d
+[23:18:57]SPIWP:0xee
+[23:18:57]mode:DIO, clock div:1
+[23:18:57]load:0x3fce2820,len:0x13d0
+[23:18:57]load:0x403c8700,len:0xcb4
+[23:18:57]load:0x403cb700,len:0x2f28
+[23:18:57]entry 0x403c8914
+[23:18:57]I (29) boot: ESP-IDF v5.5.6 2nd stage bootloader
+[23:18:57]I (29) boot: chip revision: v0.2
+[23:18:57]I (29) boot.esp32s3: Boot SPI Speed : 80MHz
+[23:18:57]I (29) boot.esp32s3: SPI Mode       : DIO
+[23:18:57]I (33) boot.esp32s3: SPI Flash Size : 16MB
+[23:18:57]I (36) boot: Partition Table:
+[23:18:57]I (39) boot: ## Label            Usage          Type ST Offset   Length
+[23:18:57]I (45) boot:  0 otadata          OTA data         01 00 00009000 00002000
+[23:18:57]I (52) boot:  1 phy_init         RF data          01 01 0000b000 00001000
+[23:18:57]I (58) boot:  2 app0             OTA app          00 10 00010000 007c0000
+[23:18:57]I (65) boot:  3 app1             OTA app          00 11 007d0000 007c0000
+[23:18:57]I (71) boot:  4 nvs              WiFi data        01 02 00f90000 00070000
+[23:18:57]I (78) esp_image: segment 0: paddr=00010020 vaddr=3c0f0020 size=35d50h (220496) map
+[23:18:58]I (125) esp_image: segment 1: paddr=00045d78 vaddr=3fc9b700 size=05048h ( 20552) load
+[23:18:58]I (130) esp_image: segment 2: paddr=0004adc8 vaddr=40374000 size=05250h ( 21072) load
+[23:18:58]I (135) esp_image: segment 3: paddr=00050020 vaddr=42000020 size=e6ff0h (946160) map
+[23:18:58]I (306) esp_image: segment 4: paddr=00137018 vaddr=40379250 size=123d8h ( 74712) load
+[23:18:58]I (323) esp_image: segment 5: paddr=001493f8 vaddr=50000070 size=00020h (    32) load
+[23:18:58]I (332) boot: Loaded app from partition at offset 0x10000
+[23:18:58][I][logger:136]: Log initialized
+[23:18:58][C][safe_mode:205]: Unsuccessful boot attempts: 1
+[23:18:58][D][preferences:255]: Writing 1 items: 0 cached, 1 written, 0 failed
+[23:18:58][I][app:073]: Running through setup()
+[23:18:58][I][i2c:237]: Performing bus recovery
+[23:18:59][C][component:164]: Setup i2c took 136ms
+[23:18:59][D][template.text:015]: State from initial: In attesa
+[23:18:59][C][wifi:713]: Starting
+[23:18:59][C][wifi:1137]: Setting up AP:
+[23:18:59][C][wifi:1137]:   AP SSID: 'Ext-Sensor Hotspot'
+[23:18:59][C][wifi:1137]:   AP Password: '12345678'
+[23:18:59][C][wifi:1137]:   IP Address: 192.168.4.1
+[23:18:59][D][wifi:1541]: Starting scan
+[23:18:59][C][component:164]: Setup wifi took 193ms
+[23:18:59][D][esp-idf:000]: I (635) ESPNOW: espnow [version: 2.0] init
+[23:18:59][D][wifi:1520]: Disabling
+[23:18:59][I][ens:944]: Solo ESP-NOW: WiFi spento, cerco il termostato
+[23:18:59][I][espnow:241]: Channel set to 1.
+[23:18:59][I][sensor_ble:123]: Bluetooth avviato come 'ESP-NOW 26026C'
+[23:18:59][I][app:130]: setup() finished successfully!
+[23:18:59][I][app:163]: ESPHome version 2026.11.0-dev compiled on 2026-10-29 23:03:00 +0100
+[23:18:59][I][app:170]: ESP32 Chip: ESP32-S3 rev0.2, 2 core(s)
+[23:18:59][W][app:188]: Set flash_chip: gd under esp32 > framework > advanced to save IRAM
+[23:18:59][C][logger:311]: Logger:
+[23:18:59][C][logger:311]:   Max Level: DEBUG
+[23:18:59][C][logger:311]:   Initial Level: DEBUG
+[23:18:59][C][logger:318]:   Log Baud Rate: 115200
+[23:18:59][C][logger:318]:   Hardware UART: UART0
+[23:18:59][C][logger:327]:   Task Log Buffer Size: 768 bytes
+[23:18:59][I][ens:159]: Agganciato al termostato A0:85:E3:FC:1E:D8 sul canale 1 (dice 1)
+[23:18:59][C][i2c:110]: I2C Bus:
+[23:18:59][C][i2c:111]:   SDA Pin: GPIO39
+[23:18:59][C][i2c:111]:   SCL Pin: GPIO40
+[23:18:59][C][i2c:111]:   Frequency: 10000 Hz
+[23:18:59][C][i2c:121]:   Recovery: bus successfully recovered
+[23:18:59][C][i2c:027]: Results from bus scan:
+[23:18:59][C][i2c:034]: Found device at address 0x44
+[23:18:59][D][sht3xd:075]: Got temperature=23.86°C humidity=63.20%
+[23:18:59][I][espnow:472]: TX float 23.862442 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:59][I][espnow:499]: TX float 63.196766 con MAC D0:CF:13:26:02:6C al termostato
+[23:18:59][C][switch.gpio:105]: GPIO Switch 'Alimentazione sensore'
+[23:18:59][C][switch.gpio:105]:   Restore Mode: always ON
+[23:18:59][C][switch.gpio:199]:   Icon: 'mdi:power-plug'
+[23:18:59][C][switch.gpio:137]:   Pin: GPIO2
+[23:18:59][C][template.text_sensor:191]: Template Sensor 'Remote access status'
+[23:18:59][C][template.text_sensor:199]:   Icon: 'mdi:earth'
+[23:18:59][C][template.text_sensor:191]: Template Sensor 'Remote access URL'
+[23:18:59][C][template.text_sensor:199]:   Icon: 'mdi:link-variant'
+[23:18:59][C][template.text_sensor:191]: Template Sensor 'Bluetooth status'
+[23:18:59][C][template.text_sensor:199]:   Icon: 'mdi:bluetooth'
+[23:18:59][C][template.text_sensor:191]: Template Sensor 'Reset reason'
+[23:18:59][C][template.text_sensor:199]:   Icon: 'mdi:restart-alert'
+[23:18:59][C][template.text_sensor:191]: Template Sensor 'Crash info'
+[23:18:59][C][template.text_sensor:199]:   Icon: 'mdi:alert-box'
+[23:18:59][C][template.text_sensor:191]: Template Sensor 'Modo di funzionamento'
+[23:18:59][C][template.text_sensor:199]:   Icon: 'mdi:access-point-network'
+[23:18:59][C][template.text:191]: Template Text Input 'remote_code'
+[23:18:59][C][template.text:063]:   Optimistic: YES
+[23:18:59][C][template.text:367]:   Update Interval: 60.000s
+[23:18:59][C][template.text:191]: Template Text Input 'remote_token'
+[23:18:59][C][template.text:063]:   Optimistic: YES
+[23:18:59][C][template.text:367]:   Update Interval: 60.000s
+[23:18:59][C][template.text:191]: Template Text Input 'remote_pwhash'
+[23:18:59][C][template.text:063]:   Optimistic: YES
+[23:18:59][C][template.text:367]:   Update Interval: 60.000s
+[23:18:59][C][template.text:191]: Template Text Input 'Remote access password'
+[23:18:59][C][template.text:199]:   Icon: 'mdi:form-textbox-password'
+[23:18:59][C][template.text:063]:   Optimistic: YES
+[23:18:59][C][template.text:367]:   Update Interval: 60.000s
+[23:18:59][C][template.text:191]: Template Text Input 'sb_passkey'
+[23:18:59][C][template.text:063]:   Optimistic: YES
+[23:18:59][C][template.text:367]:   Update Interval: 60.000s
+[23:18:59][C][template.text:191]: Template Text Input 'SSID text'
+[23:18:59][C][template.text:063]:   Optimistic: YES
+[23:18:59][C][template.text:367]:   Update Interval: 60.000s
+[23:18:59][C][template.text:191]: Template Text Input 'WiFi password'
+[23:18:59][C][template.text:063]:   Optimistic: YES
+[23:18:59][C][template.text:367]:   Update Interval: 60.000s
+[23:18:59][C][template.text:191]: Template Text Input 'Static IP'
+[23:18:59][C][template.text:063]:   Optimistic: YES
+[23:18:59][C][template.text:367]:   Update Interval: 60.000s
+[23:18:59][C][template.text:191]: Template Text Input 'Gateway'
+[23:18:59][C][template.text:063]:   Optimistic: YES
+[23:18:59][C][template.text:367]:   Update Interval: 60.000s
+[23:18:59][C][template.text:191]: Template Text Input 'Subnet'
+[23:18:59][C][template.text:063]:   Optimistic: YES
+[23:18:59][C][template.text:367]:   Update Interval: 60.000s
+[23:18:59][C][template.text:191]: Template Text Input 'DNS 1'
+[23:18:59][C][template.text:063]:   Optimistic: YES
+[23:18:59][C][template.text:367]:   Update Interval: 60.000s
+[23:18:59][C][template.text:191]: Template Text Input 'DNS 2'
+[23:18:59][C][template.text:063]:   Optimistic: YES
+[23:18:59][C][template.text:367]:   Update Interval: 60.000s
+[23:18:59][C][template.text:191]: Template Text Input 'OTA Server Address'
+[23:18:59][C][template.text:063]:   Optimistic: YES
+[23:18:59][C][template.text:367]:   Update Interval: 60.000s
+[23:18:59][C][template.text:191]: Template Text Input 'OTA firmware md5'
+[23:18:59][C][template.text:063]:   Optimistic: YES
+[23:18:59][C][template.text:367]:   Update Interval: 60.000s
+[23:18:59][C][template.text:191]: Template Text Input 'Installed firmware md5'
+[23:18:59][C][template.text:063]:   Optimistic: YES
+[23:18:59][C][template.text:367]:   Update Interval: 60.000s
+[23:18:59][C][template.text:191]: Template Text Input 'OTA check status'
+[23:18:59][C][template.text:063]:   Optimistic: YES
+[23:18:59][C][template.text:367]:   Update Interval: 60.000s
+[23:18:59][C][template.text:191]: Template Text Input 'Device Name'
+[23:18:59][C][template.text:063]:   Optimistic: YES
+[23:18:59][C][template.text:367]:   Update Interval: 60.000s
+[23:18:59][C][template.sensor:017]: Template Sensor 'Bluetooth paired phones'
+[23:18:59][C][template.sensor:017]:   State Class: ''
+[23:18:59][C][template.sensor:017]:   Unit of Measurement: ''
+[23:18:59][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:18:59][C][template.sensor:199]:   Icon: 'mdi:cellphone-link'
+[23:18:59][C][template.sensor:365]:   Update Interval: never
+[23:18:59][C][template.sensor:017]: Template Sensor 'Bluetooth pairing left'
+[23:18:59][C][template.sensor:017]:   State Class: ''
+[23:18:59][C][template.sensor:017]:   Unit of Measurement: 's'
+[23:18:59][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:18:59][C][template.sensor:365]:   Update Interval: never
+[23:18:59][C][template.sensor:017]: Template Sensor 'Free memory'
+[23:18:59][C][template.sensor:017]:   State Class: ''
+[23:18:59][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:18:59][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:18:59][C][template.sensor:367]:   Update Interval: 10.000s
+[23:18:59][C][template.sensor:017]: Template Sensor 'Largest free block'
+[23:18:59][C][template.sensor:017]:   State Class: ''
+[23:18:59][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:18:59][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:18:59][C][template.sensor:367]:   Update Interval: 10.000s
+[23:18:59][C][template.sensor:017]: Template Sensor 'Free memory minimum'
+[23:18:59][C][template.sensor:017]:   State Class: ''
+[23:18:59][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:18:59][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:18:59][C][template.sensor:367]:   Update Interval: 10.000s
+[23:18:59][C][template.sensor:017]: Template Sensor 'Free PSRAM'
+[23:18:59][C][template.sensor:017]:   State Class: ''
+[23:18:59][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:18:59][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:18:59][C][template.sensor:367]:   Update Interval: 60.000s
+[23:18:59][C][template.sensor:017]: Template Sensor 'Total PSRAM'
+[23:18:59][C][template.sensor:017]:   State Class: ''
+[23:18:59][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:18:59][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:18:59][C][template.sensor:367]:   Update Interval: 60.000s
+[23:18:59][C][template.sensor:017]: Template Sensor 'MAC Byte 0'
+[23:18:59][C][template.sensor:017]:   State Class: ''
+[23:18:59][C][template.sensor:017]:   Unit of Measurement: ''
+[23:18:59][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:18:59][C][template.sensor:367]:   Update Interval: 60.000s
+[23:18:59][C][template.sensor:017]: Template Sensor 'MAC Byte 1'
+[23:18:59][C][template.sensor:017]:   State Class: ''
+[23:18:59][C][template.sensor:017]:   Unit of Measurement: ''
+[23:18:59][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:18:59][C][template.sensor:367]:   Update Interval: 60.000s
+[23:19:00][C][template.sensor:017]: Template Sensor 'MAC Byte 2'
+[23:19:00][C][template.sensor:017]:   State Class: ''
+[23:19:00][C][template.sensor:017]:   Unit of Measurement: ''
+[23:19:00][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:19:00][C][template.sensor:367]:   Update Interval: 60.000s
+[23:19:00][C][template.sensor:017]: Template Sensor 'MAC Byte 3'
+[23:19:00][C][template.sensor:017]:   State Class: ''
+[23:19:00][C][template.sensor:017]:   Unit of Measurement: ''
+[23:19:00][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:19:00][C][template.sensor:367]:   Update Interval: 60.000s
+[23:19:00][C][template.sensor:017]: Template Sensor 'MAC Byte 4'
+[23:19:00][C][template.sensor:017]:   State Class: ''
+[23:19:00][C][template.sensor:017]:   Unit of Measurement: ''
+[23:19:00][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:19:00][C][template.sensor:367]:   Update Interval: 60.000s
+[23:19:00][C][template.sensor:017]: Template Sensor 'MAC Byte 5'
+[23:19:00][C][template.sensor:017]:   State Class: ''
+[23:19:00][C][template.sensor:017]:   Unit of Measurement: ''
+[23:19:00][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:19:00][C][template.sensor:367]:   Update Interval: 60.000s
+[23:19:00][C][uptime.sensor:017]: Uptime Sensor 'Uptime'
+[23:19:00][C][uptime.sensor:017]:   State Class: 'total_increasing'
+[23:19:00][C][uptime.sensor:017]:   Unit of Measurement: 's'
+[23:19:00][C][uptime.sensor:017]:   Accuracy Decimals: 0
+[23:19:00][C][uptime.sensor:207]:   Device Class: 'duration'
+[23:19:00][C][uptime.sensor:199]:   Icon: 'mdi:timer-outline'
+[23:19:00][C][uptime.sensor:019]:   Type: Seconds
+[23:19:00][C][template.number:191]: Template Number 'OTA md5 status code'
+[23:19:00][C][template.number:049]:   Optimistic: YES
+[23:19:00][C][template.number:367]:   Update Interval: 60.000s
+[23:19:00][C][template.number:191]: Template Number 'OTA progress'
+[23:19:00][C][template.number:049]:   Optimistic: YES
+[23:19:00][C][template.number:367]:   Update Interval: 60.000s
+[23:19:00][C][template.number:191]: Template Number 'Temperature Offset'
+[23:19:00][C][template.number:049]:   Optimistic: YES
+[23:19:00][C][template.number:367]:   Update Interval: 60.000s
+[23:19:00][C][gpio.binary_sensor:191]: GPIO Binary Sensor 'Boot pin'
+[23:19:00][C][gpio.binary_sensor:137]:   Pin: GPIO0
+[23:19:00][C][gpio.binary_sensor:068]:   Mode: interrupt
+[23:19:00][C][gpio.binary_sensor:070]:   Interrupt Type: ANY_EDGE
+[23:19:00][C][template.switch:105]: Template Switch 'Remote access'
+[23:19:00][C][template.switch:105]:   Restore Mode: restore defaults to OFF
+[23:19:00][C][template.switch:199]:   Icon: 'mdi:earth'
+[23:19:00][C][template.switch:044]:   Optimistic: YES
+[23:19:00][C][template.switch:105]: Template Switch 'OTA available'
+[23:19:00][C][template.switch:105]:   Restore Mode: always OFF
+[23:19:00][C][template.switch:044]:   Optimistic: YES
+[23:19:00][C][template.switch:105]: Template Switch 'Manual IP'
+[23:19:00][C][template.switch:105]:   Restore Mode: restore defaults to OFF
+[23:19:00][C][template.switch:044]:   Optimistic: YES
+[23:19:00][C][version.text_sensor:191]: Version Text Sensor 'ESPHome Version'
+[23:19:00][C][version.text_sensor:199]:   Icon: 'mdi:new-box'
+[23:19:00][C][wifi_info:191]: SSID 'Connected SSID'
+[23:19:00][C][wifi_info:191]: BSSID 'BSSID'
+[23:19:00][C][wifi_info:191]: MAC Address 'ESP Mac Wifi Address'
+[23:19:00][C][wifi_info:191]: IP Address 'IP'
+[23:19:00][C][sht3xd:044]: SHT3xD:
+[23:19:00][C][sht3xd:044]:   Serial Number: 0x2D5ADB27
+[23:19:00][C][sht3xd:044]:   Heater Enabled: FALSE
+[23:19:00][C][sht3xd:049]:   Address: 0x44
+[23:19:00][C][sht3xd:367]:   Update Interval: 2.000s
+[23:19:00][C][sht3xd:017]:   Temperature 'Temperature'
+[23:19:00][C][sht3xd:017]:     State Class: 'measurement'
+[23:19:00][C][sht3xd:017]:     Unit of Measurement: '°C'
+[23:19:00][C][sht3xd:017]:     Accuracy Decimals: 2
+[23:19:00][C][sht3xd:207]:     Device Class: 'temperature'
+[23:19:00][C][sht3xd:017]:   Humidity 'Humidity'
+[23:19:00][C][sht3xd:017]:     State Class: 'measurement'
+[23:19:00][C][sht3xd:017]:     Unit of Measurement: '%'
+[23:19:00][C][sht3xd:017]:     Accuracy Decimals: 2
+[23:19:00][C][sht3xd:207]:     Device Class: 'humidity'
+[23:19:00][C][internal_temperature:017]: Internal Temperature Sensor 'Internal Temperature'
+[23:19:00][C][internal_temperature:017]:   State Class: 'measurement'
+[23:19:00][C][internal_temperature:017]:   Unit of Measurement: '°C'
+[23:19:00][C][internal_temperature:017]:   Accuracy Decimals: 1
+[23:19:00][C][internal_temperature:207]:   Device Class: 'temperature'
+[23:19:00][C][web_handler:015]: Listening on path '/bt/abbina'
+[23:19:00][C][web_handler:015]: Listening on path '/bt/config'
+[23:19:00][C][web_handler:015]: Listening on path '/bt/codice'
+[23:19:00][C][web_handler:015]: Listening on path '/history'
+[23:19:00][C][web_handler:015]: Listening on path '/data'
+[23:19:00][C][psram:015]: PSRAM:
+[23:19:00][C][psram:018]:   Available: YES
+[23:19:00][C][psram:020]:   Size: 8192 KB
+[23:19:00][C][network:050]: Network:
+[23:19:00][C][network:050]:   TCP send buffer: 5760 bytes
+[23:19:00][C][captive_portal:134]: Captive Portal:
+[23:19:00][C][wifi:1772]: WiFi:
+[23:19:00][C][wifi:1772]:   Local MAC: D0:CF:13:26:02:6C
+[23:19:00][C][wifi:1772]:   Connected: NO
+[23:19:00][C][wifi:1778]:   Disabled
+[23:19:00][C][web_server:506]: Web Server:
+[23:19:00][C][web_server:506]:   Address: ext-sensor-26026c.local:80
+[23:19:00][C][sntp:058]: SNTP Time:
+[23:19:00][C][sntp:061]:   Server 0: '0.pool.ntp.org'
+[23:19:00][C][sntp:061]:   Server 1: '1.pool.ntp.org'
+[23:19:00][C][sntp:061]:   Server 2: '2.pool.ntp.org'
+[23:19:00][C][time:049]: Timezone: UTC+1:00 (DST UTC+2:00)
+[23:19:00][C][time:055]: Current time: 1970-01-01 01:03:55
+[23:19:00][C][safe_mode:058]: Safe Mode:
+[23:19:00][C][safe_mode:058]:   Successful after: 60s
+[23:19:00][C][safe_mode:058]:   Invoke after: 10 attempts
+[23:19:00][C][safe_mode:058]:   Duration: 300s
+[23:19:00][C][safe_mode:075]:   Bootloader rollback: support unknown
+[23:19:00][C][web_server.ota:245]: Web Server OTA
+[23:19:00][C][api:373]: Server:
+[23:19:00][C][api:373]:   Address: ext-sensor-26026c.local:6053
+[23:19:00][C][api:373]:   Listen backlog: 4
+[23:19:00][C][api:373]:   Max connections: 5
+[23:19:00][C][api:385]:   Noise encryption: NO
+[23:19:00][C][wifi_info:191]: Scan Results 'Device Latest Scan Results'
+[23:19:00][C][wifi_signal.sensor:017]: WiFi Signal 'WiFi Signal dB'
+[23:19:00][C][wifi_signal.sensor:017]:   State Class: 'measurement'
+[23:19:00][C][wifi_signal.sensor:017]:   Unit of Measurement: 'dBm'
+[23:19:00][C][wifi_signal.sensor:017]:   Accuracy Decimals: 0
+[23:19:00][C][wifi_signal.sensor:207]:   Device Class: 'signal_strength'
+[23:19:00][C][http_request:014]: HTTP Request:
+[23:19:00][C][http_request:014]:   Timeout: 20000ms
+[23:19:00][C][http_request:014]:   User-Agent: ESPHome/2026.11.0-dev (https://esphome.io)
+[23:19:00][C][http_request:014]:   Follow redirects: YES
+[23:19:00][C][http_request:014]:   Redirect limit: 3
+[23:19:00][C][http_request:014]:   Max concurrent requests: 1
+[23:19:00][C][http_request:024]:   Watchdog Timeout: 61000ms
+[23:19:00][C][http_request:036]:   Buffer Size RX: 512
+[23:19:00][C][http_request:036]:   Buffer Size TX: 512
+[23:19:00][C][http_request:036]:   Custom CA Certificate: NO
+[23:19:00][C][http_request.ota:016]: Over-The-Air updates via HTTP request
+[23:19:00][C][mdns:336]: mDNS:
+[23:19:00][C][mdns:336]:   Hostname: ext-sensor-26026c
+[23:19:00][C][debug:017]: Debug component:
+[23:19:00][D][debug:031]: ESPHome version 2026.11.0-dev
+[23:19:00][D][debug:035]: Free Heap Size: 145124 bytes
+[23:19:00][D][debug:044]: Uptime: 0d 00h 00m 02s
+[23:19:00][D][debug:260]: ESP32 debug info:
+[23:19:00][D][debug:260]:   Chip: ESP32-S3
+[23:19:00][D][debug:260]:   Cores: 2
+[23:19:00][D][debug:260]:   Revision: 2
+[23:19:00][D][debug:260]:   CPU Frequency: 80 MHz
+[23:19:00][D][debug:260]:   ESP-IDF Version: v5.5.6
+[23:19:00][D][debug:260]:   EFuse MAC: D0:CF:13:26:02:6C
+[23:19:00][D][debug:260]:   Reset Reason: brownout
+[23:19:00][D][debug:260]:   Wakeup Cause: undefined
+[23:19:00][D][debug:280]:   Framework: ESP-IDF
+[23:19:00][C][debug:163]: Partition table:
+[23:19:00][C][debug:163]:   Name         Type Subtype  Address    Size      
+[23:19:00][C][debug:170]:   otadata      1    0        0x00009000 0x00002000
+[23:19:00][C][debug:170]:   phy_init     1    1        0x0000B000 0x00001000
+[23:19:00][C][debug:170]:   app0         0    16       0x00010000 0x007C0000
+[23:19:00][C][debug:170]:   app1         0    17       0x007D0000 0x007C0000
+[23:19:00][C][debug:170]:   nvs          1    2        0x00F90000 0x00070000
+[23:19:00][C][espnow:120]: espnow:
+[23:19:00][C][espnow:131]:   Own address: D0:CF:13:26:02:6C
+[23:19:00][C][espnow:131]:   Wi-Fi channel: 1
+[23:19:00][C][espnow:137]:   Version: v2
+[23:19:00][C][espnow:140]:   Wi-Fi enabled: NO
+[23:19:01][D][sht3xd:075]: Got temperature=23.84°C humidity=63.22%
+[23:19:03][D][sht3xd:075]: Got temperature=23.84°C humidity=63.19%
+[23:19:03][I][espnow:472]: TX float 23.844641 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:03][I][espnow:499]: TX float 63.202362 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:05][D][sht3xd:075]: Got temperature=23.81°C humidity=63.16%
+[23:19:07][D][sht3xd:075]: Got temperature=23.82°C humidity=63.23%
+[23:19:07][I][espnow:472]: TX float 23.832535 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:07][I][espnow:499]: TX float 63.199818 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:09][D][sht3xd:075]: Got temperature=23.81°C humidity=63.28%
+[23:19:11][D][sht3xd:075]: Got temperature=23.79°C humidity=63.35%
+[23:19:11][I][espnow:472]: TX float 23.823151 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:11][I][espnow:499]: TX float 63.233391 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:13][D][sht3xd:075]: Got temperature=23.81°C humidity=63.41%
+[23:19:15][D][sht3xd:075]: Got temperature=23.79°C humidity=63.41%
+[23:19:15][I][espnow:472]: TX float 23.817938 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:15][I][espnow:499]: TX float 63.272724 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:17][D][sht3xd:075]: Got temperature=23.82°C humidity=63.69%
+[23:19:19][D][sht3xd:075]: Got temperature=23.81°C humidity=63.82%
+[23:19:19][I][espnow:472]: TX float 23.817289 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:19][I][espnow:499]: TX float 63.360458 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:21][D][sht3xd:075]: Got temperature=23.82°C humidity=63.72%
+[23:19:23][D][sht3xd:075]: Got temperature=23.82°C humidity=63.61%
+[23:19:23][I][espnow:472]: TX float 23.818073 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:23][I][espnow:499]: TX float 63.407227 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:25][D][sht3xd:075]: Got temperature=23.82°C humidity=63.56%
+[23:19:27][D][sht3xd:075]: Got temperature=23.84°C humidity=63.48%
+[23:19:27][I][espnow:472]: TX float 23.819540 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:27][I][espnow:499]: TX float 63.422096 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:29][D][sht3xd:075]: Got temperature=23.79°C humidity=63.37%
+[23:19:31][D][sht3xd:075]: Got temperature=23.84°C humidity=63.34%
+[23:19:31][I][espnow:472]: TX float 23.818933 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:31][I][espnow:499]: TX float 63.413982 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:33][D][sht3xd:075]: Got temperature=23.82°C humidity=63.34%
+[23:19:35][D][sht3xd:075]: Got temperature=23.82°C humidity=63.35%
+[23:19:35][I][espnow:472]: TX float 23.819298 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:35][I][espnow:499]: TX float 63.406616 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:37][D][sht3xd:075]: Got temperature=23.84°C humidity=63.41%
+[23:19:39][D][sht3xd:075]: Got temperature=23.86°C humidity=63.41%
+[23:19:39][I][espnow:472]: TX float 23.820120 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:39][I][espnow:499]: TX float 63.417412 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:41][D][sht3xd:075]: Got temperature=23.86°C humidity=63.39%
+[23:19:43][D][sht3xd:075]: Got temperature=23.89°C humidity=63.31%
+[23:19:43][I][espnow:472]: TX float 23.824257 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:43][I][espnow:499]: TX float 63.431824 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:45][D][sht3xd:075]: Got temperature=23.88°C humidity=63.31%
+[23:19:47][D][sht3xd:075]: Got temperature=23.88°C humidity=63.23%
+[23:19:47][I][espnow:472]: TX float 23.830664 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:47][I][espnow:499]: TX float 63.439079 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:48][I][sensor_ble:333][nimble_host]: Telefono collegato (1)
+[23:19:48][I][sensor_ble:346][nimble_host]: Cifratura attiva
+[23:19:49][D][sht3xd:075]: Got temperature=23.88°C humidity=63.24%
+[23:19:51][D][sht3xd:075]: Got temperature=23.89°C humidity=63.20%
+[23:19:51][I][espnow:472]: TX float 23.839211 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:51][I][espnow:499]: TX float 63.429543 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:53][D][sht3xd:075]: Got temperature=23.91°C humidity=63.18%
+[23:19:53][I][sensor_ble:339][nimble_host]: Telefono scollegato (motivo 0x213)
+[23:19:54][I][sensor_ble:333][nimble_host]: Telefono collegato (1)
+[23:19:54][I][sensor_ble:346][nimble_host]: Cifratura attiva
+[23:19:55][D][sht3xd:075]: Got temperature=23.91°C humidity=63.13%
+[23:19:55][I][espnow:472]: TX float 23.849758 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:55][I][espnow:499]: TX float 63.403900 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:57][D][sht3xd:075]: Got temperature=23.91°C humidity=63.06%
+[23:19:58][I][safe_mode:150]: Boot seems successful; resetting boot loop counter
+[23:19:59][D][sht3xd:075]: Got temperature=23.91°C humidity=63.04%
+[23:19:59][I][espnow:472]: TX float 23.858837 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:59][I][espnow:499]: TX float 63.333485 con MAC D0:CF:13:26:02:6C al termostato
+[23:19:59][I][sensor_ble:339][nimble_host]: Telefono scollegato (motivo 0x213)
+[23:20:00][I][sensor_ble:333][nimble_host]: Telefono collegato (1)
+[23:20:01][I][sensor_ble:346][nimble_host]: Cifratura attiva
+[23:20:01][D][preferences:255]: Writing 1 items: 0 cached, 1 written, 0 failed
+[23:20:01][D][sht3xd:075]: Got temperature=23.91°C humidity=63.09%
+[23:20:03][D][sht3xd:075]: Got temperature=23.91°C humidity=63.09%
+[23:20:03][I][espnow:472]: TX float 23.867115 con MAC D0:CF:13:26:02:6C al termostato
+[23:20:03][I][espnow:499]: TX float 63.276348 con MAC D0:CF:13:26:02:6C al termostato
+[23:20:05][D][sht3xd:075]: Got temperature=23.89°C humidity=63.14%
+[23:20:05][I][sensor_ble:339][nimble_host]: Telefono scollegato (motivo 0x213)
+[23:20:07][I][sensor_ble:333][nimble_host]: Telefono collegato (1)
+[23:20:07][I][sensor_ble:346][nimble_host]: Cifratura attiva
+[23:20:07][D][sht3xd:075]: Got temperature=23.89°C humidity=63.14%
+[23:20:07][I][espnow:472]: TX float 23.873386 con MAC D0:CF:13:26:02:6C al termostato
+[23:20:07][I][espnow:499]: TX float 63.238197 con MAC D0:CF:13:26:02:6C al termostato
+[23:20:09][D][sht3xd:075]: Got temperature=23.89°C humidity=63.09%
+[23:20:11][D][sht3xd:075]: Got temperature=23.89°C humidity=63.13%
+[23:20:11][I][espnow:472]: TX float 23.881130 con MAC D0:CF:13:26:02:6C al termostato
+[23:20:11][I][espnow:499]: TX float 63.213703 con MAC D0:CF:13:26:02:6C al termostato
+[23:20:11][I][sensor_ble:339][nimble_host]: Telefono scollegato (motivo 0x213)
+[23:20:13][D][sht3xd:075]: Got temperature=23.94°C humidity=63.13%
+[23:20:14][I][sensor_ble:333][nimble_host]: Telefono collegato (1)
+[23:20:14][I][sensor_ble:346][nimble_host]: Cifratura attiva
+[23:20:15][D][sht3xd:075]: Got temperature=23.91°C humidity=63.06%
+[23:20:15][I][espnow:472]: TX float 23.891010 con MAC D0:CF:13:26:02:6C al termostato
+[23:20:15][I][espnow:499]: TX float 63.188984 con MAC D0:CF:13:26:02:6C al termostato
+[23:20:17][D][sht3xd:075]: Got temperature=23.94°C humidity=63.09%
+[23:20:19][D][sht3xd:075]: Got temperature=23.92°C humidity=63.11%
+[23:20:19][I][espnow:472]: TX float 23.899157 con MAC D0:CF:13:26:02:6C al termostato
+[23:20:19][I][espnow:499]: TX float 63.157776 con MAC D0:CF:13:26:02:6C al termostato
+[23:20:21][D][sht3xd:075]: Got temperature=23.92°C humidity=63.08%
+[23:20:22][I][sensor_ble:144]: Comando dall'app: ota
+[23:20:22][I][rete:310]: Aggiornamento dall'app: riavvio con l'hotspot acceso
+[23:20:23][D][sht3xd:075]: Got temperature=23.92°C humidity=63.07%
+[23:20:23][I][espnow:472]: TX float 23.903831 con MAC D0:CF:13:26:02:6C al termostato
+[23:20:23][I][espnow:499]: TX float 63.130013 con MAC D0:CF:13:26:02:6C al termostato
+[23:20:23][I][app:300]: Rebooting safely
+[23:20:23][D][debug:058]: Storing reboot source: 
+[23:20:23][D][preferences:255]: Writing 3 items: 2 cached, 1 written, 0 failed
+[23:20:23]���ESP-ROM:esp32s3-20210327
+[23:20:23]Build:Mar 27 2021
+[23:20:23]rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+[23:20:23]Saved PC:0x420e12b9
+[23:20:23]SPIWP:0xee
+[23:20:23]mode:DIO, clock div:1
+[23:20:23]load:0x3fce2820,len:0x13d0
+[23:20:23]load:0x403c8700,len:0xcb4
+[23:20:23]load:0x403cb700,len:0x2f28
+[23:20:23]entry 0x403c8914
+[23:20:23]I (29) boot: ESP-IDF v5.5.6 2nd stage bootloader
+[23:20:23]I (29) boot: chip revision: v0.2
+[23:20:23]I (29) boot.esp32s3: Boot SPI Speed : 80MHz
+[23:20:23]I (29) boot.esp32s3: SPI Mode       : DIO
+[23:20:23]I (33) boot.esp32s3: SPI Flash Size : 16MB
+[23:20:23]I (36) boot: Partition Table:
+[23:20:23]I (39) boot: ## Label            Usage          Type ST Offset   Length
+[23:20:23]I (45) boot:  0 otadata          OTA data         01 00 00009000 00002000
+[23:20:23]I (52) boot:  1 phy_init         RF data          01 01 0000b000 00001000
+[23:20:23]I (58) boot:  2 app0             OTA app          00 10 00010000 007c0000
+[23:20:23]I (65) boot:  3 app1             OTA app          00 11 007d0000 007c0000
+[23:20:23]I (71) boot:  4 nvs              WiFi data        01 02 00f90000 00070000
+[23:20:23]I (78) esp_image: segment 0: paddr=00010020 vaddr=3c0f0020 size=35d50h (220496) map
+[23:20:23]I (125) esp_image: segment 1: paddr=00045d78 vaddr=3fc9b700 size=05048h ( 20552) load
+[23:20:23]I (130) esp_image: segment 2: paddr=0004adc8 vaddr=40374000 size=05250h ( 21072) load
+[23:20:23]I (135) esp_image: segment 3: paddr=00050020 vaddr=42000020 size=e6ff0h (946160) map
+[23:20:23]I (307) esp_image: segment 4: paddr=00137018 vaddr=40379250 size=123d8h ( 74712) load
+[23:20:23]I (324) esp_image: segment 5: paddr=001493f8 vaddr=50000070 size=00020h (    32) load
+[23:20:23]I (333) boot: Loaded app from partition at offset 0x10000
+[23:20:24][I][logger:136]: Log initialized
+[23:20:24][C][safe_mode:205]: Unsuccessful boot attempts: 0
+[23:20:24][D][preferences:255]: Writing 1 items: 0 cached, 1 written, 0 failed
+[23:20:24][I][app:073]: Running through setup()
+[23:20:24][I][i2c:237]: Performing bus recovery
+[23:20:24][C][component:164]: Setup i2c took 136ms
+[23:20:24][D][template.text:015]: State from initial: In attesa
+[23:20:24][C][wifi:713]: Starting
+[23:20:25][C][wifi:1137]: Setting up AP:
+[23:20:25][C][wifi:1137]:   AP SSID: 'Ext-Sensor Hotspot'
+[23:20:25][C][wifi:1137]:   AP Password: '12345678'
+[23:20:25][C][wifi:1137]:   IP Address: 192.168.4.1
+[23:20:25][D][wifi:1541]: Starting scan
+[23:20:25][C][component:164]: Setup wifi took 194ms
+[23:20:25][D][esp-idf:000]: I (635) ESPNOW: espnow [version: 2.0] init
+[23:20:25][D][main:5096]: Manutenzione: hotspot acceso per 10 minuti
+[23:20:25][I][sensor_ble:123]: Bluetooth avviato come 'ESP-NOW 26026C'
+[23:20:25][I][app:130]: setup() finished successfully!
+[23:20:25][I][app:163]: ESPHome version 2026.11.0-dev compiled on 2026-10-29 23:03:00 +0100
+[23:20:25][I][app:170]: ESP32 Chip: ESP32-S3 rev0.2, 2 core(s)
+[23:20:25][W][app:188]: Set flash_chip: gd under esp32 > framework > advanced to save IRAM
+[23:20:25][C][logger:311]: Logger:
+[23:20:25][C][logger:311]:   Max Level: DEBUG
+[23:20:25][C][logger:311]:   Initial Level: DEBUG
+[23:20:25][C][logger:318]:   Log Baud Rate: 115200
+[23:20:25][C][logger:318]:   Hardware UART: UART0
+[23:20:25][C][logger:327]:   Task Log Buffer Size: 768 bytes
+[23:20:25][C][i2c:110]: I2C Bus:
+[23:20:25][C][i2c:111]:   SDA Pin: GPIO39
+[23:20:25][C][i2c:111]:   SCL Pin: GPIO40
+[23:20:25][C][i2c:111]:   Frequency: 10000 Hz
+[23:20:25][C][i2c:121]:   Recovery: bus successfully recovered
+[23:20:25][C][i2c:027]: Results from bus scan:
+[23:20:25][C][i2c:034]: Found device at address 0x44
+[23:20:25][C][switch.gpio:105]: GPIO Switch 'Alimentazione sensore'
+[23:20:25][C][switch.gpio:105]:   Restore Mode: always ON
+[23:20:25][C][switch.gpio:199]:   Icon: 'mdi:power-plug'
+[23:20:25][C][switch.gpio:137]:   Pin: GPIO2
+[23:20:25][C][template.text_sensor:191]: Template Sensor 'Remote access status'
+[23:20:25][C][template.text_sensor:199]:   Icon: 'mdi:earth'
+[23:20:25][C][template.text_sensor:191]: Template Sensor 'Remote access URL'
+[23:20:25][C][template.text_sensor:199]:   Icon: 'mdi:link-variant'
+[23:20:25][C][template.text_sensor:191]: Template Sensor 'Bluetooth status'
+[23:20:25][C][template.text_sensor:199]:   Icon: 'mdi:bluetooth'
+[23:20:25][C][template.text_sensor:191]: Template Sensor 'Reset reason'
+[23:20:25][C][template.text_sensor:199]:   Icon: 'mdi:restart-alert'
+[23:20:25][C][template.text_sensor:191]: Template Sensor 'Crash info'
+[23:20:25][C][template.text_sensor:199]:   Icon: 'mdi:alert-box'
+[23:20:25][C][template.text_sensor:191]: Template Sensor 'Modo di funzionamento'
+[23:20:25][C][template.text_sensor:199]:   Icon: 'mdi:access-point-network'
+[23:20:25][C][template.text:191]: Template Text Input 'remote_code'
+[23:20:25][C][template.text:063]:   Optimistic: YES
+[23:20:25][C][template.text:367]:   Update Interval: 60.000s
+[23:20:25][C][template.text:191]: Template Text Input 'remote_token'
+[23:20:25][C][template.text:063]:   Optimistic: YES
+[23:20:25][C][template.text:367]:   Update Interval: 60.000s
+[23:20:25][C][template.text:191]: Template Text Input 'remote_pwhash'
+[23:20:25][C][template.text:063]:   Optimistic: YES
+[23:20:25][C][template.text:367]:   Update Interval: 60.000s
+[23:20:25][C][template.text:191]: Template Text Input 'Remote access password'
+[23:20:25][C][template.text:199]:   Icon: 'mdi:form-textbox-password'
+[23:20:25][C][template.text:063]:   Optimistic: YES
+[23:20:25][C][template.text:367]:   Update Interval: 60.000s
+[23:20:25][C][template.text:191]: Template Text Input 'sb_passkey'
+[23:20:25][C][template.text:063]:   Optimistic: YES
+[23:20:25][C][template.text:367]:   Update Interval: 60.000s
+[23:20:25][C][template.text:191]: Template Text Input 'SSID text'
+[23:20:25][C][template.text:063]:   Optimistic: YES
+[23:20:25][C][template.text:367]:   Update Interval: 60.000s
+[23:20:25][C][template.text:191]: Template Text Input 'WiFi password'
+[23:20:25][C][template.text:063]:   Optimistic: YES
+[23:20:25][C][template.text:367]:   Update Interval: 60.000s
+[23:20:25][C][template.text:191]: Template Text Input 'Static IP'
+[23:20:25][C][template.text:063]:   Optimistic: YES
+[23:20:25][C][template.text:367]:   Update Interval: 60.000s
+[23:20:25][C][template.text:191]: Template Text Input 'Gateway'
+[23:20:25][C][template.text:063]:   Optimistic: YES
+[23:20:25][C][template.text:367]:   Update Interval: 60.000s
+[23:20:25][C][template.text:191]: Template Text Input 'Subnet'
+[23:20:25][C][template.text:063]:   Optimistic: YES
+[23:20:25][C][template.text:367]:   Update Interval: 60.000s
+[23:20:25][C][template.text:191]: Template Text Input 'DNS 1'
+[23:20:25][C][template.text:063]:   Optimistic: YES
+[23:20:25][C][template.text:367]:   Update Interval: 60.000s
+[23:20:25][C][template.text:191]: Template Text Input 'DNS 2'
+[23:20:25][C][template.text:063]:   Optimistic: YES
+[23:20:25][C][template.text:367]:   Update Interval: 60.000s
+[23:20:25][C][template.text:191]: Template Text Input 'OTA Server Address'
+[23:20:25][C][template.text:063]:   Optimistic: YES
+[23:20:25][C][template.text:367]:   Update Interval: 60.000s
+[23:20:25][C][template.text:191]: Template Text Input 'OTA firmware md5'
+[23:20:25][C][template.text:063]:   Optimistic: YES
+[23:20:25][C][template.text:367]:   Update Interval: 60.000s
+[23:20:25][C][template.text:191]: Template Text Input 'Installed firmware md5'
+[23:20:25][C][template.text:063]:   Optimistic: YES
+[23:20:25][C][template.text:367]:   Update Interval: 60.000s
+[23:20:25][C][template.text:191]: Template Text Input 'OTA check status'
+[23:20:25][C][template.text:063]:   Optimistic: YES
+[23:20:25][C][template.text:367]:   Update Interval: 60.000s
+[23:20:25][C][template.text:191]: Template Text Input 'Device Name'
+[23:20:25][C][template.text:063]:   Optimistic: YES
+[23:20:25][C][template.text:367]:   Update Interval: 60.000s
+[23:20:25][C][template.sensor:017]: Template Sensor 'Bluetooth paired phones'
+[23:20:25][C][template.sensor:017]:   State Class: ''
+[23:20:25][C][template.sensor:017]:   Unit of Measurement: ''
+[23:20:25][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:20:25][C][template.sensor:199]:   Icon: 'mdi:cellphone-link'
+[23:20:25][C][template.sensor:365]:   Update Interval: never
+[23:20:25][C][template.sensor:017]: Template Sensor 'Bluetooth pairing left'
+[23:20:25][C][template.sensor:017]:   State Class: ''
+[23:20:25][C][template.sensor:017]:   Unit of Measurement: 's'
+[23:20:25][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:20:25][C][template.sensor:365]:   Update Interval: never
+[23:20:25][C][template.sensor:017]: Template Sensor 'Free memory'
+[23:20:25][C][template.sensor:017]:   State Class: ''
+[23:20:25][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:20:25][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:20:25][C][template.sensor:367]:   Update Interval: 10.000s
+[23:20:25][C][template.sensor:017]: Template Sensor 'Largest free block'
+[23:20:25][C][template.sensor:017]:   State Class: ''
+[23:20:25][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:20:25][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:20:25][C][template.sensor:367]:   Update Interval: 10.000s
+[23:20:25][C][template.sensor:017]: Template Sensor 'Free memory minimum'
+[23:20:25][C][template.sensor:017]:   State Class: ''
+[23:20:25][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:20:25][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:20:25][C][template.sensor:367]:   Update Interval: 10.000s
+[23:20:25][C][template.sensor:017]: Template Sensor 'Free PSRAM'
+[23:20:25][C][template.sensor:017]:   State Class: ''
+[23:20:25][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:20:25][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:20:25][C][template.sensor:367]:   Update Interval: 60.000s
+[23:20:25][C][template.sensor:017]: Template Sensor 'Total PSRAM'
+[23:20:25][C][template.sensor:017]:   State Class: ''
+[23:20:25][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:20:25][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:20:25][C][template.sensor:367]:   Update Interval: 60.000s
+[23:20:25][D][sht3xd:075]: Got temperature=23.92°C humidity=63.05%
+[23:20:25][C][template.sensor:017]: Template Sensor 'MAC Byte 0'
+[23:20:25][C][template.sensor:017]:   State Class: ''
+[23:20:25][C][template.sensor:017]:   Unit of Measurement: ''
+[23:20:25][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:20:25][C][template.sensor:367]:   Update Interval: 60.000s
+[23:20:25][C][template.sensor:017]: Template Sensor 'MAC Byte 1'
+[23:20:25][C][template.sensor:017]:   State Class: ''
+[23:20:25][C][template.sensor:017]:   Unit of Measurement: ''
+[23:20:25][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:20:25][C][template.sensor:367]:   Update Interval: 60.000s
+[23:20:25][C][template.sensor:017]: Template Sensor 'MAC Byte 2'
+[23:20:25][C][template.sensor:017]:   State Class: ''
+[23:20:25][C][template.sensor:017]:   Unit of Measurement: ''
+[23:20:25][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:20:25][C][template.sensor:367]:   Update Interval: 60.000s
+[23:20:25][C][template.sensor:017]: Template Sensor 'MAC Byte 3'
+[23:20:25][C][template.sensor:017]:   State Class: ''
+[23:20:25][C][template.sensor:017]:   Unit of Measurement: ''
+[23:20:25][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:20:25][C][template.sensor:367]:   Update Interval: 60.000s
+[23:20:25][C][template.sensor:017]: Template Sensor 'MAC Byte 4'
+[23:20:25][C][template.sensor:017]:   State Class: ''
+[23:20:25][C][template.sensor:017]:   Unit of Measurement: ''
+[23:20:25][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:20:25][C][template.sensor:367]:   Update Interval: 60.000s
+[23:20:25][C][template.sensor:017]: Template Sensor 'MAC Byte 5'
+[23:20:25][C][template.sensor:017]:   State Class: ''
+[23:20:25][C][template.sensor:017]:   Unit of Measurement: ''
+[23:20:25][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:20:25][C][template.sensor:367]:   Update Interval: 60.000s
+[23:20:25][C][uptime.sensor:017]: Uptime Sensor 'Uptime'
+[23:20:25][C][uptime.sensor:017]:   State Class: 'total_increasing'
+[23:20:25][C][uptime.sensor:017]:   Unit of Measurement: 's'
+[23:20:25][C][uptime.sensor:017]:   Accuracy Decimals: 0
+[23:20:25][C][uptime.sensor:207]:   Device Class: 'duration'
+[23:20:25][C][uptime.sensor:199]:   Icon: 'mdi:timer-outline'
+[23:20:25][C][uptime.sensor:019]:   Type: Seconds
+[23:20:25][C][template.number:191]: Template Number 'OTA md5 status code'
+[23:20:25][C][template.number:049]:   Optimistic: YES
+[23:20:25][C][template.number:367]:   Update Interval: 60.000s
+[23:20:25][C][template.number:191]: Template Number 'OTA progress'
+[23:20:25][C][template.number:049]:   Optimistic: YES
+[23:20:25][C][template.number:367]:   Update Interval: 60.000s
+[23:20:25][C][template.number:191]: Template Number 'Temperature Offset'
+[23:20:25][C][template.number:049]:   Optimistic: YES
+[23:20:25][C][template.number:367]:   Update Interval: 60.000s
+[23:20:25][C][gpio.binary_sensor:191]: GPIO Binary Sensor 'Boot pin'
+[23:20:25][C][gpio.binary_sensor:137]:   Pin: GPIO0
+[23:20:25][C][gpio.binary_sensor:068]:   Mode: interrupt
+[23:20:25][C][gpio.binary_sensor:070]:   Interrupt Type: ANY_EDGE
+[23:20:25][C][template.switch:105]: Template Switch 'Remote access'
+[23:20:25][C][template.switch:105]:   Restore Mode: restore defaults to OFF
+[23:20:25][C][template.switch:199]:   Icon: 'mdi:earth'
+[23:20:25][C][template.switch:044]:   Optimistic: YES
+[23:20:25][C][template.switch:105]: Template Switch 'OTA available'
+[23:20:25][C][template.switch:105]:   Restore Mode: always OFF
+[23:20:25][C][template.switch:044]:   Optimistic: YES
+[23:20:25][C][template.switch:105]: Template Switch 'Manual IP'
+[23:20:25][C][template.switch:105]:   Restore Mode: restore defaults to OFF
+[23:20:25][C][template.switch:044]:   Optimistic: YES
+[23:20:26][C][version.text_sensor:191]: Version Text Sensor 'ESPHome Version'
+[23:20:26][C][version.text_sensor:199]:   Icon: 'mdi:new-box'
+[23:20:26][C][wifi_info:191]: SSID 'Connected SSID'
+[23:20:26][C][wifi_info:191]: BSSID 'BSSID'
+[23:20:26][C][wifi_info:191]: MAC Address 'ESP Mac Wifi Address'
+[23:20:26][C][wifi_info:191]: IP Address 'IP'
+[23:20:26][C][sht3xd:044]: SHT3xD:
+[23:20:26][C][sht3xd:044]:   Serial Number: 0x2D5ADB27
+[23:20:26][C][sht3xd:044]:   Heater Enabled: FALSE
+[23:20:26][C][sht3xd:049]:   Address: 0x44
+[23:20:26][C][sht3xd:367]:   Update Interval: 2.000s
+[23:20:26][C][sht3xd:017]:   Temperature 'Temperature'
+[23:20:26][C][sht3xd:017]:     State Class: 'measurement'
+[23:20:26][C][sht3xd:017]:     Unit of Measurement: '°C'
+[23:20:26][C][sht3xd:017]:     Accuracy Decimals: 2
+[23:20:26][C][sht3xd:207]:     Device Class: 'temperature'
+[23:20:26][C][sht3xd:017]:   Humidity 'Humidity'
+[23:20:26][C][sht3xd:017]:     State Class: 'measurement'
+[23:20:26][C][sht3xd:017]:     Unit of Measurement: '%'
+[23:20:26][C][sht3xd:017]:     Accuracy Decimals: 2
+[23:20:26][C][sht3xd:207]:     Device Class: 'humidity'
+[23:20:26][C][internal_temperature:017]: Internal Temperature Sensor 'Internal Temperature'
+[23:20:26][C][internal_temperature:017]:   State Class: 'measurement'
+[23:20:26][C][internal_temperature:017]:   Unit of Measurement: '°C'
+[23:20:26][C][internal_temperature:017]:   Accuracy Decimals: 1
+[23:20:26][C][internal_temperature:207]:   Device Class: 'temperature'
+[23:20:26][C][web_handler:015]: Listening on path '/bt/abbina'
+[23:20:26][C][web_handler:015]: Listening on path '/bt/config'
+[23:20:26][C][web_handler:015]: Listening on path '/bt/codice'
+[23:20:26][C][web_handler:015]: Listening on path '/history'
+[23:20:26][C][web_handler:015]: Listening on path '/data'
+[23:20:26][C][psram:015]: PSRAM:
+[23:20:26][C][psram:018]:   Available: YES
+[23:20:26][C][psram:020]:   Size: 8192 KB
+[23:20:26][D][preferences:255]: Writing 3 items: 2 cached, 1 written, 0 failed
+[23:20:26][C][network:050]: Network:
+[23:20:26][C][network:050]:   TCP send buffer: 5760 bytes
+[23:20:26][C][captive_portal:134]: Captive Portal:
+[23:20:26][C][wifi:1772]: WiFi:
+[23:20:26][C][wifi:1772]:   Local MAC: D0:CF:13:26:02:6C
+[23:20:26][C][wifi:1772]:   Connected: NO
+[23:20:26][C][web_server:506]: Web Server:
+[23:20:26][C][web_server:506]:   Address: ext-sensor-26026c.local:80
+[23:20:26][C][sntp:058]: SNTP Time:
+[23:20:26][C][sntp:061]:   Server 0: '0.pool.ntp.org'
+[23:20:26][C][sntp:061]:   Server 1: '1.pool.ntp.org'
+[23:20:26][C][sntp:061]:   Server 2: '2.pool.ntp.org'
+[23:20:26][C][time:049]: Timezone: UTC+1:00 (DST UTC+2:00)
+[23:20:26][C][time:055]: Current time: 1970-01-01 01:05:21
+[23:20:26][C][safe_mode:058]: Safe Mode:
+[23:20:26][C][safe_mode:058]:   Successful after: 60s
+[23:20:26][C][safe_mode:058]:   Invoke after: 10 attempts
+[23:20:26][C][safe_mode:058]:   Duration: 300s
+[23:20:26][C][safe_mode:075]:   Bootloader rollback: support unknown
+[23:20:26][C][web_server.ota:245]: Web Server OTA
+[23:20:26][C][api:373]: Server:
+[23:20:26][C][api:373]:   Address: ext-sensor-26026c.local:6053
+[23:20:26][C][api:373]:   Listen backlog: 4
+[23:20:26][C][api:373]:   Max connections: 5
+[23:20:26][C][api:385]:   Noise encryption: NO
+[23:20:26][C][wifi_info:191]: Scan Results 'Device Latest Scan Results'
+[23:20:26][C][wifi_signal.sensor:017]: WiFi Signal 'WiFi Signal dB'
+[23:20:26][C][wifi_signal.sensor:017]:   State Class: 'measurement'
+[23:20:26][C][wifi_signal.sensor:017]:   Unit of Measurement: 'dBm'
+[23:20:26][C][wifi_signal.sensor:017]:   Accuracy Decimals: 0
+[23:20:26][C][wifi_signal.sensor:207]:   Device Class: 'signal_strength'
+[23:20:26][C][http_request:014]: HTTP Request:
+[23:20:26][C][http_request:014]:   Timeout: 20000ms
+[23:20:26][C][http_request:014]:   User-Agent: ESPHome/2026.11.0-dev (https://esphome.io)
+[23:20:26][C][http_request:014]:   Follow redirects: YES
+[23:20:26][C][http_request:014]:   Redirect limit: 3
+[23:20:26][C][http_request:014]:   Max concurrent requests: 1
+[23:20:26][C][http_request:024]:   Watchdog Timeout: 61000ms
+[23:20:26][C][http_request:036]:   Buffer Size RX: 512
+[23:20:26][C][http_request:036]:   Buffer Size TX: 512
+[23:20:26][C][http_request:036]:   Custom CA Certificate: NO
+[23:20:26][C][http_request.ota:016]: Over-The-Air updates via HTTP request
+[23:20:26][C][mdns:336]: mDNS:
+[23:20:26][C][mdns:336]:   Hostname: ext-sensor-26026c
+[23:20:26][C][debug:017]: Debug component:
+[23:20:26][D][debug:031]: ESPHome version 2026.11.0-dev
+[23:20:26][D][debug:035]: Free Heap Size: 138756 bytes
+[23:20:26][D][debug:044]: Uptime: 0d 00h 00m 02s
+[23:20:26][D][debug:260]: ESP32 debug info:
+[23:20:26][D][debug:260]:   Chip: ESP32-S3
+[23:20:26][D][debug:260]:   Cores: 2
+[23:20:26][D][debug:260]:   Revision: 2
+[23:20:26][D][debug:260]:   CPU Frequency: 80 MHz
+[23:20:26][D][debug:260]:   ESP-IDF Version: v5.5.6
+[23:20:26][D][debug:260]:   EFuse MAC: D0:CF:13:26:02:6C
+[23:20:26][D][debug:260]:   Reset Reason: software via esp_restart
+[23:20:26][D][debug:260]:   Wakeup Cause: undefined
+[23:20:26][D][debug:280]:   Framework: ESP-IDF
+[23:20:26][C][debug:163]: Partition table:
+[23:20:26][C][debug:163]:   Name         Type Subtype  Address    Size      
+[23:20:26][C][debug:170]:   otadata      1    0        0x00009000 0x00002000
+[23:20:26][C][debug:170]:   phy_init     1    1        0x0000B000 0x00001000
+[23:20:26][C][debug:170]:   app0         0    16       0x00010000 0x007C0000
+[23:20:26][C][debug:170]:   app1         0    17       0x007D0000 0x007C0000
+[23:20:26][C][debug:170]:   nvs          1    2        0x00F90000 0x00070000
+[23:20:26][C][espnow:120]: espnow:
+[23:20:26][C][espnow:131]:   Own address: D0:CF:13:26:02:6C
+[23:20:26][C][espnow:131]:   Wi-Fi channel: 3
+[23:20:26][C][espnow:137]:   Version: v2
+[23:20:26][C][espnow:140]:   Wi-Fi enabled: YES
+[23:20:27][D][sht3xd:075]: Got temperature=23.94°C humidity=63.06%
+[23:20:29][D][sht3xd:075]: Got temperature=23.95°C humidity=63.01%
+[23:20:31][D][sht3xd:075]: Got temperature=23.92°C humidity=62.98%
+[23:20:33][D][sht3xd:075]: Got temperature=23.92°C humidity=62.94%
+[23:20:35][D][sht3xd:075]: Got temperature=23.94°C humidity=62.84%
+[23:20:37][D][sht3xd:075]: Got temperature=23.95°C humidity=62.82%
+[23:20:39][D][sht3xd:075]: Got temperature=23.95°C humidity=62.75%
+[23:20:41][D][sht3xd:075]: Got temperature=23.95°C humidity=62.70%
+[23:20:43][D][sht3xd:075]: Got temperature=23.92°C humidity=62.71%
+[23:20:45][D][sht3xd:075]: Got temperature=23.94°C humidity=62.69%
+[23:20:47][D][sht3xd:075]: Got temperature=23.95°C humidity=62.68%
+[23:20:49][D][sht3xd:075]: Got temperature=23.95°C humidity=62.70%
+[23:20:51][D][sht3xd:075]: Got temperature=23.96°C humidity=62.70%
+[23:20:53][D][sht3xd:075]: Got temperature=23.96°C humidity=62.77%
+[23:20:55][D][sht3xd:075]: Got temperature=23.94°C humidity=62.76%
+[23:20:57][D][sht3xd:075]: Got temperature=23.96°C humidity=62.77%
+[23:20:59][W][component:446]: script took a long time for an operation (115 ms), max is 50 ms
+[23:20:59][I][web_server.ota:072][httpd]: OTA Update Start: firmware.bin
+[23:20:59][D][web_server.ota:051][httpd]: OTA in progress: 0.1%
+[23:20:59][W][component:446]: logger took a long time for an operation (67 ms), max is 50 ms
+[23:20:59][W][component:446]: interval took a long time for an operation (77 ms), max is 50 ms
+[23:20:59][W][component:446]: interval took a long time for an operation (161 ms), max is 50 ms
+[23:20:59][W][component:446]: wifi_signal.sensor took a long time for an operation (95 ms), max is 50 ms
+[23:20:59][D][sht3xd:075]: Got temperature=23.99°C humidity=62.73%
+[23:20:59][D][web_server.ota:051][httpd]: OTA in progress: 9.4%
+[23:21:00][D][web_server.ota:051][httpd]: OTA in progress: 14.4%
+[23:21:01][W][component:446]: interval took a long time for an operation (102 ms), max is 80 ms
+[23:21:01][W][component:446]: sht3xd.sensor took a long time for an operation (312 ms), max is 50 ms
+[23:21:02][W][component:446]: captive_portal took a long time for an operation (167 ms), max is 50 ms
+[23:21:02][D][web_server.ota:051][httpd]: OTA in progress: 19.9%
+[23:21:02][D][sht3xd:075]: Got temperature=23.95°C humidity=62.75%
+[23:21:02][D][web_server.ota:051][httpd]: OTA in progress: 26.7%
+[23:21:03][W][component:446]: interval took a long time for an operation (463 ms), max is 110 ms
+[23:21:03][D][sht3xd:075]: Got temperature=23.98°C humidity=62.79%
+[23:21:03][D][web_server.ota:051][httpd]: OTA in progress: 35.5%
+[23:21:04][W][component:446]: script took a long time for an operation (148 ms), max is 120 ms
+[23:21:05][W][component:446]: interval took a long time for an operation (179 ms), max is 170 ms
+[23:21:05][D][web_server.ota:051][httpd]: OTA in progress: 43.4%
+[23:21:06][D][sht3xd:075]: Got temperature=23.95°C humidity=62.79%
+[23:21:06][W][component:446]: sht3xd.sensor took a long time for an operation (468 ms), max is 320 ms
+[23:21:06][D][web_server.ota:051][httpd]: OTA in progress: 51.1%
+[23:21:07][W][component:446]: interval took a long time for an operation (311 ms), max is 180 ms
+[23:21:07][W][component:446]: globals took a long time for an operation (134 ms), max is 50 ms
+[23:21:07][D][web_server.ota:051][httpd]: OTA in progress: 59.1%
+[23:21:07][W][component:446]: wifi took a long time for an operation (150 ms), max is 50 ms
+[23:21:07][W][component:446]: interval took a long time for an operation (153 ms), max is 50 ms
+[23:21:07][D][web_server.ota:051][httpd]: OTA in progress: 67.7%
+[23:21:08][D][sht3xd:075]: Got temperature=23.96°C humidity=62.85%
+[23:21:08][W][component:446]: script took a long time for an operation (161 ms), max is 150 ms
+[23:21:09][W][component:446]: template.sensor took a long time for an operation (220 ms), max is 50 ms
+[23:21:09][D][web_server.ota:051][httpd]: OTA in progress: 76.5%
+[23:21:10][D][web_server.ota:051][httpd]: OTA in progress: 84.9%
+[23:21:10][D][sht3xd:075]: Got temperature=23.99°C humidity=62.87%
+[23:21:10][D][web_server.ota:051][httpd]: OTA in progress: 93.7%
+[23:21:11][W][component:446]: globals took a long time for an operation (99 ms), max is 50 ms
+[23:21:12][W][component:446]: interval took a long time for an operation (533 ms), max is 320 ms
+[23:21:12][D][web_server.ota:163][httpd]: OTA final chunk: index=1283136, len=0, total_read=1283136, contentLength=1283304
+[23:21:12][I][web_server.ota:064][httpd]: OTA update successful!
+[23:21:12][D][sht3xd:075]: Got temperature=23.99°C humidity=62.84%
+[23:21:12][I][web_server.ota:066]: Performing OTA reboot now
+[23:21:12][I][app:300]: Rebooting safely
+[23:21:12][D][debug:058]: Storing reboot source: web_server.ota
+[23:21:12][D][preferences:255]: Writing 2 items: 0 cached, 2 written, 0 failed
+[23:21:12] �ESP-ROM:esp32s3-20210327
+[23:21:12]Build:Mar 27 2021
+[23:21:12]rst:0xc (RTC_SW_CPU_RST),boot:0x8 (SPI_FAST_FLASH_BOOT)
+[23:21:12]Saved PC:0x4037e06e
+[23:21:12]SPIWP:0xee
+[23:21:12]mode:DIO, clock div:1
+[23:21:12]load:0x3fce2820,len:0x13d0
+[23:21:12]load:0x403c8700,len:0xcb4
+[23:21:12]load:0x403cb700,len:0x2f28
+[23:21:12]entry 0x403c8914
+[23:21:12]I (29) boot: ESP-IDF v5.5.6 2nd stage bootloader
+[23:21:12]I (29) boot: chip revision: v0.2
+[23:21:12]I (29) boot.esp32s3: Boot SPI Speed : 80MHz
+[23:21:12]I (29) boot.esp32s3: SPI Mode       : DIO
+[23:21:12]I (33) boot.esp32s3: SPI Flash Size : 16MB
+[23:21:12]I (36) boot: Partition Table:
+[23:21:12]I (39) boot: ## Label            Usage          Type ST Offset   Length
+[23:21:12]I (45) boot:  0 otadata          OTA data         01 00 00009000 00002000
+[23:21:12]I (52) boot:  1 phy_init         RF data          01 01 0000b000 00001000
+[23:21:12]I (58) boot:  2 app0             OTA app          00 10 00010000 007c0000
+[23:21:12]I (65) boot:  3 app1             OTA app          00 11 007d0000 007c0000
+[23:21:12]I (71) boot:  4 nvs              WiFi data        01 02 00f90000 00070000
+[23:21:12]I (110) esp_image: segment 0: paddr=007d0020 vaddr=3c0f0020 size=35d50h (220496) map
+[23:21:12]I (150) esp_image: segment 1: paddr=00805d78 vaddr=3fc9b700 size=05048h ( 20552) load
+[23:21:12]I (155) esp_image: segment 2: paddr=0080adc8 vaddr=40374000 size=05250h ( 21072) load
+[23:21:12]I (160) esp_image: segment 3: paddr=00810020 vaddr=42000020 size=e6ff0h (946160) map
+[23:21:12]I (332) esp_image: segment 4: paddr=008f7018 vaddr=40379250 size=123d8h ( 74712) load
+[23:21:12]I (349) esp_image: segment 5: paddr=009093f8 vaddr=50000070 size=00020h (    32) load
+[23:21:12]I (359) boot: Loaded app from partition at offset 0x7d0000
+[23:21:13][I][logger:136]: Log initialized
+[23:21:13][C][safe_mode:205]: Unsuccessful boot attempts: 0
+[23:21:13][D][preferences:255]: Writing 1 items: 0 cached, 1 written, 0 failed
+[23:21:13][I][app:073]: Running through setup()
+[23:21:13][I][i2c:237]: Performing bus recovery
+[23:21:13][C][component:164]: Setup i2c took 136ms
+[23:21:13][D][template.text:015]: State from initial: In attesa
+[23:21:13][C][wifi:713]: Starting
+[23:21:13][C][wifi:1137]: Setting up AP:
+[23:21:13][C][wifi:1137]:   AP SSID: 'Ext-Sensor Hotspot'
+[23:21:13][C][wifi:1137]:   AP Password: '12345678'
+[23:21:13][C][wifi:1137]:   IP Address: 192.168.4.1
+[23:21:13][D][wifi:1541]: Starting scan
+[23:21:13][C][component:164]: Setup wifi took 193ms
+[23:21:13][D][esp-idf:000]: I (635) ESPNOW: espnow [version: 2.0] init
+[23:21:13][D][wifi:1520]: Disabling
+[23:21:13][I][ens:944]: Solo ESP-NOW: WiFi spento, cerco il termostato
+[23:21:13][I][espnow:241]: Channel set to 1.
+[23:21:13][I][sensor_ble:123]: Bluetooth avviato come 'ESP-NOW 26026C'
+[23:21:13][I][app:130]: setup() finished successfully!
+[23:21:13][I][app:163]: ESPHome version 2026.11.0-dev compiled on 2026-10-29 23:18:12 +0100
+[23:21:13][I][app:170]: ESP32 Chip: ESP32-S3 rev0.2, 2 core(s)
+[23:21:13][W][app:188]: Set flash_chip: gd under esp32 > framework > advanced to save IRAM
+[23:21:13][C][logger:311]: Logger:
+[23:21:13][C][logger:311]:   Max Level: DEBUG
+[23:21:13][C][logger:311]:   Initial Level: DEBUG
+[23:21:13][C][logger:318]:   Log Baud Rate: 115200
+[23:21:13][C][logger:318]:   Hardware UART: UART0
+[23:21:13][C][logger:327]:   Task Log Buffer Size: 768 bytes
+[23:21:13][C][i2c:110]: I2C Bus:
+[23:21:13][C][i2c:111]:   SDA Pin: GPIO39
+[23:21:13][C][i2c:111]:   SCL Pin: GPIO40
+[23:21:13][C][i2c:111]:   Frequency: 10000 Hz
+[23:21:13][C][i2c:121]:   Recovery: bus successfully recovered
+[23:21:13][C][i2c:027]: Results from bus scan:
+[23:21:13][C][i2c:034]: Found device at address 0x44
+[23:21:13][C][switch.gpio:105]: GPIO Switch 'Alimentazione sensore'
+[23:21:13][C][switch.gpio:105]:   Restore Mode: always ON
+[23:21:13][C][switch.gpio:199]:   Icon: 'mdi:power-plug'
+[23:21:13][C][switch.gpio:137]:   Pin: GPIO2
+[23:21:13][C][template.text_sensor:191]: Template Sensor 'Remote access status'
+[23:21:13][C][template.text_sensor:199]:   Icon: 'mdi:earth'
+[23:21:13][C][template.text_sensor:191]: Template Sensor 'Remote access URL'
+[23:21:13][C][template.text_sensor:199]:   Icon: 'mdi:link-variant'
+[23:21:13][C][template.text_sensor:191]: Template Sensor 'Bluetooth status'
+[23:21:13][C][template.text_sensor:199]:   Icon: 'mdi:bluetooth'
+[23:21:13][C][template.text_sensor:191]: Template Sensor 'Reset reason'
+[23:21:13][C][template.text_sensor:199]:   Icon: 'mdi:restart-alert'
+[23:21:13][C][template.text_sensor:191]: Template Sensor 'Crash info'
+[23:21:13][C][template.text_sensor:199]:   Icon: 'mdi:alert-box'
+[23:21:13][C][template.text_sensor:191]: Template Sensor 'Modo di funzionamento'
+[23:21:13][C][template.text_sensor:199]:   Icon: 'mdi:access-point-network'
+[23:21:13][C][template.text:191]: Template Text Input 'remote_code'
+[23:21:14][C][template.text:063]:   Optimistic: YES
+[23:21:14][C][template.text:367]:   Update Interval: 60.000s
+[23:21:14][C][template.text:191]: Template Text Input 'remote_token'
+[23:21:14][C][template.text:063]:   Optimistic: YES
+[23:21:14][C][template.text:367]:   Update Interval: 60.000s
+[23:21:14][I][espnow:241]: Channel set to 2.
+[23:21:14][C][template.text:191]: Template Text Input 'remote_pwhash'
+[23:21:14][C][template.text:063]:   Optimistic: YES
+[23:21:14][C][template.text:367]:   Update Interval: 60.000s
+[23:21:14][C][template.text:191]: Template Text Input 'Remote access password'
+[23:21:14][C][template.text:199]:   Icon: 'mdi:form-textbox-password'
+[23:21:14][C][template.text:063]:   Optimistic: YES
+[23:21:14][C][template.text:367]:   Update Interval: 60.000s
+[23:21:14][C][template.text:191]: Template Text Input 'sb_passkey'
+[23:21:14][C][template.text:063]:   Optimistic: YES
+[23:21:14][C][template.text:367]:   Update Interval: 60.000s
+[23:21:14][C][template.text:191]: Template Text Input 'SSID text'
+[23:21:14][C][template.text:063]:   Optimistic: YES
+[23:21:14][C][template.text:367]:   Update Interval: 60.000s
+[23:21:14][C][template.text:191]: Template Text Input 'WiFi password'
+[23:21:14][C][template.text:063]:   Optimistic: YES
+[23:21:14][C][template.text:367]:   Update Interval: 60.000s
+[23:21:14][C][template.text:191]: Template Text Input 'Static IP'
+[23:21:14][C][template.text:063]:   Optimistic: YES
+[23:21:14][C][template.text:367]:   Update Interval: 60.000s
+[23:21:14][C][template.text:191]: Template Text Input 'Gateway'
+[23:21:14][C][template.text:063]:   Optimistic: YES
+[23:21:14][C][template.text:367]:   Update Interval: 60.000s
+[23:21:14][C][template.text:191]: Template Text Input 'Subnet'
+[23:21:14][C][template.text:063]:   Optimistic: YES
+[23:21:14][C][template.text:367]:   Update Interval: 60.000s
+[23:21:14][C][template.text:191]: Template Text Input 'DNS 1'
+[23:21:14][C][template.text:063]:   Optimistic: YES
+[23:21:14][C][template.text:367]:   Update Interval: 60.000s
+[23:21:14][C][template.text:191]: Template Text Input 'DNS 2'
+[23:21:14][C][template.text:063]:   Optimistic: YES
+[23:21:14][C][template.text:367]:   Update Interval: 60.000s
+[23:21:14][I][espnow:241]: Channel set to 3.
+[23:21:14][C][template.text:191]: Template Text Input 'OTA Server Address'
+[23:21:14][C][template.text:063]:   Optimistic: YES
+[23:21:14][C][template.text:367]:   Update Interval: 60.000s
+[23:21:14][C][template.text:191]: Template Text Input 'OTA firmware md5'
+[23:21:14][C][template.text:063]:   Optimistic: YES
+[23:21:14][C][template.text:367]:   Update Interval: 60.000s
+[23:21:14][C][template.text:191]: Template Text Input 'Installed firmware md5'
+[23:21:14][C][template.text:063]:   Optimistic: YES
+[23:21:14][C][template.text:367]:   Update Interval: 60.000s
+[23:21:14][C][template.text:191]: Template Text Input 'OTA check status'
+[23:21:14][C][template.text:063]:   Optimistic: YES
+[23:21:14][C][template.text:367]:   Update Interval: 60.000s
+[23:21:14][C][template.text:191]: Template Text Input 'Device Name'
+[23:21:14][C][template.text:063]:   Optimistic: YES
+[23:21:14][C][template.text:367]:   Update Interval: 60.000s
+[23:21:14][C][template.sensor:017]: Template Sensor 'Bluetooth paired phones'
+[23:21:14][C][template.sensor:017]:   State Class: ''
+[23:21:14][C][template.sensor:017]:   Unit of Measurement: ''
+[23:21:14][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:21:14][C][template.sensor:199]:   Icon: 'mdi:cellphone-link'
+[23:21:14][C][template.sensor:365]:   Update Interval: never
+[23:21:14][C][template.sensor:017]: Template Sensor 'Bluetooth pairing left'
+[23:21:14][C][template.sensor:017]:   State Class: ''
+[23:21:14][C][template.sensor:017]:   Unit of Measurement: 's'
+[23:21:14][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:21:14][C][template.sensor:365]:   Update Interval: never
+[23:21:14][C][template.sensor:017]: Template Sensor 'Free memory'
+[23:21:14][C][template.sensor:017]:   State Class: ''
+[23:21:14][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:21:14][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:21:14][C][template.sensor:367]:   Update Interval: 10.000s
+[23:21:14][C][template.sensor:017]: Template Sensor 'Largest free block'
+[23:21:14][C][template.sensor:017]:   State Class: ''
+[23:21:14][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:21:14][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:21:14][C][template.sensor:367]:   Update Interval: 10.000s
+[23:21:14][C][template.sensor:017]: Template Sensor 'Free memory minimum'
+[23:21:14][C][template.sensor:017]:   State Class: ''
+[23:21:14][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:21:14][C][template.sensor:017]:   Accuracy Decimals: 1
+[23:21:14][C][template.sensor:367]:   Update Interval: 10.000s
+[23:21:14][I][espnow:241]: Channel set to 4.
+[23:21:14][C][template.sensor:017]: Template Sensor 'Free PSRAM'
+[23:21:14][C][template.sensor:017]:   State Class: ''
+[23:21:14][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:21:14][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:21:14][C][template.sensor:367]:   Update Interval: 60.000s
+[23:21:14][C][template.sensor:017]: Template Sensor 'Total PSRAM'
+[23:21:14][C][template.sensor:017]:   State Class: ''
+[23:21:14][C][template.sensor:017]:   Unit of Measurement: 'KB'
+[23:21:14][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:21:14][C][template.sensor:367]:   Update Interval: 60.000s
+[23:21:14][C][template.sensor:017]: Template Sensor 'MAC Byte 0'
+[23:21:14][C][template.sensor:017]:   State Class: ''
+[23:21:14][C][template.sensor:017]:   Unit of Measurement: ''
+[23:21:14][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:21:14][C][template.sensor:367]:   Update Interval: 60.000s
+[23:21:14][C][template.sensor:017]: Template Sensor 'MAC Byte 1'
+[23:21:14][C][template.sensor:017]:   State Class: ''
+[23:21:14][C][template.sensor:017]:   Unit of Measurement: ''
+[23:21:14][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:21:14][C][template.sensor:367]:   Update Interval: 60.000s
+[23:21:14][C][template.sensor:017]: Template Sensor 'MAC Byte 2'
+[23:21:14][C][template.sensor:017]:   State Class: ''
+[23:21:14][C][template.sensor:017]:   Unit of Measurement: ''
+[23:21:14][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:21:14][C][template.sensor:367]:   Update Interval: 60.000s
+[23:21:14][C][template.sensor:017]: Template Sensor 'MAC Byte 3'
+[23:21:14][C][template.sensor:017]:   State Class: ''
+[23:21:14][C][template.sensor:017]:   Unit of Measurement: ''
+[23:21:14][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:21:14][C][template.sensor:367]:   Update Interval: 60.000s
+[23:21:14][C][template.sensor:017]: Template Sensor 'MAC Byte 4'
+[23:21:14][C][template.sensor:017]:   State Class: ''
+[23:21:14][C][template.sensor:017]:   Unit of Measurement: ''
+[23:21:14][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:21:14][C][template.sensor:367]:   Update Interval: 60.000s
+[23:21:14][C][template.sensor:017]: Template Sensor 'MAC Byte 5'
+[23:21:14][C][template.sensor:017]:   State Class: ''
+[23:21:14][C][template.sensor:017]:   Unit of Measurement: ''
+[23:21:14][C][template.sensor:017]:   Accuracy Decimals: 0
+[23:21:14][C][template.sensor:367]:   Update Interval: 60.000s
+[23:21:14][C][uptime.sensor:017]: Uptime Sensor 'Uptime'
+[23:21:14][C][uptime.sensor:017]:   State Class: 'total_increasing'
+[23:21:14][C][uptime.sensor:017]:   Unit of Measurement: 's'
+[23:21:14][C][uptime.sensor:017]:   Accuracy Decimals: 0
+[23:21:14][C][uptime.sensor:207]:   Device Class: 'duration'
+[23:21:14][C][uptime.sensor:199]:   Icon: 'mdi:timer-outline'
+[23:21:14][C][uptime.sensor:019]:   Type: Seconds
+[23:21:14][I][espnow:241]: Channel set to 5.
+[23:21:14][C][template.number:191]: Template Number 'OTA md5 status code'
+[23:21:14][C][template.number:049]:   Optimistic: YES
+[23:21:14][C][template.number:367]:   Update Interval: 60.000s
+[23:21:14][C][template.number:191]: Template Number 'OTA progress'
+[23:21:14][C][template.number:049]:   Optimistic: YES
+[23:21:14][C][template.number:367]:   Update Interval: 60.000s
+[23:21:14][C][template.number:191]: Template Number 'Temperature Offset'
+[23:21:14][C][template.number:049]:   Optimistic: YES
+[23:21:14][C][template.number:367]:   Update Interval: 60.000s
+[23:21:14][C][gpio.binary_sensor:191]: GPIO Binary Sensor 'Boot pin'
+[23:21:14][C][gpio.binary_sensor:137]:   Pin: GPIO0
+[23:21:14][C][gpio.binary_sensor:068]:   Mode: interrupt
+[23:21:14][C][gpio.binary_sensor:070]:   Interrupt Type: ANY_EDGE
+[23:21:14][I][espnow:241]: Channel set to 6.
+[23:21:14][C][template.switch:105]: Template Switch 'Remote access'
+[23:21:14][C][template.switch:105]:   Restore Mode: restore defaults to OFF
+[23:21:14][C][template.switch:199]:   Icon: 'mdi:earth'
+[23:21:14][C][template.switch:044]:   Optimistic: YES
+[23:21:14][C][template.switch:105]: Template Switch 'OTA available'
+[23:21:14][C][template.switch:105]:   Restore Mode: always OFF
+[23:21:14][C][template.switch:044]:   Optimistic: YES
+[23:21:14][C][template.switch:105]: Template Switch 'Manual IP'
+[23:21:14][C][template.switch:105]:   Restore Mode: restore defaults to OFF
+[23:21:14][C][template.switch:044]:   Optimistic: YES
+[23:21:14][C][version.text_sensor:191]: Version Text Sensor 'ESPHome Version'
+[23:21:14][C][version.text_sensor:199]:   Icon: 'mdi:new-box'
+[23:21:14][D][sht3xd:075]: Got temperature=23.96°C humidity=62.84%
+[23:21:14][C][wifi_info:191]: SSID 'Connected SSID'
+[23:21:14][C][wifi_info:191]: BSSID 'BSSID'
+[23:21:14][C][wifi_info:191]: MAC Address 'ESP Mac Wifi Address'
+[23:21:14][C][wifi_info:191]: IP Address 'IP'
+[23:21:14][C][sht3xd:044]: SHT3xD:
+[23:21:14][C][sht3xd:044]:   Serial Number: 0x2D5ADB27
+[23:21:14][C][sht3xd:044]:   Heater Enabled: FALSE
+[23:21:14][C][sht3xd:049]:   Address: 0x44
+[23:21:14][C][sht3xd:367]:   Update Interval: 2.000s
+[23:21:14][C][sht3xd:017]:   Temperature 'Temperature'
+[23:21:14][C][sht3xd:017]:     State Class: 'measurement'
+[23:21:14][C][sht3xd:017]:     Unit of Measurement: '°C'
+[23:21:14][C][sht3xd:017]:     Accuracy Decimals: 2
+[23:21:14][C][sht3xd:207]:     Device Class: 'temperature'
+[23:21:14][C][sht3xd:017]:   Humidity 'Humidity'
+[23:21:14][C][sht3xd:017]:     State Class: 'measurement'
+[23:21:14][C][sht3xd:017]:     Unit of Measurement: '%'
+[23:21:14][C][sht3xd:017]:     Accuracy Decimals: 2
+[23:21:14][C][sht3xd:207]:     Device Class: 'humidity'
+[23:21:14][I][espnow:241]: Channel set to 7.
+[23:21:14][C][internal_temperature:017]: Internal Temperature Sensor 'Internal Temperature'
+[23:21:14][C][internal_temperature:017]:   State Class: 'measurement'
+[23:21:14][C][internal_temperature:017]:   Unit of Measurement: '°C'
+[23:21:14][C][internal_temperature:017]:   Accuracy Decimals: 1
+[23:21:14][C][internal_temperature:207]:   Device Class: 'temperature'
+[23:21:14][C][web_handler:015]: Listening on path '/bt/abbina'
+[23:21:14][C][web_handler:015]: Listening on path '/bt/config'
+[23:21:14][C][web_handler:015]: Listening on path '/bt/codice'
+[23:21:14][C][web_handler:015]: Listening on path '/history'
+[23:21:14][C][web_handler:015]: Listening on path '/data'
+[23:21:14][C][psram:015]: PSRAM:
+[23:21:14][C][psram:018]:   Available: YES
+[23:21:14][C][psram:020]:   Size: 8192 KB
+[23:21:14][I][espnow:241]: Channel set to 8.
+[23:21:15][C][network:050]: Network:
+[23:21:15][C][network:050]:   TCP send buffer: 5760 bytes
+[23:21:15][C][captive_portal:134]: Captive Portal:
+[23:21:15][C][wifi:1772]: WiFi:
+[23:21:15][C][wifi:1772]:   Local MAC: D0:CF:13:26:02:6C
+[23:21:15][C][wifi:1772]:   Connected: NO
+[23:21:15][C][wifi:1778]:   Disabled
+[23:21:15][C][web_server:506]: Web Server:
+[23:21:15][C][web_server:506]:   Address: ext-sensor-26026c.local:80
+[23:21:15][C][sntp:058]: SNTP Time:
+[23:21:15][C][sntp:061]:   Server 0: '0.pool.ntp.org'
+[23:21:15][C][sntp:061]:   Server 1: '1.pool.ntp.org'
+[23:21:15][C][sntp:061]:   Server 2: '2.pool.ntp.org'
+[23:21:15][C][time:049]: Timezone: UTC+1:00 (DST UTC+2:00)
+[23:21:15][C][time:055]: Current time: 1970-01-01 01:06:09
+[23:21:15][C][safe_mode:058]: Safe Mode:
+[23:21:15][C][safe_mode:058]:   Successful after: 60s
+[23:21:15][C][safe_mode:058]:   Invoke after: 10 attempts
+[23:21:15][C][safe_mode:058]:   Duration: 300s
+[23:21:15][C][safe_mode:075]:   Bootloader rollback: supported
+[23:21:15][I][espnow:241]: Channel set to 9.
+[23:21:15][C][web_server.ota:245]: Web Server OTA
+[23:21:15][C][api:373]: Server:
+[23:21:15][C][api:373]:   Address: ext-sensor-26026c.local:6053
+[23:21:15][C][api:373]:   Listen backlog: 4
+[23:21:15][C][api:373]:   Max connections: 5
+[23:21:15][C][api:385]:   Noise encryption: NO
+[23:21:15][C][wifi_info:191]: Scan Results 'Device Latest Scan Results'
+[23:21:15][C][wifi_signal.sensor:017]: WiFi Signal 'WiFi Signal dB'
+[23:21:15][C][wifi_signal.sensor:017]:   State Class: 'measurement'
+[23:21:15][C][wifi_signal.sensor:017]:   Unit of Measurement: 'dBm'
+[23:21:15][C][wifi_signal.sensor:017]:   Accuracy Decimals: 0
+[23:21:15][C][wifi_signal.sensor:207]:   Device Class: 'signal_strength'
+[23:21:15][C][http_request:014]: HTTP Request:
+[23:21:15][C][http_request:014]:   Timeout: 20000ms
+[23:21:15][C][http_request:014]:   User-Agent: ESPHome/2026.11.0-dev (https://esphome.io)
+[23:21:15][C][http_request:014]:   Follow redirects: YES
+[23:21:15][C][http_request:014]:   Redirect limit: 3
+[23:21:15][C][http_request:014]:   Max concurrent requests: 1
+[23:21:15][C][http_request:024]:   Watchdog Timeout: 61000ms
+[23:21:15][C][http_request:036]:   Buffer Size RX: 512
+[23:21:15][C][http_request:036]:   Buffer Size TX: 512
+[23:21:15][C][http_request:036]:   Custom CA Certificate: NO
+[23:21:15][C][http_request.ota:016]: Over-The-Air updates via HTTP request
+[23:21:15][C][mdns:336]: mDNS:
+[23:21:15][C][mdns:336]:   Hostname: ext-sensor-26026c
+[23:21:15][C][debug:017]: Debug component:
+[23:21:15][D][debug:031]: ESPHome version 2026.11.0-dev
+[23:21:15][D][debug:035]: Free Heap Size: 146096 bytes
+[23:21:15][D][debug:044]: Uptime: 0d 00h 00m 02s
+[23:21:15][D][debug:260]: ESP32 debug info:
+[23:21:15][D][debug:260]:   Chip: ESP32-S3
+[23:21:15][D][debug:260]:   Cores: 2
+[23:21:15][D][debug:260]:   Revision: 2
+[23:21:15][D][debug:260]:   CPU Frequency: 80 MHz
+[23:21:15][D][debug:260]:   ESP-IDF Version: v5.5.6
+[23:21:15][D][debug:260]:   EFuse MAC: D0:CF:13:26:02:6C
+[23:21:15][D][debug:260]:   Reset Reason: Reboot request from web_server.ota
+[23:21:15][D][debug:260]:   Wakeup Cause: undefined
+[23:21:15][D][debug:280]:   Framework: ESP-IDF
+[23:21:15][C][debug:163]: Partition table:
+[23:21:15][C][debug:163]:   Name         Type Subtype  Address    Size      
+[23:21:15][C][debug:170]:   otadata      1    0        0x00009000 0x00002000
+[23:21:15][C][debug:170]:   phy_init     1    1        0x0000B000 0x00001000
+[23:21:15][C][debug:170]:   app0         0    16       0x00010000 0x007C0000
+[23:21:15][C][debug:170]:   app1         0    17       0x007D0000 0x007C0000
+[23:21:15][C][debug:170]:   nvs          1    2        0x00F90000 0x00070000
+[23:21:15][I][espnow:241]: Channel set to 10.
+[23:21:15][C][espnow:120]: espnow:
+[23:21:15][C][espnow:131]:   Own address: D0:CF:13:26:02:6C
+[23:21:15][C][espnow:131]:   Wi-Fi channel: 10
+[23:21:15][C][espnow:137]:   Version: v2
+[23:21:15][C][espnow:140]:   Wi-Fi enabled: NO
+[23:21:15][I][espnow:241]: Channel set to 11.
+[23:21:15][I][espnow:241]: Channel set to 12.
+[23:21:15][I][espnow:241]: Channel set to 13.
+[23:21:15][W][ens:139]: Nessun termostato su nessun canale, riprovo fra 10 s
+[23:21:16][I][ota:1159]: md5 del firmware in uso: 8b228400914be768d57074fe917b6ed9 (era 600f632c716d4b146fe771472e4348c0)
+[23:21:16][D][sht3xd:075]: Got temperature=24.01°C humidity=62.81%
+[23:21:18][D][sht3xd:075]: Got temperature=23.98°C humidity=62.80%
+[23:21:20][D][sht3xd:075]: Got temperature=23.96°C humidity=62.83%
+[23:21:22][D][sht3xd:075]: Got temperature=24.02°C humidity=62.83%

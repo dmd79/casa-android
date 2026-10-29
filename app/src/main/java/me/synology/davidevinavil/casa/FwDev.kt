@@ -53,10 +53,13 @@ import java.util.Locale
  * dell'hotspot, vuoto se non si conosce (gate: ognuno ha il suo).
  * [setOta]: manda al dispositivo l'indirizzo degli aggiornamenti scelto qui
  * (null se accettato), cosi' app e dispositivo usano lo stesso.
+ * [readMd5]: md5 del firmware in uso letto ora dal dispositivo, per verificare
+ * dopo il riavvio che abbia proprio il file caricato.
  */
 @Composable
 fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: String, devMd5: String,
-                hotspot: String, where: suspend () -> String?, setOta: (suspend (String) -> String?)? = null, onBack: () -> Unit) {
+                hotspot: String, where: suspend () -> String?, setOta: (suspend (String) -> String?)? = null,
+                readMd5: (suspend () -> String?)? = null, onBack: () -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var started by remember { mutableStateOf(false) }
@@ -92,8 +95,9 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
     var go by remember { mutableStateOf(0) }
     var built by remember { mutableStateOf<String?>(null) }     // data di compilazione del firmware scaricato
     var retry by remember { mutableStateOf(false) }             // secondo tentativo automatico in corso
+    var verified by remember { mutableStateOf<Boolean?>(null) } // dopo il riavvio: true stesso md5, false diverso, null non letto
     LaunchedEffect(go) {
-        retry = false
+        retry = false; verified = null
         if (go == 0) return@LaunchedEffect
         err = null; step = 0; pct = 0; host = null
         // 0. firmware: dal telefono o scaricato, finche' c'e' la rete
@@ -129,11 +133,15 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
         }
         // 3. caricamento
         val h = host ?: FwUpdate.HOTSPOT
+        val want = withContext(Dispatchers.IO) { FwUpdate.fileMd5(f) }
+        val oldMd5 = devMd5
         val e3 = withContext(Dispatchers.IO) { FwUpdate.uploadRetry(ctx, f, h, retrying = { retry = true }) { p -> pct = p } }
         if (e3 != null) { err = "Aggiornamento non riuscito: $e3."; return@LaunchedEffect }
         step = 4
         delay(8000)
         if (!useFile) f.delete()
+        // 4. verifica: il dispositivo riavviato ha proprio questo firmware?
+        readMd5?.let { r -> verified = FwUpdate.verify(want, oldMd5, r) }
         step = 5
     }
 
@@ -191,7 +199,7 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
                 if (lan) "Trovato in rete: $host" else "Cerco il $word",
                 if (lan) "Stessa rete del telefono" else if (hotspot.isBlank()) "Collegati all'hotspot del $word" else "Collegati all'hotspot «$hotspot»",
                 if (step == 3) (if (retry) "Interrotto, riprovo: $pct %" else "Caricamento $pct %") else "Caricamento",
-                "Riavvio",
+                if (step == 4) "Riavvio e verifica" else "Riavvio",
             ).forEachIndexed { i, t ->
                 val ok = i < step; val now = i == step && err == null && step < 5; val bad = i == step && err != null
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -213,7 +221,11 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
                 ", con la sua password. Appena sei collegato va avanti da solo.", center = true)
             Btn("Apri impostazioni Wi-Fi") { Hotspot.openWifiSettings(ctx) }
         }
-        if (step == 5) Note("Fatto: il $word si è riavviato. Lo ritrovi in Bluetooth o sul relay." +
+        if (step == 5) Note((when (verified) {
+            true -> "Fatto e verificato: il $word ha il firmware nuovo."
+            false -> "Il $word si è riavviato ma non ha il firmware caricato (md5 diverso): riprova l'aggiornamento."
+            else -> "Fatto: il $word si è riavviato (non verificato in Bluetooth)."
+        }) + " Lo ritrovi in Bluetooth o sul relay." +
             if (lan) "" else " Puoi tornare sulla tua rete.", center = true)
         err?.let { Text(it, color = Color(0xFFE7C12C), fontSize = 14.sp, modifier = Modifier.padding(top = 12.dp)) }
         Spacer(Modifier.height(16.dp))

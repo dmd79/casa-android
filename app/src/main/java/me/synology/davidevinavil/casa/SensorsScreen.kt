@@ -503,6 +503,7 @@ object FwUpdate {
         val bnd = "----casa" + System.currentTimeMillis()
         val head = "--$bnd\r\nContent-Disposition: form-data; name=\"update\"; filename=\"firmware.bin\"\r\nContent-Type: application/octet-stream\r\n\r\n".toByteArray()
         val tail = "\r\n--$bnd--\r\n".toByteArray()
+        var sent = false
         return try {
             val c = open(ctx, host, "/update") ?: return "hotspot non collegato"
             c.requestMethod = "POST"; c.doOutput = true
@@ -519,11 +520,46 @@ object FwUpdate {
                 }
                 o.write(tail)
             }
+            sent = true
             val code = c.responseCode
             val body = (if (code < 400) c.inputStream else c.errorStream)?.bufferedReader()?.use { it.readText() } ?: ""
             c.disconnect()
             if (code in 200..399 && !body.contains("fail", true)) null else "il dispositivo ha rifiutato il file ($code)"
-        } catch (e: Exception) { "caricamento interrotto (${e.message ?: "rete"})" }
+        } catch (e: Exception) {
+            // File arrivato tutto e connessione caduta dopo: il dispositivo si
+            // riavvia 100 ms dopo "Update Successful!" e la risposta a volte non
+            // arriva. Non e' un errore: la verifica dopo il riavvio dice com'e' andata.
+            if (sent) null else "caricamento interrotto (${e.message ?: "rete"})"
+        }
+    }
+
+    /** md5 di un file (minuscolo), come firmware.md5 e come lo calcola il dispositivo. */
+    fun fileMd5(f: File): String = try {
+        val md = java.security.MessageDigest.getInstance("MD5")
+        f.inputStream().use { i -> val b = ByteArray(8192); while (true) { val r = i.read(b); if (r < 0) break; md.update(b, 0, r) } }
+        md.digest().joinToString("") { "%02x".format(it) }
+    } catch (_: Exception) { "" }
+
+    /**
+     * Dopo il riavvio: il dispositivo ha il firmware caricato? Rilegge il suo
+     * md5 ([read], via Bluetooth) fino a 3 minuti (il Bluetooth puo' ripartire
+     * solo dopo 90 s senza Wi-Fi). true = stesso md5 del file, false = un altro
+     * md5 nuovo, null = non letto. [old]: md5 di prima, ignorato (lettura ancora
+     * vecchia, da prima del riavvio).
+     */
+    suspend fun verify(want: String, old: String, read: suspend () -> String?): Boolean? {
+        if (want.isBlank()) return null
+        var seen: String? = null
+        val ok = kotlinx.coroutines.withTimeoutOrNull(180_000) {
+            while (true) {
+                val m = try { read()?.trim()?.lowercase() } catch (_: Exception) { null }
+                if (m == want) return@withTimeoutOrNull true
+                if (!m.isNullOrBlank() && m != old.trim().lowercase()) seen = m
+                kotlinx.coroutines.delay(5000)
+            }
+            @Suppress("UNREACHABLE_CODE") false
+        }
+        return if (ok == true) true else if (seen != null) false else null
     }
 }
 
@@ -595,9 +631,10 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
     var go by remember { mutableStateOf(0) }
     var built by remember { mutableStateOf<String?>(null) }     // data di compilazione del firmware scaricato
     var retry by remember { mutableStateOf(false) }             // secondo tentativo automatico in corso
+    var verified by remember { mutableStateOf<Boolean?>(null) } // dopo il riavvio: true stesso md5, false diverso, null non letto
     LaunchedEffect(go) {
         if (go == 0) return@LaunchedEffect
-        retry = false
+        retry = false; verified = null
         err = null; step = 0; pct = 0
         val st = s ?: sb.peek(addr)
         // 0. firmware: dal telefono o scaricato, finche' c'e' la rete
@@ -626,11 +663,14 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
         if (up != true) { err = "Hotspot non raggiunto entro 10 minuti."; return@LaunchedEffect }
         step = 3
         // 3. caricamento
+        val want = withContext(Dispatchers.IO) { FwUpdate.fileMd5(f) }
         val e3 = withContext(Dispatchers.IO) { FwUpdate.uploadRetry(ctx, f, retrying = { retry = true }) { p -> pct = p } }
         if (e3 != null) { err = "Aggiornamento non riuscito: $e3."; return@LaunchedEffect }
         step = 4
         delay(8000)
         if (!useFile) f.delete()
+        // 4. verifica: il sensore riavviato ha proprio questo firmware?
+        verified = FwUpdate.verify(want, st?.md5.orEmpty()) { withContext(Dispatchers.IO) { sb.peek(addr)?.md5 } }
         step = 5
     }
 
@@ -699,7 +739,11 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
             Note("Nelle impostazioni Wi-Fi del telefono collegati all'hotspot del sensore (di solito «Ext-Sensor Hotspot»), con la sua password. Resta collegato finché non finisce.", center = true)
             Btn("Apri impostazioni Wi-Fi") { Hotspot.openWifiSettings(ctx) }
         }
-        if (step == 5) Note("Fatto: il sensore si è riavviato e torna nel suo modo. Puoi tornare sulla tua rete.", center = true)
+        if (step == 5) Note(when (verified) {
+            true -> "Fatto e verificato: il sensore ha il firmware nuovo e torna nel suo modo. Puoi tornare sulla tua rete."
+            false -> "Il sensore si è riavviato ma non ha il firmware caricato (md5 diverso): riprova l'aggiornamento."
+            else -> "Firmware caricato e sensore riavviato; non sono riuscito a verificarlo in Bluetooth. Puoi tornare sulla tua rete."
+        }, center = true)
         err?.let { Text(it, color = Color(0xFFE7C12C), fontSize = 14.sp, modifier = Modifier.padding(top = 12.dp)) }
         Spacer(Modifier.height(16.dp))
         if (err != null) {
