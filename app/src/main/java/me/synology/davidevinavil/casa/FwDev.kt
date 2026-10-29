@@ -84,6 +84,7 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
     var err by remember { mutableStateOf<String?>(null) }
     var host by remember { mutableStateOf<String?>(null) }     // null: hotspot
     var go by remember { mutableStateOf(0) }
+    var built by remember { mutableStateOf<String?>(null) }     // data di compilazione del firmware scaricato
     LaunchedEffect(go) {
         if (go == 0) return@LaunchedEffect
         err = null; step = 0; pct = 0; host = null
@@ -96,6 +97,7 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
             val out = File(ctx.cacheDir, "fw_dev.bin")
             val e0 = withContext(Dispatchers.IO) { FwUpdate.download(u, out) { p -> pct = p } }
             if (e0 != null) { err = "Firmware non scaricato: $e0. Senza rete scegli «File sul telefono»."; return@LaunchedEffect }
+            built = withContext(Dispatchers.IO) { FwUpdate.built(out) }
             out
         }
         step = 1; pct = 0
@@ -152,7 +154,7 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
                     verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(l?.name ?: "Nessun file scelto", color = pal.text, fontSize = 15.sp)
-                        Text(l?.let { String.format(Locale.ITALY, "%.2f MB", it.size / 1048576.0) } ?: "tocca per scegliere il .bin", color = pal.muted, fontSize = 12.sp)
+                        Text(l?.let { String.format(Locale.ITALY, "%.2f MB", it.size / 1048576.0) + (it.built?.let { b -> " · compilato il $b" } ?: "") } ?: "tocca per scegliere il .bin", color = pal.muted, fontSize = 12.sp)
                     }
                     Text(if (l == null) "Scegli" else "Cambia", color = pal.accent, fontSize = 14.sp)
                 }
@@ -172,7 +174,9 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
             color = pal.value, fontSize = 14.sp, modifier = Modifier.padding(top = 14.dp))
         Column(Modifier.padding(top = 14.dp, start = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             listOf(
-                when { useFile -> "File pronto"; step == 0 && pct > 0 -> "Scarico il firmware $pct %"; else -> "Firmware scaricato" },
+                // con la data della build: se il file sul server e' vecchio si vede subito
+                when { useFile -> "File pronto"; step == 0 && pct > 0 -> "Scarico il firmware $pct %"; else -> "Firmware scaricato" } +
+                    ((if (useFile) local?.built else built)?.let { " (compilato il $it)" } ?: ""),
                 if (lan) "Trovato in rete: $host" else "Cerco il $word",
                 if (lan) "Stessa rete del telefono" else if (hotspot.isBlank()) "Collegati all'hotspot del $word" else "Collegati all'hotspot «$hotspot»",
                 if (step == 3) "Caricamento $pct %" else "Caricamento",

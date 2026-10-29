@@ -420,6 +420,17 @@ private fun WifiAsk(onDismiss: () -> Unit, onOk: (String, String, String) -> Uni
  * "OTA Update" del portale).
  */
 object FwUpdate {
+    /**
+     * Data di compilazione scritta dentro il firmware ("29/10/2026 13:10"):
+     * ESPHome ci mette l'ora della build ("2026-10-29 13:10:25 +0100").
+     * Serve a vedere prima di caricarlo se il file e' quello appena compilato.
+     */
+    fun built(f: File): String? = try {
+        val t = String(f.readBytes(), Charsets.ISO_8859_1)
+        Regex("(20\\d\\d)-(\\d\\d)-(\\d\\d) (\\d\\d):(\\d\\d):\\d\\d [+-]\\d{4}").find(t)?.destructured
+            ?.let { (y, mo, d, h, mi) -> "$d/$mo/$y $h:$mi" }
+    } catch (_: Exception) { null }
+
     private fun url(base: String, file: String) = base.trim().trimEnd('/') + "/" + file
 
     fun md5(base: String): String? = try {
@@ -498,7 +509,7 @@ object FwUpdate {
 }
 
 /** File del firmware scelto sul telefono, copiato nella cache. */
-internal data class LocalFw(val file: java.io.File, val name: String, val size: Long)
+internal data class LocalFw(val file: java.io.File, val name: String, val size: Long, val built: String? = null)
 
 /** Copia il file scelto e controlla che sia un firmware ESP32 (primo byte 0xE9, almeno 100 KB). */
 internal fun copyFw(ctx: Context, uri: android.net.Uri): Pair<LocalFw?, String?> = try {
@@ -513,7 +524,7 @@ internal fun copyFw(ctx: Context, uri: android.net.Uri): Pair<LocalFw?, String?>
     when {
         out.length() < 100_000 -> null to "file troppo piccolo per un firmware"
         first != 0xE9 -> null to "non è un firmware ESP32 (.bin)"
-        else -> LocalFw(out, name, out.length()) to null
+        else -> LocalFw(out, name, out.length(), FwUpdate.built(out)) to null
     }
 } catch (e: Exception) { null to "file non letto (${e.message ?: "errore"})" }
 
@@ -554,6 +565,7 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
     var pct by remember { mutableStateOf(0) }
     var err by remember { mutableStateOf<String?>(null) }
     var go by remember { mutableStateOf(0) }
+    var built by remember { mutableStateOf<String?>(null) }     // data di compilazione del firmware scaricato
     LaunchedEffect(go) {
         if (go == 0) return@LaunchedEffect
         err = null; step = 0; pct = 0
@@ -567,6 +579,7 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
             val out = File(ctx.cacheDir, "fw_sensor.bin")
             val e0 = withContext(Dispatchers.IO) { FwUpdate.download(u, out) { p -> pct = p } }
             if (e0 != null) { err = "Firmware non scaricato: $e0. Senza rete scegli «File sul telefono»."; return@LaunchedEffect }
+            built = withContext(Dispatchers.IO) { FwUpdate.built(out) }
             out
         }
         step = 1; pct = 0
@@ -616,7 +629,7 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(l?.name ?: "Nessun file scelto", color = pal.text, fontSize = 15.sp)
-                        Text(l?.let { String.format(Locale.ITALY, "%.2f MB", it.size / 1048576.0) } ?: "tocca per scegliere il .bin", color = pal.muted, fontSize = 12.sp)
+                        Text(l?.let { String.format(Locale.ITALY, "%.2f MB", it.size / 1048576.0) + (it.built?.let { b -> " · compilato il $b" } ?: "") } ?: "tocca per scegliere il .bin", color = pal.muted, fontSize = 12.sp)
                     }
                     Text(if (l == null) "Scegli" else "Cambia", color = pal.accent, fontSize = 14.sp)
                 }
@@ -631,7 +644,8 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
             return@Column
         }
         Column(Modifier.padding(top = 16.dp, start = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            listOf(when { useFile -> "File pronto"; step == 0 && pct > 0 -> "Scarico il firmware $pct %"; else -> "Firmware scaricato" },
+            listOf(when { useFile -> "File pronto"; step == 0 && pct > 0 -> "Scarico il firmware $pct %"; else -> "Firmware scaricato" } +
+                    ((if (useFile) local?.built else built)?.let { " (compilato il $it)" } ?: ""),
                 "Hotspot del sensore acceso", "Collegati all'hotspot", if (step == 3) "Caricamento $pct %" else "Caricamento", "Riavvio").forEachIndexed { i, t ->
                 val ok = i < step; val now = i == step && err == null && step < 5; val bad = i == step && err != null
                 Row(verticalAlignment = Alignment.CenterVertically) {
