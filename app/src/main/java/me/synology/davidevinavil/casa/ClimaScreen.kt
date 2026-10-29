@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -173,10 +174,13 @@ private fun AcCard(modifier: Modifier, name: String, cur: Double?, tgt: Double?,
                    hum: Double? = null, src: String? = null, onLong: (() -> Unit)? = null, onClick: () -> Unit) {
     val off = status != null || mode == "off" || mode.isBlank()
     val col = if (status != null) Color(0xFF6B7479) else acColor(mode)
+    // fondo e bordo con la tonalita' del modo (spento, Cerco... e Non
+    // raggiungibile restano neutri, come i riquadri dei Sensori)
+    val bg = if (off) pal.card else lerp(pal.card, col, 0.13f)
+    val bd = if (off) pal.border else lerp(pal.card, col, 0.55f)
     Column(
-        // fondo e bordo uguali ai riquadri dei Sensori; il modo si vede dalla scritta colorata in fondo
-        modifier.heightIn(min = 128.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)
-            .border(1.dp, pal.border, RoundedCornerShape(16.dp))
+        modifier.heightIn(min = 128.dp).clip(RoundedCornerShape(16.dp)).background(bg)
+            .border(1.dp, bd, RoundedCornerShape(16.dp))
             .combinedClickable(onClick = onClick, onLongClick = onLong)
             .padding(horizontal = 13.dp, vertical = 12.dp),
     ) {
@@ -192,9 +196,12 @@ private fun AcCard(modifier: Modifier, name: String, cur: Double?, tgt: Double?,
         val tg = (if (status != null) null else t0(tgt))?.let { "→ $it °C  " }
         Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             if (tg != null) Text(tg, color = Color(0xFF8A9599), fontSize = 12.sp, maxLines = 1, softWrap = false)
+            // scritta del modo su una pastiglia scura: resta leggibile sul fondo colorato
             Text("● " + (status ?: acLabel(mode)).uppercase(), color = if (off) Color(0xFF6B7479) else col,
                 fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, maxLines = 1, softWrap = false,
-                overflow = TextOverflow.Ellipsis)
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(alpha = 0.45f))
+                    .padding(horizontal = 7.dp, vertical = 2.dp))
         }
     }
 }
