@@ -284,6 +284,9 @@ class Ble(private val ctx: Context, val store: Store) {
         }
     }
 
+    /** Collegamento per cui si e' gia' svuotato l'elenco in memoria delle caratteristiche. */
+    private var cacheRefreshed: BluetoothGatt? = null
+
     private suspend fun setup(g: BluetoothGatt) {
         val s = g.getService(Uuids.SVC)
         if (s == null) { g.disconnect(); return }
@@ -292,6 +295,16 @@ class Ble(private val ctx: Context, val store: Store) {
         chInfo = s.getCharacteristic(Uuids.INFO)      // assenti col firmware vecchio
         chScan = s.getCharacteristic(Uuids.SCAN)
         chSched = s.getCharacteristic(Uuids.SCHED)      // solo col firmware con la programmazione via Bluetooth
+        // Android tiene in memoria l'elenco delle caratteristiche dei dispositivi
+        // abbinati: dopo un aggiornamento del firmware che ne aggiunge (info,
+        // programmazione...) continuerebbe a non vederle. Se ne manca qualcuna si
+        // svuota quella memoria e si rilegge l'elenco, una volta per collegamento.
+        if ((chSched == null || chInfo == null || chScan == null) && cacheRefreshed !== g) {
+            cacheRefreshed = g
+            val ok = try { g.javaClass.getMethod("refresh").invoke(g) as? Boolean ?: false } catch (_: Exception) { false }
+            Log.d(TAG, "caratteristiche mancanti: rilettura dell'elenco ($ok)")
+            if (ok) { delay(500); if (g === gatt && g.discoverServices()) return }
+        }
         val rev = s.getCharacteristic(Uuids.REV)
         if (chState == null || chCmd == null) { g.disconnect(); return }
         if (rev != null) notify(g, rev)
