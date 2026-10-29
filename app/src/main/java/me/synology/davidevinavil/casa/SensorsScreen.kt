@@ -537,7 +537,9 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
     // scelta della fonte
     var started by remember { mutableStateOf(false) }
     var useFile by remember { mutableStateOf(false) }
-    var url by remember { mutableStateOf(app.store.fwUrl(addr).ifBlank { s?.ota ?: "" }) }
+    // quello del sensore; quello ricordato nell'app solo se il sensore non lo dice
+    var url by remember { mutableStateOf((s?.ota ?: "").ifBlank { app.store.fwUrl(addr) }) }
+    var edited by remember { mutableStateOf(false) }
     var avail by remember { mutableStateOf<String?>(null) }      // md5 disponibile all'indirizzo, "" = non trovato
     var local by remember { mutableStateOf<LocalFw?>(null) }
     var pickErr by remember { mutableStateOf<String?>(null) }
@@ -550,7 +552,7 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
         }
     }
     // indirizzo del sensore appena letto (se nell'app non ce n'e' uno scelto)
-    LaunchedEffect(s?.ota) { if (url.isBlank() && s != null) url = s.ota }
+    LaunchedEffect(s?.ota) { if (s != null && s.ota.isNotBlank() && (!edited || url.isBlank())) url = s.ota }
     if (s == null) LaunchedEffect(Unit) { sb.peek(addr) }
     // versione disponibile all'indirizzo (con un attimo di pausa mentre si scrive)
     LaunchedEffect(url, useFile) {
@@ -574,8 +576,10 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
         val f: File = if (useFile) {
             local?.file ?: run { err = "Scegli prima il file del firmware."; return@LaunchedEffect }
         } else {
-            val u = url.trim()
-            app.store.setFwUrl(addr, if (u == st?.ota) "" else u)
+            val u = url.trim().trimEnd('/')
+            app.store.setFwUrl(addr, u)
+            // indirizzo cambiato: lo prende anche il sensore (pagina e aggiornamenti da solo)
+            if (st != null && u != st.ota.trimEnd('/')) { try { sb.cmd(addr, "otaurl=$u") } catch (_: Exception) {} }
             val out = File(ctx.cacheDir, "fw_sensor.bin")
             val e0 = withContext(Dispatchers.IO) { FwUpdate.download(u, out) { p -> pct = p } }
             if (e0 != null) { err = "Firmware non scaricato: $e0. Senza rete scegli «File sul telefono»."; return@LaunchedEffect }
@@ -608,7 +612,7 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
             Text("Da dove prendo il firmware?", color = pal.text, fontSize = 20.sp, modifier = Modifier.padding(top = 14.dp, bottom = 12.dp))
             SrcOpt(ICO_NET, "Da indirizzo", !useFile, { useFile = false }) {
                 Text("Cartella con firmware.bin e firmware.md5", color = pal.muted, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
-                androidx.compose.material3.OutlinedTextField(value = url, onValueChange = { url = it }, singleLine = false,
+                androidx.compose.material3.OutlinedTextField(value = url, onValueChange = { url = it; edited = true }, singleLine = false,
                     colors = fieldColors(), modifier = Modifier.fillMaxWidth(),
                     textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Uri))

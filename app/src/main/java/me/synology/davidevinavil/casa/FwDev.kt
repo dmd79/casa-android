@@ -51,15 +51,19 @@ import java.util.Locale
  * [where]: IP del dispositivo se e' collegato al Wi-Fi, letto via Bluetooth.
  * [key]: dove ricordare l'indirizzo scelto (indirizzo Bluetooth). [hotspot]: nome
  * dell'hotspot, vuoto se non si conosce (gate: ognuno ha il suo).
+ * [setOta]: manda al dispositivo l'indirizzo degli aggiornamenti scelto qui
+ * (null se accettato), cosi' app e dispositivo usano lo stesso.
  */
 @Composable
 fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: String, devMd5: String,
-                hotspot: String, where: suspend () -> String?, onBack: () -> Unit) {
+                hotspot: String, where: suspend () -> String?, setOta: (suspend (String) -> String?)? = null, onBack: () -> Unit) {
     val ctx = LocalContext.current
     val scope = rememberCoroutineScope()
     var started by remember { mutableStateOf(false) }
     var useFile by remember { mutableStateOf(false) }
-    var url by remember { mutableStateOf(store.fwUrl(key).ifBlank { devOta }) }
+    // quello del dispositivo; quello ricordato nell'app solo se il dispositivo non lo dice
+    var url by remember { mutableStateOf(devOta.ifBlank { store.fwUrl(key) }) }
+    var edited by remember { mutableStateOf(false) }
     var avail by remember { mutableStateOf<String?>(null) }
     var local by remember { mutableStateOf<LocalFw?>(null) }
     var pickErr by remember { mutableStateOf<String?>(null) }
@@ -70,7 +74,7 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
             local = f; pickErr = e
         }
     }
-    LaunchedEffect(devOta) { if (url.isBlank()) url = devOta }
+    LaunchedEffect(devOta) { if (devOta.isNotBlank() && (!edited || url.isBlank())) url = devOta }
     LaunchedEffect(url, useFile) {
         avail = null
         if (useFile || !url.trim().startsWith("http")) return@LaunchedEffect
@@ -92,8 +96,10 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
         val f: File = if (useFile) {
             local?.file ?: run { err = "Scegli prima il file del firmware."; return@LaunchedEffect }
         } else {
-            val u = url.trim()
-            store.setFwUrl(key, if (u == devOta) "" else u)
+            val u = url.trim().trimEnd('/')
+            store.setFwUrl(key, u)
+            // indirizzo cambiato: lo prende anche il dispositivo (pagina e aggiornamenti da solo)
+            if (setOta != null && u != devOta.trimEnd('/')) { try { setOta(u) } catch (_: Exception) {} }
             val out = File(ctx.cacheDir, "fw_dev.bin")
             val e0 = withContext(Dispatchers.IO) { FwUpdate.download(u, out) { p -> pct = p } }
             if (e0 != null) { err = "Firmware non scaricato: $e0. Senza rete scegli «File sul telefono»."; return@LaunchedEffect }
@@ -133,7 +139,7 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
             Text("Da dove prendo il firmware?", color = pal.text, fontSize = 20.sp, modifier = Modifier.padding(top = 14.dp, bottom = 12.dp))
             SrcOpt(ICO_NET, "Da indirizzo", !useFile, { useFile = false }) {
                 Text("Cartella con firmware.bin e firmware.md5", color = pal.muted, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
-                androidx.compose.material3.OutlinedTextField(value = url, onValueChange = { url = it }, singleLine = false,
+                androidx.compose.material3.OutlinedTextField(value = url, onValueChange = { url = it; edited = true }, singleLine = false,
                     colors = fieldColors(), modifier = Modifier.fillMaxWidth(),
                     textStyle = androidx.compose.ui.text.TextStyle(fontSize = 13.sp, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace),
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Uri))

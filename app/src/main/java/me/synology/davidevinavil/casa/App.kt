@@ -91,6 +91,7 @@ fun App(ble: Ble, store: Store, go: MutableStateFlow<Scr?>? = null) {
                     val inf by ble.info.collectAsState()
                     DevFwUpdate(st!!.name.ifBlank { "condizionatore" }, "condizionatore", addr!!, store, inf?.ota.orEmpty(), inf?.md5.orEmpty(),
                         "Haier Hotspot", where = { ble.readInfo(); ble.info.value?.let { if (it.wifi && it.ip.isNotBlank()) it.ip else null } },
+                        setOta = { u -> if (ble.send("otaurl", u)) null else "non inviato" },
                         onBack = { scr = Scr.SET })
                 }
                 scr == Scr.WIFI && st != null -> WifiScreen(ble, onBack = { scr = Scr.SET })
