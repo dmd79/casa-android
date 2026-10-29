@@ -204,6 +204,25 @@ class Bridge(private val ctx: Context, private val store: Store, private val web
         return o.toString()
     }
 
+    /**
+     * Sensori scelti per la temperatura di tutti i condizionatori (Plancia del
+     * relay): {"<id>":{"n":nome,"t":21.9,"h":67.1}, ...}; vuoto se nessuno.
+     */
+    @JavascriptInterface
+    fun acSensors(): String {
+        val src = (ctx as CasaApp).acSrc
+        val o = org.json.JSONObject()
+        src.choice.value.keys.forEach { id ->
+            val s = src.of(id) ?: return@forEach
+            val j = org.json.JSONObject().put("n", s.name)
+            s.t?.let { j.put("t", it) }
+            s.h?.let { j.put("h", it) }
+            o.put(id, j)
+        }
+        if (o.length() > 0 && src.stale()) kotlin.concurrent.thread { src.refresh(Relay.cookie()) }   // al massimo ogni minuto
+        return o.toString()
+    }
+
     /** Tocco sulla temperatura della pagina del condizionatore: scelta del sensore. */
     @JavascriptInterface
     fun acSensorPick() {
