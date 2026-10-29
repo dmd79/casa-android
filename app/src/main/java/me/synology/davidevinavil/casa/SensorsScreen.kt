@@ -371,8 +371,9 @@ private fun SensorDetail(app: CasaApp, addr: String, onBack: () -> Unit, onUpdat
 @Composable
 private fun Kv(k: String, v: String, c: Color? = null) {
     Row(Modifier.fillMaxWidth().padding(vertical = 9.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(k, color = pal.muted, fontSize = 14.sp)
-        Text(v, color = c ?: pal.text, fontSize = 14.sp, textAlign = TextAlign.End, modifier = Modifier.padding(start = 12.dp))
+        Text(k, color = pal.muted, fontSize = 14.sp, maxLines = 1)
+        // valore lungo: va a capo nel suo spazio, allineato a destra (l'etichetta resta intera)
+        Text(v, color = c ?: pal.text, fontSize = 14.sp, textAlign = TextAlign.End, modifier = Modifier.weight(1f).padding(start = 12.dp))
     }
 }
 

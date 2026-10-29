@@ -248,8 +248,8 @@ fun ScanScreen(ble: Ble, store: Store, onBack: () -> Unit, onPick: (Found) -> Un
                     .padding(horizontal = 18.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Column {
-                    Text(f.name, color = pal.text, fontSize = 19.sp)
+                Column(Modifier.weight(1f).padding(end = 10.dp)) {
+                    Text(f.name, color = pal.text, fontSize = 19.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                     Text(if (known) "già salvato" else f.address, color = pal.muted, fontSize = 14.sp)
                 }
                 SignalBars(f.rssi)
@@ -376,7 +376,11 @@ fun WifiScreen(ble: Ble, onBack: () -> Unit) {
                     .border(if (on) 2.dp else 1.dp, if (on) pal.accent else pal.border, RoundedCornerShape(16.dp))
                     .clickable { sel = n.ssid; pw = "" }.padding(horizontal = 18.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
-            ) { Text(n.ssid, color = pal.text, fontSize = 18.sp); SignalBars(n.rssi) }
+            ) {
+                Text(n.ssid, color = pal.text, fontSize = 18.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).padding(end = 10.dp))
+                SignalBars(n.rssi)
+            }
         }
         if (sel.isNotEmpty()) {
             Note("Password di $sel")
