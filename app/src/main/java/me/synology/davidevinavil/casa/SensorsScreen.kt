@@ -527,6 +527,9 @@ object FwUpdate {
     }
 }
 
+/** Prime 8 cifre di un md5 ("?" se non c'e'). */
+internal fun word8(m: String?) = m.orEmpty().trim().take(8).ifBlank { "?" }
+
 /** File del firmware scelto sul telefono, copiato nella cache. */
 internal data class LocalFw(val file: java.io.File, val name: String, val size: Long, val built: String? = null)
 
@@ -552,6 +555,8 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
     val ctx = LocalContext.current
     val sb = app.sensors
     val s = sb.stati.collectAsState().value[addr]
+    // stato fresco: dopo un aggiornamento l'md5 ricordato e' quello di prima
+    LaunchedEffect(addr) { withContext(Dispatchers.IO) { try { sb.peek(addr) } catch (_: Exception) {} } }
     val name = app.store.sensors.collectAsState().value.firstOrNull { it.address == addr }?.name ?: "sensore"
     // scelta della fonte
     var started by remember { mutableStateOf(false) }
@@ -644,7 +649,8 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
                     null -> if (url.trim().startsWith("http")) "Controllo l'indirizzo…" else "Indirizzo http:// o https://"
                     "" -> "Nessun firmware.md5 a questo indirizzo (o niente rete)"
                     inst -> "Già aggiornato: si può ricaricare lo stesso"
-                    else -> "Versione nuova disponibile"
+                    // le prime cifre dei due md5: si vede subito se il file sul server e' un altro
+                    else -> "Versione nuova disponibile (${word8(inst)} → ${word8(a)})"
                 }, color = if (avail != null && avail != "" && avail != inst) pal.ok else pal.muted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
             }
             SrcOpt(ICO_FILE, "File sul telefono", useFile, { useFile = true }) {

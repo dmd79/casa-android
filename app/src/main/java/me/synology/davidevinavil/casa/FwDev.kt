@@ -152,7 +152,8 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
                     null -> if (url.trim().startsWith("http")) "Controllo l'indirizzo…" else "Indirizzo http:// o https://"
                     "" -> "Nessun firmware.md5 a questo indirizzo (o niente rete)"
                     inst -> "Già aggiornato: si può ricaricare lo stesso"
-                    else -> "Versione nuova disponibile"
+                    // le prime cifre dei due md5: si vede subito se il file sul server e' un altro
+                    else -> "Versione nuova disponibile (${word8(inst)} → ${word8(a)})"
                 }, color = if (avail != null && avail != "" && avail != inst) pal.ok else pal.muted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
             }
             SrcOpt(ICO_FILE, "File sul telefono", useFile, { useFile = true }) {
