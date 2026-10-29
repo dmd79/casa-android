@@ -89,7 +89,9 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
     var host by remember { mutableStateOf<String?>(null) }     // null: hotspot
     var go by remember { mutableStateOf(0) }
     var built by remember { mutableStateOf<String?>(null) }     // data di compilazione del firmware scaricato
+    var retry by remember { mutableStateOf(false) }             // secondo tentativo automatico in corso
     LaunchedEffect(go) {
+        retry = false
         if (go == 0) return@LaunchedEffect
         err = null; step = 0; pct = 0; host = null
         // 0. firmware: dal telefono o scaricato, finche' c'e' la rete
@@ -125,7 +127,7 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
         }
         // 3. caricamento
         val h = host ?: FwUpdate.HOTSPOT
-        val e3 = withContext(Dispatchers.IO) { FwUpdate.upload(ctx, f, h) { p -> pct = p } }
+        val e3 = withContext(Dispatchers.IO) { FwUpdate.uploadRetry(ctx, f, h, retrying = { retry = true }) { p -> pct = p } }
         if (e3 != null) { err = "Aggiornamento non riuscito: $e3."; return@LaunchedEffect }
         step = 4
         delay(8000)
@@ -185,7 +187,7 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
                     ((if (useFile) local?.built else built)?.let { " (compilato il $it)" } ?: ""),
                 if (lan) "Trovato in rete: $host" else "Cerco il $word",
                 if (lan) "Stessa rete del telefono" else if (hotspot.isBlank()) "Collegati all'hotspot del $word" else "Collegati all'hotspot «$hotspot»",
-                if (step == 3) "Caricamento $pct %" else "Caricamento",
+                if (step == 3) (if (retry) "Interrotto, riprovo: $pct %" else "Caricamento $pct %") else "Caricamento",
                 "Riavvio",
             ).forEachIndexed { i, t ->
                 val ok = i < step; val now = i == step && err == null && step < 5; val bad = i == step && err != null

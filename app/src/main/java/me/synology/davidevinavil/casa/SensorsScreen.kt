@@ -478,6 +478,25 @@ object FwUpdate {
         }
     } catch (e: Exception) { false }
 
+    /**
+     * Come [upload], con un secondo tentativo automatico se il caricamento si
+     * interrompe (es. "Broken pipe" verso la fine): succedeva quasi sempre al
+     * primo tentativo, mai al secondo, senza che il dispositivo si riavviasse.
+     * [retrying] avvisa la pagina che si riprova.
+     */
+    fun uploadRetry(ctx: Context, f: File, host: String = HOTSPOT, retrying: () -> Unit = {}, progress: (Int) -> Unit): String? {
+        val e = upload(ctx, f, host, progress) ?: return null
+        if (!e.startsWith("caricamento interrotto")) return e
+        retrying()
+        Thread.sleep(3000)
+        // la pagina deve rispondere di nuovo (fino a 20 s), poi si ricarica tutto da capo
+        var up = false
+        for (i in 0 until 10) { if (pageUp(ctx, host)) { up = true; break }; Thread.sleep(2000) }
+        if (!up) return e
+        progress(0)
+        return upload(ctx, f, host, progress)
+    }
+
     /** Carica il firmware; null se riuscito, altrimenti il motivo. */
     fun upload(ctx: Context, f: File, host: String = HOTSPOT, progress: (Int) -> Unit): String? {
         if (host == HOTSPOT && Hotspot.wifi(ctx) == null) return "hotspot non collegato"
@@ -568,8 +587,10 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
     var err by remember { mutableStateOf<String?>(null) }
     var go by remember { mutableStateOf(0) }
     var built by remember { mutableStateOf<String?>(null) }     // data di compilazione del firmware scaricato
+    var retry by remember { mutableStateOf(false) }             // secondo tentativo automatico in corso
     LaunchedEffect(go) {
         if (go == 0) return@LaunchedEffect
+        retry = false
         err = null; step = 0; pct = 0
         val st = s ?: sb.peek(addr)
         // 0. firmware: dal telefono o scaricato, finche' c'e' la rete
@@ -598,7 +619,7 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
         if (up != true) { err = "Hotspot non raggiunto entro 10 minuti."; return@LaunchedEffect }
         step = 3
         // 3. caricamento
-        val e3 = withContext(Dispatchers.IO) { FwUpdate.upload(ctx, f) { p -> pct = p } }
+        val e3 = withContext(Dispatchers.IO) { FwUpdate.uploadRetry(ctx, f, retrying = { retry = true }) { p -> pct = p } }
         if (e3 != null) { err = "Aggiornamento non riuscito: $e3."; return@LaunchedEffect }
         step = 4
         delay(8000)
@@ -650,7 +671,7 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
         Column(Modifier.padding(top = 16.dp, start = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             listOf(when { useFile -> "File pronto"; step == 0 && pct > 0 -> "Scarico il firmware $pct %"; else -> "Firmware scaricato" } +
                     ((if (useFile) local?.built else built)?.let { " (compilato il $it)" } ?: ""),
-                "Hotspot del sensore acceso", "Collegati all'hotspot", if (step == 3) "Caricamento $pct %" else "Caricamento", "Riavvio").forEachIndexed { i, t ->
+                "Hotspot del sensore acceso", "Collegati all'hotspot", if (step == 3) (if (retry) "Interrotto, riprovo: $pct %" else "Caricamento $pct %") else "Caricamento", "Riavvio").forEachIndexed { i, t ->
                 val ok = i < step; val now = i == step && err == null && step < 5; val bad = i == step && err != null
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.width(26.dp), contentAlignment = Alignment.CenterStart) {
