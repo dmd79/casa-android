@@ -311,8 +311,10 @@ fun SettingsScreen(ble: Ble, store: Store, onBack: () -> Unit, onWifi: () -> Uni
             .border(1.dp, pal.border, RoundedCornerShape(16.dp)).padding(horizontal = 18.dp, vertical = 4.dp)) {
             rows.forEach { (k, v) ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(k, color = pal.value, fontSize = 16.sp)
-                    Text(v, color = if (k == "Blocco più grande" && (i?.block ?: 9999) < 4096) pal.danger else pal.text, fontSize = 16.sp)
+                    Text(k, color = pal.value, fontSize = 16.sp, maxLines = 1)
+                    // valore lungo (es. "Ultimo riavvio"): va a capo nel suo spazio, allineato a destra
+                    Text(v, color = if (k == "Blocco più grande" && (i?.block ?: 9999) < 4096) pal.danger else pal.text, fontSize = 16.sp,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.End, modifier = Modifier.weight(1f).padding(start = 16.dp))
                 }
             }
         }
