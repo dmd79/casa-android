@@ -145,8 +145,8 @@ fun AcSrcSheet(app: CasaApp, acId: String, acName: String, onDismiss: () -> Unit
 @Composable
 private fun SrcRow(t: String, sub: String, v: String, on: Boolean, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(bottom = 6.dp).clip(RoundedCornerShape(14.dp)).background(if (on) pal.sel else pal.card)
-            .border(1.dp, if (on) pal.accent else pal.border, RoundedCornerShape(14.dp)).clickable(onClick = onClick)
+        Modifier.fillMaxWidth().padding(bottom = 6.dp).clip(RoundedCornerShape(R_CARD)).background(if (on) pal.sel else pal.card)
+            .border(BW, if (on) pal.accent else pal.border, RoundedCornerShape(R_CARD)).clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

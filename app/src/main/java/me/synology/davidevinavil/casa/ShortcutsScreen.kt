@@ -131,8 +131,8 @@ fun ShortcutsScreen(store: Store, web: WebView) {
 
 @Composable
 private fun Choice(title: String, sub: String, onClick: () -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(14.dp)).background(pal.card)
-        .border(1.dp, pal.border, RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp)) {
+    Column(Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(R_CARD)).background(pal.card)
+        .border(BW, pal.border, RoundedCornerShape(R_CARD)).clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp)) {
         Text(title, color = pal.text, fontSize = 18.sp)
         Text(sub, color = pal.muted, fontSize = 14.sp)
     }

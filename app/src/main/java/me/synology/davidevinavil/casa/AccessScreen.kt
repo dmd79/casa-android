@@ -156,11 +156,11 @@ fun AccessScreen(app: CasaApp, setWho: (String) -> Unit, onHistory: () -> Unit, 
                 Text(if (btGates.isNotEmpty()) "Relay non raggiungibile: apro via Bluetooth, da vicino" else "Relay non raggiungibile",
                     color = y, fontSize = 14.sp,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(12.dp))
-                        .background(y.copy(alpha = .12f)).border(1.dp, y, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 10.dp))
+                        .background(y.copy(alpha = .12f)).border(BW, y, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 10.dp))
             }
             Row(
                 Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(12.dp)).background(pal.card)
-                    .border(1.dp, pal.border, RoundedCornerShape(12.dp)).clickable { askWho = true }
+                    .border(BW, pal.border, RoundedCornerShape(12.dp)).clickable { askWho = true }
                     .padding(horizontal = 14.dp, vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
             ) {

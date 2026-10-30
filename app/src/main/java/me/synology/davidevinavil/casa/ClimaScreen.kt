@@ -123,7 +123,7 @@ fun ClimaScreen(app: CasaApp, openRelay: (RelayDev) -> Unit, openBt: (String) ->
             Text(if (bts.isNotEmpty()) "Relay non raggiungibile: apro via Bluetooth, da vicino" else "Relay non raggiungibile",
                 color = y, fontSize = 14.sp,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(12.dp))
-                    .background(y.copy(alpha = .12f)).border(1.dp, y, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 10.dp))
+                    .background(y.copy(alpha = .12f)).border(BW, y, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 10.dp))
         }
         if (list.isEmpty()) Note(if (loaded) "Nessun condizionatore. Entra nei condizionatori dalla scheda Tutti, oppure abbinane uno via Bluetooth qui sotto."
                                  else "Leggo i condizionatori…", center = true)
@@ -176,11 +176,11 @@ private fun AcCard(modifier: Modifier, name: String, cur: Double?, tgt: Double?,
     val col = if (status != null) Color(0xFF6B7479) else acColor(mode)
     // fondo e bordo con la tonalita' del modo (spento, Cerco... e Non
     // raggiungibile restano neutri, come i riquadri dei Sensori)
-    val bg = if (off) pal.card else lerp(pal.card, col, 0.13f)
-    val bd = if (off) pal.border else lerp(pal.card, col, 0.55f)
+    val bg = if (off) pal.card else tintBg(pal.card, col)
+    val bd = if (off) pal.border else tintBd(pal.card, col)
     Column(
-        modifier.heightIn(min = 128.dp).clip(RoundedCornerShape(16.dp)).background(bg)
-            .border(1.dp, bd, RoundedCornerShape(16.dp))
+        modifier.heightIn(min = 128.dp).clip(RoundedCornerShape(R_CARD)).background(bg)
+            .border(BW, bd, RoundedCornerShape(R_CARD))
             .combinedClickable(onClick = onClick, onLongClick = onLong)
             .padding(horizontal = 13.dp, vertical = 12.dp),
     ) {

@@ -130,7 +130,7 @@ fun PermissionScreen(ble: Ble) {
 @Composable
 private fun BigBt() {
     Box(Modifier.fillMaxWidth().padding(top = 60.dp, bottom = 30.dp), contentAlignment = Alignment.Center) {
-        Box(Modifier.size(140.dp).clip(CircleShape).background(pal.card).border(1.dp, pal.border, CircleShape),
+        Box(Modifier.size(140.dp).clip(CircleShape).background(pal.card).border(BW, pal.border, CircleShape),
             contentAlignment = Alignment.Center) { SvgIcon(Icons.bt, pal.accent, 64.dp) }
     }
 }
@@ -245,8 +245,8 @@ fun ScanScreen(ble: Ble, store: Store, onBack: () -> Unit, onPick: (Found) -> Un
         found.forEach { f ->
             val known = saved.any { it.address == f.address }
             Row(
-                Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)
-                    .border(1.dp, pal.border, RoundedCornerShape(16.dp)).clickable { onPick(f) }
+                Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(R_CARD)).background(pal.card)
+                    .border(BW, pal.border, RoundedCornerShape(R_CARD)).clickable { onPick(f) }
                     .padding(horizontal = 18.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -311,8 +311,8 @@ fun SettingsScreen(ble: Ble, store: Store, onBack: () -> Unit, onWifi: () -> Uni
             "Ora del condizionatore" to when { i.time == null -> "--"; i.time.isBlank() -> "non impostata"; else -> i.time },
             "Ultimo riavvio" to i.reset.ifBlank { "--" }, "Indirizzo IP" to (if (i.wifi && i.ip.isNotBlank()) i.ip else "--"),
             "Hotspot" to (if (i.ap) "acceso" else "spento"), "Firmware" to i.fw)
-        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(pal.card)
-            .border(1.dp, pal.border, RoundedCornerShape(16.dp)).padding(horizontal = 18.dp, vertical = 4.dp)) {
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(R_CARD)).background(pal.card)
+            .border(BW, pal.border, RoundedCornerShape(R_CARD)).padding(horizontal = 18.dp, vertical = 4.dp)) {
             rows.forEach { (k, v) ->
                 Row(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(k, color = pal.value, fontSize = 16.sp, maxLines = 1)
@@ -375,9 +375,9 @@ fun WifiScreen(ble: Ble, onBack: () -> Unit) {
         nets.take(10).forEach { n ->
             val on = n.ssid == sel
             Row(
-                Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(16.dp))
+                Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(R_CARD))
                     .background(if (on) pal.sel else pal.card)
-                    .border(if (on) 2.dp else 1.dp, if (on) pal.accent else pal.border, RoundedCornerShape(16.dp))
+                    .border(BW, if (on) pal.accent else pal.border, RoundedCornerShape(R_CARD))
                     .clickable { sel = n.ssid; pw = "" }.padding(horizontal = 18.dp, vertical = 16.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
             ) {

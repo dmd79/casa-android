@@ -280,7 +280,7 @@ fun BtPairDialogs(p: BtPairer) {
     Dialog(onDismissRequest = { if (end) p.close() }, properties = DialogProperties(dismissOnClickOutside = end, dismissOnBackPress = true)) {
         Column(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(pal.bg)
-                .border(1.dp, pal.border, RoundedCornerShape(24.dp)).padding(horizontal = 24.dp, vertical = 22.dp),
+                .border(BW, pal.border, RoundedCornerShape(24.dp)).padding(horizontal = 24.dp, vertical = 22.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             val red = Color(0xFFFF5A5A)

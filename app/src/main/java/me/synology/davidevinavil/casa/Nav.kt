@@ -273,9 +273,9 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
 @Composable
 private fun SheetRow(it: Item) {
     Row(
-        Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(14.dp))
+        Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(R_CARD))
             .background(if (it.selected) pal.sel else pal.card)
-            .border(if (it.selected) 2.dp else 1.dp, if (it.selected) pal.accent else pal.border, RoundedCornerShape(14.dp))
+            .border(BW, if (it.selected) pal.accent else pal.border, RoundedCornerShape(R_CARD))
             .clickable(onClick = it.onClick).padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -288,7 +288,7 @@ private fun SheetRow(it: Item) {
         }
         it.badge?.let { b ->
             Text(b, color = if (b == "BT") pal.accent else pal.value, fontSize = 12.sp,
-                modifier = Modifier.clip(RoundedCornerShape(10.dp)).border(1.dp, pal.border, RoundedCornerShape(10.dp))
+                modifier = Modifier.clip(RoundedCornerShape(10.dp)).border(BW, pal.border, RoundedCornerShape(10.dp))
                     .padding(horizontal = 8.dp, vertical = 2.dp))
         }
     }

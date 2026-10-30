@@ -169,7 +169,7 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
             SrcOpt(ICO_FILE, "File sul telefono", useFile, { useFile = true }) {
                 val l = local
                 Row(Modifier.fillMaxWidth().padding(top = 10.dp).clip(RoundedCornerShape(10.dp)).background(pal.bg)
-                    .border(1.dp, pal.border, RoundedCornerShape(10.dp)).clickable { picker.launch(arrayOf("*/*")) }.padding(10.dp),
+                    .border(BW, pal.border, RoundedCornerShape(10.dp)).clickable { picker.launch(arrayOf("*/*")) }.padding(10.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(l?.name ?: "Nessun file scelto", color = pal.text, fontSize = 15.sp)

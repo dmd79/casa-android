@@ -87,8 +87,8 @@ fun SchedScreen(ble: Ble, name: String, onBack: () -> Unit) {
             Note(if (ble.hasSched) "Leggo la programmazione…" else "Questo condizionatore non ha ancora il firmware con la programmazione via Bluetooth.", center = true)
             return@Column
         }
-        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(pal.card)
-            .border(1.dp, pal.border, RoundedCornerShape(18.dp)).padding(12.dp)) {
+        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(R_CARD)).background(pal.card)
+            .border(BW, pal.border, RoundedCornerShape(R_CARD)).padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("PROGRAMMAZIONE", color = pal.value, fontSize = 12.sp, letterSpacing = 2.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 Text("${s.slots.size}/24", color = pal.muted, fontSize = 12.sp, modifier = Modifier.padding(end = 8.dp))
@@ -97,7 +97,7 @@ fun SchedScreen(ble: Ble, name: String, onBack: () -> Unit) {
             Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 DAYS.forEachIndexed { i, d ->
                     val on = i == day
-                    Column(Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).border(if (on) 2.dp else 1.dp, if (on) pal.accent else pal.border, RoundedCornerShape(10.dp))
+                    Column(Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).border(BW, if (on) pal.accent else pal.border, RoundedCornerShape(10.dp))
                         .clickable { day = i }.padding(horizontal = 3.dp, vertical = 4.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(d, color = if (on) pal.accent else pal.value, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), maxLines = 1)
@@ -113,9 +113,9 @@ fun SchedScreen(ble: Ble, name: String, onBack: () -> Unit) {
             Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Programma ${DAYS[day]}", color = pal.accent, fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
                     modifier = Modifier.weight(1f).clip(RoundedCornerShape(22.dp)).background(pal.accent.copy(alpha = .1f))
-                        .border(2.dp, pal.accent, RoundedCornerShape(22.dp)).clickable { editSel = null; edit = true }.padding(vertical = 11.dp))
+                        .border(BW, pal.accent, RoundedCornerShape(22.dp)).clickable { editSel = null; edit = true }.padding(vertical = 11.dp))
                 Text("Copia ${DAYS[day]} su…", color = pal.value, fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
-                    modifier = Modifier.weight(1f).clip(RoundedCornerShape(22.dp)).border(1.dp, pal.border, RoundedCornerShape(22.dp))
+                    modifier = Modifier.weight(1f).clip(RoundedCornerShape(22.dp)).border(BW, pal.border, RoundedCornerShape(22.dp))
                         .clickable { copy = true }.padding(vertical = 11.dp))
             }
         }
@@ -129,7 +129,7 @@ fun SchedScreen(ble: Ble, name: String, onBack: () -> Unit) {
 @Composable
 private fun OnPill(on: Boolean, onClick: () -> Unit) {
     val c = if (on) pal.ok else pal.muted
-    Row(Modifier.clip(RoundedCornerShape(16.dp)).border(2.dp, c, RoundedCornerShape(16.dp)).clickable(onClick = onClick)
+    Row(Modifier.clip(RoundedCornerShape(R_CARD)).border(BW, c, RoundedCornerShape(R_CARD)).clickable(onClick = onClick)
         .padding(horizontal = 10.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(10.dp).clip(CircleShape).background(c))
         Text(if (on) " On" else " Off", color = c, fontSize = 14.sp, fontWeight = FontWeight.Bold)
@@ -250,7 +250,7 @@ private fun DaySheet(ble: Ble, s: Sched, day: Int, start: Int?, onClose: () -> U
                 val on = sel == i
                 Row(Modifier.fillMaxWidth().padding(bottom = 5.dp).clip(RoundedCornerShape(12.dp))
                     .background(if (on) c.copy(alpha = .15f) else Color.Transparent)
-                    .border(if (on) 2.dp else 1.dp, if (on) c else pal.border, RoundedCornerShape(12.dp))
+                    .border(BW, if (on) c else pal.border, RoundedCornerShape(12.dp))
                     .clickable { sel = i }.padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.size(9.dp).clip(CircleShape).background(if (x.enabled) c else pal.muted))
                     Text("  " + hm(x.hour, x.minute), color = if (x.enabled) pal.text else pal.muted, fontSize = 20.sp, fontFamily = FontFamily.Monospace)
@@ -260,7 +260,7 @@ private fun DaySheet(ble: Ble, s: Sched, day: Int, start: Int?, onClose: () -> U
             }
             if (s.slots.size < 24) Text("+ Aggiungi orario", color = pal.accent, fontSize = 14.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth().padding(top = 4.dp).clip(RoundedCornerShape(20.dp)).background(pal.accent.copy(alpha = .1f))
-                    .border(2.dp, pal.accent, RoundedCornerShape(20.dp)).clickable {
+                    .border(BW, pal.accent, RoundedCornerShape(20.dp)).clickable {
                         // nuovo orario solo per questo giorno (il firmware lo crea per tutti i giorni)
                         val n = s.slots.size
                         adding = true
@@ -270,7 +270,7 @@ private fun DaySheet(ble: Ble, s: Sched, day: Int, start: Int?, onClose: () -> U
             val x = cur
             if (x != null && sel != null) {
                 val i = sel!!
-                Column(Modifier.fillMaxWidth().padding(top = 10.dp).clip(RoundedCornerShape(14.dp)).border(1.dp, pal.border, RoundedCornerShape(14.dp)).padding(10.dp)) {
+                Column(Modifier.fillMaxWidth().padding(top = 10.dp).clip(RoundedCornerShape(R_CARD)).border(BW, pal.border, RoundedCornerShape(R_CARD)).padding(10.dp)) {
                     Lbl("ORA")
                     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(pal.card).clickable {
                         TimePickerDialog(ctx, { _, h, m -> cmd("set $i hour $h", "set $i minute $m") }, x.hour, x.minute, true).show()
@@ -285,7 +285,7 @@ private fun DaySheet(ble: Ble, s: Sched, day: Int, start: Int?, onClose: () -> U
                                 val c = schedColor(m)
                                 val on = x.modeKey == m
                                 Row(Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(if (on) c.copy(alpha = .15f) else Color.Transparent)
-                                    .border(1.dp, if (on) c else pal.border, RoundedCornerShape(10.dp)).clickable { if (!on) cmd("set $i mode $m") }
+                                    .border(BW, if (on) c else pal.border, RoundedCornerShape(10.dp)).clickable { if (!on) cmd("set $i mode $m") }
                                     .padding(horizontal = 8.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Text(MODE_LBL[m] ?: m, color = if (on) c else pal.value, fontSize = 13.sp, modifier = Modifier.weight(1f), maxLines = 1)
                                     if (on && withTemp(m)) {
@@ -309,7 +309,7 @@ private fun DaySheet(ble: Ble, s: Sched, day: Int, start: Int?, onClose: () -> U
                         OnPill(x.enabled) { cmd("set $i en ${if (x.enabled) "off" else "on"}") }
                         Spacer(Modifier.weight(1f))
                         // cestino: toglie il giorno aperto; se era l'unico giorno, l'orario sparisce
-                        Text("🗑", fontSize = 18.sp, modifier = Modifier.clip(RoundedCornerShape(16.dp)).border(2.dp, pal.danger, RoundedCornerShape(16.dp))
+                        Text("🗑", fontSize = 18.sp, modifier = Modifier.clip(RoundedCornerShape(R_CARD)).border(BW, pal.danger, RoundedCornerShape(R_CARD))
                             .clickable {
                                 sel = null
                                 if (x.days == (1 shl day)) cmd("del $i") else cmd("set $i day $day off")
@@ -325,7 +325,7 @@ private fun DaySheet(ble: Ble, s: Sched, day: Int, start: Int?, onClose: () -> U
 /** ✕ per chiudere un riquadro, come nella pagina web. */
 @Composable
 private fun CloseX(onClick: () -> Unit) {
-    Box(Modifier.padding(start = 10.dp).size(32.dp).clip(CircleShape).border(1.dp, pal.border, CircleShape).clickable(onClick = onClick),
+    Box(Modifier.padding(start = 10.dp).size(32.dp).clip(CircleShape).border(BW, pal.border, CircleShape).clickable(onClick = onClick),
         contentAlignment = Alignment.Center) { Text("✕", color = pal.text, fontSize = 15.sp) }
 }
 
@@ -337,7 +337,7 @@ private fun swLbl(v: String) = when (v) {
 
 @Composable
 private fun Chip2(t: String, v: String, modifier: Modifier, onClick: () -> Unit) {
-    Column(modifier.clip(RoundedCornerShape(10.dp)).background(pal.card).border(1.dp, pal.border, RoundedCornerShape(10.dp))
+    Column(modifier.clip(RoundedCornerShape(10.dp)).background(pal.card).border(BW, pal.border, RoundedCornerShape(10.dp))
         .clickable(onClick = onClick).padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Text(t, color = pal.muted, fontSize = 10.sp, maxLines = 1)
         Text(v, color = pal.text, fontSize = 12.sp, maxLines = 1)
@@ -371,14 +371,14 @@ private fun CopySheet(ble: Ble, s: Sched, src: Int, onClose: () -> Unit) {
                     Text(d, color = when { i == src -> pal.muted.copy(alpha = .5f); on -> pal.accent; else -> pal.text }, fontSize = 13.sp, textAlign = TextAlign.Center,
                         maxLines = 1, modifier = Modifier.weight(1f).clip(RoundedCornerShape(18.dp))
                             .background(if (on) pal.accent.copy(alpha = .15f) else Color.Transparent)
-                            .border(1.dp, if (on) pal.accent else pal.border, RoundedCornerShape(18.dp))
+                            .border(BW, if (on) pal.accent else pal.border, RoundedCornerShape(18.dp))
                             .clickable(enabled = i != src) { dst = if (on) dst - i else dst + i }.padding(vertical = 10.dp))
                 }
             }
             Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 listOf("Tutti i giorni" to (0..6).toSet(), "Lun - Ven" to (0..4).toSet(), "Sab - Dom" to setOf(5, 6)).forEach { (l, set) ->
                     Text(l, color = pal.text, fontSize = 13.sp, textAlign = TextAlign.Center, maxLines = 1,
-                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(18.dp)).border(1.dp, pal.value, RoundedCornerShape(18.dp))
+                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(18.dp)).border(BW, pal.value, RoundedCornerShape(18.dp))
                             .clickable { dst = set - src }.padding(vertical = 9.dp))
                 }
             }

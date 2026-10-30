@@ -157,7 +157,7 @@ private fun SensorsMain(app: CasaApp, openRelay: (RelayDev) -> Unit, onCharts: (
             Text(if (bts.isNotEmpty()) "Relay non raggiungibile: leggo via Bluetooth, da vicino" else "Relay non raggiungibile",
                 color = y, fontSize = 14.sp,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(12.dp))
-                    .background(y.copy(alpha = .12f)).border(1.dp, y, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 10.dp))
+                    .background(y.copy(alpha = .12f)).border(BW, y, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 10.dp))
         }
         if (list.isEmpty()) Note(if (loaded) "Nessun sensore. Entra nei sensori dalla scheda Tutti, oppure abbinane uno via Bluetooth qui sotto."
                                  else "Leggo i sensori…", center = true)
@@ -215,8 +215,8 @@ private fun SensorsMain(app: CasaApp, openRelay: (RelayDev) -> Unit, onCharts: (
 private fun SensorCard(modifier: Modifier, name: String, t: Double?, h: Double?, ch: String, status: String?, foot: String? = null, onClick: () -> Unit) {
     val off = status != null
     Column(
-        modifier.heightIn(min = 128.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)
-            .border(1.dp, pal.border, RoundedCornerShape(16.dp)).clickable(onClick = onClick)
+        modifier.heightIn(min = 128.dp).clip(RoundedCornerShape(R_CARD)).background(pal.card)
+            .border(BW, pal.border, RoundedCornerShape(R_CARD)).clickable(onClick = onClick)
             .padding(horizontal = 13.dp, vertical = 12.dp),
     ) {
         // stesso schema dei riquadri del Clima
@@ -288,8 +288,8 @@ private fun SensorScan(app: CasaApp, onBack: () -> Unit, onDone: () -> Unit) {
         Spacer(Modifier.height(18.dp))
         found.forEach { f ->
             Row(
-                Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)
-                    .border(1.dp, pal.border, RoundedCornerShape(16.dp)).clickable(enabled = busy == null) { sb.stopScan(); pick = f }
+                Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(R_CARD)).background(pal.card)
+                    .border(BW, pal.border, RoundedCornerShape(R_CARD)).clickable(enabled = busy == null) { sb.stopScan(); pick = f }
                     .padding(horizontal = 18.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -366,8 +366,8 @@ private fun SensorDetail(app: CasaApp, addr: String, onBack: () -> Unit, onUpdat
             Text("${d2(s?.h)} %", color = HUM_BLUE, fontSize = 20.sp, modifier = Modifier.padding(bottom = 6.dp))
         }
         if (s != null) {
-            Column(Modifier.fillMaxWidth().padding(top = 10.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)
-                .border(1.dp, pal.border, RoundedCornerShape(16.dp)).padding(horizontal = 14.dp, vertical = 4.dp)) {
+            Column(Modifier.fillMaxWidth().padding(top = 10.dp).clip(RoundedCornerShape(R_CARD)).background(pal.card)
+                .border(BW, pal.border, RoundedCornerShape(R_CARD)).padding(horizontal = 14.dp, vertical = 4.dp)) {
                 Kv("Funzionamento", modoNome(s.mode))
                 when {
                     s.mode == 2 -> Kv("Wi-Fi", "spento", pal.muted)
@@ -736,7 +736,7 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
             SrcOpt(ICO_FILE, "File sul telefono", useFile, { useFile = true }) {
                 val l = local
                 Row(Modifier.fillMaxWidth().padding(top = 10.dp).clip(RoundedCornerShape(10.dp)).background(pal.bg)
-                    .border(1.dp, pal.border, RoundedCornerShape(10.dp)).clickable { picker.launch(arrayOf("*/*")) }.padding(10.dp),
+                    .border(BW, pal.border, RoundedCornerShape(10.dp)).clickable { picker.launch(arrayOf("*/*")) }.padding(10.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
                         Text(l?.name ?: "Nessun file scelto", color = pal.text, fontSize = 15.sp)
@@ -800,8 +800,8 @@ internal val ICO_FILE = listOf(IconPart("M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h
 @Composable
 internal fun SrcOpt(icon: List<IconPart>, t: String, on: Boolean, onPick: () -> Unit, body: @Composable () -> Unit) {
     Column(
-        Modifier.fillMaxWidth().padding(bottom = 10.dp).clip(RoundedCornerShape(16.dp)).background(if (on) pal.sel else pal.card)
-            .border(1.dp, if (on) pal.accent else pal.border, RoundedCornerShape(16.dp)).clickable(onClick = onPick).padding(12.dp),
+        Modifier.fillMaxWidth().padding(bottom = 10.dp).clip(RoundedCornerShape(R_CARD)).background(if (on) pal.sel else pal.card)
+            .border(BW, if (on) pal.accent else pal.border, RoundedCornerShape(R_CARD)).clickable(onClick = onPick).padding(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             SvgIcon(icon, if (on) pal.accent else pal.value, 22.dp)

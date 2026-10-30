@@ -40,7 +40,7 @@ data class Pal(
 )
 
 private val DarkPal = Pal(
-    bg = Color(0xFF0D0D0D), card = Color(0xFF1A1A1A), border = Color(0xFF333333), accent = Color(0xFF2FC0FF),
+    bg = Color(0xFF0D0D0D), card = Color(0xFF161A1C), border = Color(0xFF26343A), accent = Color(0xFF2FC0FF),
     text = Color(0xFFF2F0EB), value = Color(0xFFB3AFA8), muted = Color(0xFF666666), sel = Color(0xFF122831),
     danger = Color(0xFFF5075C), ok = Color(0xFF39D19C), onAccent = Color(0xFF0D0D0D),
 )
@@ -51,6 +51,17 @@ private val LightPal = Pal(
 )
 
 val LocalPal = staticCompositionLocalOf { DarkPal }
+
+/**
+ * Bordo unico di tutti i riquadri (relay, Wi-Fi e Bluetooth), come la Plancia:
+ * sempre 1 dp. Selezione e stato si vedono dal colore, non dallo spessore.
+ */
+val BW = 1.dp
+/** Angoli dei riquadri: uguali in tutte le pagine. */
+val R_CARD = 16.dp
+/** Fondo e bordo nella tonalita' di un colore (modo del clima, stato del cancello). */
+fun tintBg(card: Color, c: Color) = androidx.compose.ui.graphics.lerp(card, c, 0.13f)
+fun tintBd(card: Color, c: Color) = androidx.compose.ui.graphics.lerp(card, c, 0.55f)
 val pal: Pal @Composable get() = LocalPal.current
 
 /** Colore di ogni modo, uguale al termostato e alla pagina web. */
@@ -141,7 +152,7 @@ fun Btn(text: String, modifier: Modifier = Modifier, secondary: Boolean = false,
     val fg = when { danger -> Color.White; secondary -> pal.text; else -> pal.onAccent }
     Box(
         modifier.fillMaxWidth().clip(RoundedCornerShape(32.dp)).background(if (enabled) bg else pal.border)
-            .then(if (secondary) Modifier.border(BorderStroke(1.dp, pal.border), RoundedCornerShape(32.dp)) else Modifier)
+            .then(if (secondary) Modifier.border(BorderStroke(BW, pal.border), RoundedCornerShape(32.dp)) else Modifier)
             .clickable(enabled = enabled, onClick = onClick).padding(vertical = 16.dp),
         contentAlignment = Alignment.Center,
     ) { Text(text, color = fg, fontSize = 20.sp) }
@@ -166,8 +177,8 @@ fun Section(text: String) = Text(text, Modifier.padding(top = 22.dp, bottom = 8.
 @Composable
 fun RowCard(label: String, value: String = "", onClick: () -> Unit) {
     androidx.compose.foundation.layout.Row(
-        Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)
-            .border(1.dp, pal.border, RoundedCornerShape(16.dp)).clickable(onClick = onClick)
+        Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(R_CARD)).background(pal.card)
+            .border(BW, pal.border, RoundedCornerShape(R_CARD)).clickable(onClick = onClick)
             .padding(horizontal = 18.dp, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,

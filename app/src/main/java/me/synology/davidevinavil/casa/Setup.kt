@@ -509,8 +509,8 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
                             "gate" -> Triple(ICO_GATE_DEV, pal.accent, "cancello o garage")
                             else -> Triple(ICO_AC, pal.accent, "condizionatore")
                         }
-                        Row(Modifier.fillMaxWidth().padding(bottom = 10.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)
-                            .border(1.dp, pal.border, RoundedCornerShape(16.dp)).clickable {
+                        Row(Modifier.fillMaxWidth().padding(bottom = 10.dp).clip(RoundedCornerShape(R_CARD)).background(pal.card)
+                            .border(BW, pal.border, RoundedCornerShape(R_CARD)).clickable {
                                 bt = f
                                 dev = HotspotDev(f.code, f.name, "", f.type)
                                 espnow = false; retry = false; wifiKo = false; noWifi = false; rid = ""
@@ -534,8 +534,8 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
                 }
                 St.HOTSPOT -> {
                     H("Collegati al dispositivo")
-                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(pal.card)
-                        .border(1.dp, pal.border, RoundedCornerShape(16.dp)).padding(16.dp),
+                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(R_CARD)).background(pal.card)
+                        .border(BW, pal.border, RoundedCornerShape(R_CARD)).padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally) {
                         SvgIcon(ICO_WIFI, pal.accent, 34.dp)
                         Text("Il dispositivo senza rete accende un suo Wi-Fi, di solito «nome Hotspot». Collegati lì dalle impostazioni Wi-Fi del telefono, con la sua password.",
@@ -637,8 +637,8 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
                     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { SvgIcon(listOf(IconPart("M5 12.5l4.5 4.5L19 7.5")), pal.ok, 58.dp, stroke = 2.4f) }
                     Text("${dev?.name ?: "Dispositivo"} aggiunto", color = pal.text, fontSize = 24.sp, textAlign = TextAlign.Center,
                         modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 14.dp))
-                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(pal.card)
-                        .border(1.dp, pal.border, RoundedCornerShape(16.dp)).padding(horizontal = 14.dp, vertical = 6.dp)) {
+                    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(R_CARD)).background(pal.card)
+                        .border(BW, pal.border, RoundedCornerShape(R_CARD)).padding(horizontal = 14.dp, vertical = 6.dp)) {
                         if (espnow) {
                             DoneRow(ICO_RADIO, "Funzionamento", "Solo ESP-NOW", pal.muted)
                             DoneRow(ICO_BT, "Bluetooth", "abbinato: da vicino anche senza internet", pal.ok)
@@ -680,8 +680,8 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
 @Composable
 private fun ModeOpt(icon: List<IconPart>, t: String, s: String, on: Boolean, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(bottom = 10.dp).clip(RoundedCornerShape(16.dp)).background(if (on) pal.sel else pal.card)
-            .border(1.dp, if (on) pal.accent else pal.border, RoundedCornerShape(16.dp)).clickable(onClick = onClick).padding(12.dp),
+        Modifier.fillMaxWidth().padding(bottom = 10.dp).clip(RoundedCornerShape(R_CARD)).background(if (on) pal.sel else pal.card)
+            .border(BW, if (on) pal.accent else pal.border, RoundedCornerShape(R_CARD)).clickable(onClick = onClick).padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         SvgIcon(icon, if (on) pal.accent else pal.value, 26.dp)
@@ -697,8 +697,8 @@ private fun ModeOpt(icon: List<IconPart>, t: String, s: String, on: Boolean, onC
 @Composable
 fun MacBox(mac: String) {
     val ctx = LocalContext.current
-    Column(Modifier.fillMaxWidth().padding(top = 12.dp).clip(RoundedCornerShape(16.dp)).background(pal.sel)
-        .border(1.dp, pal.accent.copy(alpha = .35f), RoundedCornerShape(16.dp)).clickable {
+    Column(Modifier.fillMaxWidth().padding(top = 12.dp).clip(RoundedCornerShape(R_CARD)).background(pal.sel)
+        .border(BW, pal.accent.copy(alpha = .35f), RoundedCornerShape(R_CARD)).clickable {
             val cm = ctx.getSystemService(android.content.ClipboardManager::class.java)
             cm?.setPrimaryClip(android.content.ClipData.newPlainText("MAC", mac))
         }.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {

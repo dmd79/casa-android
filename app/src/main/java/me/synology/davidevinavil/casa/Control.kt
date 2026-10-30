@@ -82,10 +82,10 @@ fun ControlScreen(ble: Ble, st: AcState, link: Link, onSettings: () -> Unit, onD
                 else -> "Ricollego…" to pal.danger
             }
             Text(txt, color = col, fontSize = 15.sp, modifier = Modifier.clip(RoundedCornerShape(18.dp)).background(pal.card)
-                .border(1.dp, col, RoundedCornerShape(18.dp)).clickable { if (link != Link.CONNECTED) ble.resume() }
+                .border(BW, col, RoundedCornerShape(18.dp)).clickable { if (link != Link.CONNECTED) ble.resume() }
                 .padding(horizontal = 12.dp, vertical = 6.dp))
             Box(Modifier.padding(start = 8.dp).size(42.dp).clip(CircleShape).background(pal.card)
-                .border(1.dp, pal.border, CircleShape).clickable(onClick = onSettings), contentAlignment = Alignment.Center) {
+                .border(BW, pal.border, CircleShape).clickable(onClick = onSettings), contentAlignment = Alignment.Center) {
                 SvgIcon(Icons.gear, pal.value, 22.dp)
             }
         }
@@ -101,7 +101,7 @@ fun ControlScreen(ble: Ble, st: AcState, link: Link, onSettings: () -> Unit, onD
             horizontalArrangement = Arrangement.SpaceBetween) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 val pc = if (on) mc else pal.danger
-                Box(Modifier.size(100.dp).clip(CircleShape).background(pc.copy(alpha = .25f)).border(2.dp, pc, CircleShape)
+                Box(Modifier.size(100.dp).clip(CircleShape).background(pc.copy(alpha = .25f)).border(BW, pc, CircleShape)
                     .clickable { val m = if (st.isOn) "off" else ble.store.lastMode; cmd("power", "1") { it.copy(mode = m) } },
                     contentAlignment = Alignment.Center) { SvgIcon(Icons.power, pc, 46.dp, stroke = 2.2f) }
                 Text(if (on) "Acceso" else "Spento", color = pal.text, fontSize = 17.sp, modifier = Modifier.padding(top = 6.dp))
@@ -126,7 +126,7 @@ fun ControlScreen(ble: Ble, st: AcState, link: Link, onSettings: () -> Unit, onD
                 val sel = on && st.mode == m
                 val c = modeColor(m)
                 Box(Modifier.size(62.dp).clip(CircleShape).background(if (sel) c.copy(alpha = .3f) else Color.Transparent)
-                    .border(if (sel) 2.dp else 1.dp, if (sel) c else pal.border, CircleShape)
+                    .border(BW, if (sel) c else pal.border, CircleShape)
                     .clickable { cmd("mode", m) { it.copy(mode = m) } }, contentAlignment = Alignment.Center) {
                     ModeIcon(m, c.copy(alpha = if (on) 1f else .5f), 30.dp)
                 }
@@ -178,7 +178,7 @@ fun ControlScreen(ble: Ble, st: AcState, link: Link, onSettings: () -> Unit, onD
 
 @Composable
 private fun Arrow(icon: List<IconPart>, onClick: () -> Unit) {
-    Box(Modifier.size(52.dp).clip(CircleShape).background(pal.accent.copy(alpha = .15f)).border(2.dp, pal.accent, CircleShape)
+    Box(Modifier.size(52.dp).clip(CircleShape).background(pal.accent.copy(alpha = .15f)).border(BW, pal.accent, CircleShape)
         .clickable(onClick = onClick), contentAlignment = Alignment.Center) { SvgIcon(icon, pal.accent, 26.dp, stroke = 3f) }
 }
 
@@ -188,7 +188,7 @@ private fun Chip(modifier: Modifier, active: Boolean = false, visible: Boolean =
     if (!visible) { Spacer(modifier.height(58.dp)); return }
     Box(
         modifier.height(58.dp).clip(RoundedCornerShape(12.dp)).background(if (active) pal.sel else pal.card)
-            .border(if (active) 2.dp else 1.dp, if (active) pal.accent else pal.border, RoundedCornerShape(12.dp))
+            .border(BW, if (active) pal.accent else pal.border, RoundedCornerShape(12.dp))
             .pointerInput(onLong, onTap) { detectTapGestures(onTap = { onTap() }, onLongPress = onLong?.let { l -> { _: Offset -> l() } }) },
         contentAlignment = Alignment.Center,
     ) { content() }
@@ -200,7 +200,7 @@ private fun AcUnit(st: AcState, modifier: Modifier) {
     val on = st.isOn
     val mc = modeColor(st.mode)
     Box(modifier.shadow(12.dp, RoundedCornerShape(24.dp)).clip(RoundedCornerShape(24.dp)).background(Color(0xFFECEAE5))
-        .border(1.dp, Color(0xFFC9C5BD), RoundedCornerShape(24.dp))) {
+        .border(BW, Color(0xFFC9C5BD), RoundedCornerShape(24.dp))) {
         Text(st.name, color = Color(0xFF5F5B55), fontSize = 17.sp, maxLines = 1,
             modifier = Modifier.align(Alignment.TopCenter).padding(top = 4.dp))
         Box(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 30.dp).height(1.dp).background(Color(0xFFDCD8D0)))
@@ -309,7 +309,7 @@ private fun TimerDialog(st: AcState, onDismiss: () -> Unit, onOk: (Int) -> Unit)
                     colors = SliderDefaults.colors(thumbColor = pal.accent, activeTrackColor = pal.accent))
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     listOf(30, 60, 120, 240, 480).forEach { p ->
-                        Box(Modifier.weight(1f).clip(RoundedCornerShape(20.dp)).background(pal.card).border(1.dp, pal.border, RoundedCornerShape(20.dp))
+                        Box(Modifier.weight(1f).clip(RoundedCornerShape(20.dp)).background(pal.card).border(BW, pal.border, RoundedCornerShape(20.dp))
                             .clickable { m = p.toFloat() }.padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
                             Text(if (p < 60) "$p min" else "${p / 60} h", color = pal.text, fontSize = 14.sp)
                         }

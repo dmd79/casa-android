@@ -159,7 +159,7 @@ private fun GatePermission(onResult: () -> Unit) {
 @Composable
 private fun BigIcon(icon: List<IconPart>) {
     Box(Modifier.fillMaxWidth().padding(top = 40.dp, bottom = 24.dp), contentAlignment = Alignment.Center) {
-        Box(Modifier.size(130.dp).clip(CircleShape).background(pal.card).border(1.dp, pal.border, CircleShape),
+        Box(Modifier.size(130.dp).clip(CircleShape).background(pal.card).border(BW, pal.border, CircleShape),
             contentAlignment = Alignment.Center) { SvgIcon(icon, pal.accent, 60.dp) }
     }
 }
@@ -214,8 +214,8 @@ private fun GateScan(gb: GateBle, store: Store, onBack: () -> Unit, onPick: (Fou
         found.forEach { f ->
             val known = saved.any { it.address == f.address }
             Row(
-                Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)
-                    .border(1.dp, pal.border, RoundedCornerShape(16.dp)).clickable { onPick(f) }
+                Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(R_CARD)).background(pal.card)
+                    .border(BW, pal.border, RoundedCornerShape(R_CARD)).clickable { onPick(f) }
                     .padding(horizontal = 18.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -320,7 +320,7 @@ private fun GateCtl(gb: GateBle, store: Store, addr: String, setWho: (String) ->
         }
         Row(
             Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(12.dp)).background(pal.card)
-                .border(1.dp, pal.border, RoundedCornerShape(12.dp)).clickable { askWho = true }
+                .border(BW, pal.border, RoundedCornerShape(12.dp)).clickable { askWho = true }
                 .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
         ) {
@@ -388,9 +388,9 @@ val ICO_TRASH = listOf(IconPart("M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13M10 11v6M1
 @Composable
 fun DeviceRow(title: String, sub: String, subColor: Color? = null, selected: Boolean = false, onDelete: () -> Unit, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(16.dp))
+        Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(R_CARD))
             .background(if (selected) pal.sel else pal.card)
-            .border(if (selected) 2.dp else 1.dp, if (selected) pal.accent else pal.border, RoundedCornerShape(16.dp))
+            .border(BW, if (selected) pal.accent else pal.border, RoundedCornerShape(R_CARD))
             .clickable(onClick = onClick).padding(start = 18.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -407,8 +407,8 @@ fun DeviceRow(title: String, sub: String, subColor: Color? = null, selected: Boo
 @Composable
 fun LinkCard(title: String, sub: String, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)
-            .border(1.dp, pal.border, RoundedCornerShape(16.dp)).clickable(onClick = onClick)
+        Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(R_CARD)).background(pal.card)
+            .border(BW, pal.border, RoundedCornerShape(R_CARD)).clickable(onClick = onClick)
             .padding(horizontal = 18.dp, vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -437,7 +437,11 @@ fun GateButton(modifier: Modifier, a: String, stato: String?, mark: String?, ch:
         mark == "done" -> "inviato ✓"; mark == "busy" -> "invio…"; off -> "non raggiungibile"; note != null -> note
         stato == "aperto" -> "aperto"; stato == "chiuso" -> "chiuso"; else -> "impulso"
     }
-    Box(modifier.clip(RoundedCornerShape(14.dp)).background(col.copy(alpha = .14f)).border(2.dp, col, RoundedCornerShape(14.dp))
+    // fondo e bordo nella tonalita' dello stato, come i riquadri del Clima:
+    // il colore pieno resta solo a icona e nome, il bordo e' quello di tutti
+    val bg = if (off) pal.card else tintBg(pal.card, col)
+    val bd = if (off) pal.border else tintBd(pal.card, col)
+    Box(modifier.clip(RoundedCornerShape(R_CARD)).background(bg).border(BW, bd, RoundedCornerShape(R_CARD))
         .clickable(enabled = mark != "busy", onClick = onClick).alpha(if (mark == "busy") .6f else 1f)) {
         Column(
             Modifier.fillMaxWidth().padding(top = 22.dp, bottom = 16.dp, start = 6.dp, end = 6.dp),
