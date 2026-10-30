@@ -108,6 +108,7 @@ private fun SensorsMain(app: CasaApp, openRelay: (RelayDev) -> Unit, onCharts: (
     var loaded by remember { mutableStateOf(false) }
     val bts by store.sensors.collectAsState()
     val stati by sb.stati.collectAsState()
+    val thOpts by app.acSrc.options.collectAsState()
 
     // relay come in Clima e Accessi (in secondo piano non si conta)
     LaunchedEffect(Unit) {
@@ -118,7 +119,11 @@ private fun SensorsMain(app: CasaApp, openRelay: (RelayDev) -> Unit, onCharts: (
             var raw = withContext(Dispatchers.IO) { Relay.listRaw(cookie) }
             if (raw == null && relayOk) { delay(1500); raw = withContext(Dispatchers.IO) { Relay.listRaw(cookie) } }
             if (raw == null && !app.fg) continue
-            if (raw != null) { store.relayList = raw; devs = Relay.parseList(raw).filter { it.type == "sensor" }; fails = 0; relayOk = true }
+            if (raw != null) {
+                store.relayList = raw; devs = Relay.parseList(raw).filter { it.type == "sensor" }; fails = 0; relayOk = true
+                // sensori dei termostati (integrato e sonde lette dal termostato), come per i clima
+                withContext(Dispatchers.IO) { app.acSrc.refresh(cookie, 30_000) }
+            }
             else if (++fails >= 2 || !relayOk) relayOk = false
             store.relayUp = relayOk
             loaded = true
@@ -178,6 +183,26 @@ private fun SensorsMain(app: CasaApp, openRelay: (RelayDev) -> Unit, onCharts: (
                 if (row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
+        // Sensori dei termostati: l'integrato e le sonde che il termostato legge
+        // (quelle che sono gia' un ext-sensor della lista non si ripetono).
+        // Simbolo della fiamma; un tocco apre la home del termostato.
+        val ths = Relay.parseList(store.relayList).filter { it.type == "thermostat" }
+        val thList = if (!relayOk) emptyList() else thOpts.filter { o ->
+            (o.kind == "thermo" || o.kind == "probe") && list.none { same(it.name, o.name.substringAfter(" · ")) }
+        }
+        thList.chunked(2).forEach { row ->
+            Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                row.forEach { o ->
+                    val th = ths.firstOrNull { it.id == o.key.substringBefore(":") }
+                    val nome = if (o.kind == "probe") o.name.substringAfter(" · ") else o.name
+                    SensorCard(Modifier.weight(1f), nome, o.t, o.h, "th", if (th != null && !th.online) "non raggiungibile" else null,
+                        foot = if (o.kind == "thermo") "sensore del termostato" else o.sub.replace("sensore del termostato", "letto dal termostato")) {
+                        th?.let(openRelay)
+                    }
+                }
+                if (row.size == 1) Spacer(Modifier.weight(1f))
+            }
+        }
         Spacer(Modifier.height(8.dp))
         RowCard("Grafici e storico", onClick = onCharts)
         LinkCard("Sensori Bluetooth", "elenco, aggiungi, dimentica", onClick = onList)
@@ -187,7 +212,7 @@ private fun SensorsMain(app: CasaApp, openRelay: (RelayDev) -> Unit, onCharts: (
 
 
 @Composable
-private fun SensorCard(modifier: Modifier, name: String, t: Double?, h: Double?, ch: String, status: String?, onClick: () -> Unit) {
+private fun SensorCard(modifier: Modifier, name: String, t: Double?, h: Double?, ch: String, status: String?, foot: String? = null, onClick: () -> Unit) {
     val off = status != null
     Column(
         modifier.heightIn(min = 128.dp).clip(RoundedCornerShape(16.dp)).background(pal.card)
@@ -198,10 +223,12 @@ private fun SensorCard(modifier: Modifier, name: String, t: Double?, h: Double?,
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(name, color = Color(0xFFC9D1D4), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
                 overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-            SvgIcon(if (ch == "bt") ICO_BT else ICO_WIFI, chColor(ch, off), 14.dp, stroke = 2f)
+            // relay, Bluetooth o sensore di un termostato (fiamma)
+            if (ch == "th") SvgIcon(Icons.flame, if (off) Color(0xFF5A6266) else Color(0xFFFF8A3D), 15.dp, stroke = 2f)
+            else SvgIcon(if (ch == "bt") ICO_BT else ICO_WIFI, chColor(ch, off), 14.dp, stroke = 2f)
         }
         ValueRows(t, h, hasHum = true, icon = ICO_THERMO, iconColor = CH_SENS, dim = off)
-        Text(status ?: if (ch == "bt") "da vicino, Bluetooth" else "via relay", color = pal.muted, fontSize = 11.sp,
+        Text(status ?: foot ?: if (ch == "bt") "da vicino, Bluetooth" else "via relay", color = pal.muted, fontSize = 11.sp,
             letterSpacing = .5.sp, maxLines = 1, modifier = Modifier.padding(top = 10.dp))
     }
 }
@@ -485,7 +512,13 @@ object FwUpdate {
      * [retrying] avvisa la pagina che si riprova.
      */
     fun uploadRetry(ctx: Context, f: File, host: String = HOTSPOT, retrying: () -> Unit = {}, progress: (Int) -> Unit): String? {
-        val e = upload(ctx, f, host, progress) ?: return null
+        var e = upload(ctx, f, host, progress) ?: return null
+        if (e == SENT_DROP) {
+            // si sta riavviando (pagina sparita): aggiornato, lo conferma la verifica
+            Thread.sleep(1500)
+            if (!pageUp(ctx, host)) return null
+            e = "caricamento interrotto (connessione persa a fine invio)"   // ancora su: non e' arrivato
+        }
         if (!e.startsWith("caricamento interrotto")) return e
         retrying()
         Thread.sleep(3000)
@@ -494,8 +527,12 @@ object FwUpdate {
         for (i in 0 until 10) { if (pageUp(ctx, host)) { up = true; break }; Thread.sleep(2000) }
         if (!up) return e
         progress(0)
-        return upload(ctx, f, host, progress)
+        val e2 = upload(ctx, f, host, progress) ?: return null
+        if (e2 != SENT_DROP) return e2
+        Thread.sleep(1500)
+        return if (pageUp(ctx, host)) "caricamento interrotto (connessione persa a fine invio)" else null
     }
+    private const val SENT_DROP = "\u0000sent-drop"
 
     /** Carica il firmware; null se riuscito, altrimenti il motivo. */
     fun upload(ctx: Context, f: File, host: String = HOTSPOT, progress: (Int) -> Unit): String? {
@@ -526,10 +563,11 @@ object FwUpdate {
             c.disconnect()
             if (code in 200..399 && !body.contains("fail", true)) null else "il dispositivo ha rifiutato il file ($code)"
         } catch (e: Exception) {
-            // File arrivato tutto e connessione caduta dopo: il dispositivo si
-            // riavvia 100 ms dopo "Update Successful!" e la risposta a volte non
-            // arriva. Non e' un errore: la verifica dopo il riavvio dice com'e' andata.
-            if (sent) null else "caricamento interrotto (${e.message ?: "rete"})"
+            // Tutto scritto e connessione caduta dopo: o il dispositivo si e'
+            // riavviato subito dopo "Update Successful!" (risposta persa), o i
+            // dati erano ancora nel buffer del telefono e non sono arrivati.
+            // Lo distingue uploadRetry guardando se la pagina risponde ancora.
+            if (sent) SENT_DROP else "caricamento interrotto (${e.message ?: "rete"})"
         }
     }
 
@@ -719,7 +757,7 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
         Column(Modifier.padding(top = 16.dp, start = 4.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             listOf(when { useFile -> "File pronto"; step == 0 && pct > 0 -> "Scarico il firmware $pct %"; else -> "Firmware scaricato" } +
                     ((if (useFile) local?.built else built)?.let { " (compilato il $it)" } ?: ""),
-                "Hotspot del sensore acceso", "Collegati all'hotspot", if (step == 3) (if (retry) "Interrotto, riprovo: $pct %" else "Caricamento $pct %") else "Caricamento", "Riavvio").forEachIndexed { i, t ->
+                "Hotspot del sensore acceso", "Collegati all'hotspot", if (step == 3) (if (retry) "Interrotto, riprovo: $pct %" else "Caricamento $pct %") else "Caricamento", if (step == 4) "Riavvio e verifica" else "Riavvio").forEachIndexed { i, t ->
                 val ok = i < step; val now = i == step && err == null && step < 5; val bad = i == step && err != null
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.width(26.dp), contentAlignment = Alignment.CenterStart) {
@@ -739,6 +777,8 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
             Note("Nelle impostazioni Wi-Fi del telefono collegati all'hotspot del sensore (di solito «Ext-Sensor Hotspot»), con la sua password. Resta collegato finché non finisce.", center = true)
             Btn("Apri impostazioni Wi-Fi") { Hotspot.openWifiSettings(ctx) }
         }
+        if (step == 4 && err == null) Note("Firmware caricato. Aspetto che il sensore si riavvii e risponda in Bluetooth " +
+            "per controllare che abbia quello nuovo; al massimo 3 minuti. Puoi anche chiudere: l'aggiornamento è già fatto.", center = true)
         if (step == 5) Note(when (verified) {
             true -> "Fatto e verificato: il sensore ha il firmware nuovo e torna nel suo modo. Puoi tornare sulla tua rete."
             false -> "Il sensore si è riavviato ma non ha il firmware caricato (md5 diverso): riprova l'aggiornamento."
