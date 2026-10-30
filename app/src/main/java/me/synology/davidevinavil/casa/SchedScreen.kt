@@ -301,7 +301,12 @@ private fun DaySheet(ble: Ble, s: Sched, day: Int, start: Int?, onClose: () -> U
                     Lbl("ALTRO")
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         val fan = SCHED_FANS.getOrElse(x.fan) { "auto" }
-                        Chip2("Ventola", FAN_LBL[fan] ?: fan, Modifier.weight(1f)) { cmd("set $i fan ${SCHED_FANS[(x.fan + 1) % SCHED_FANS.size]}") }
+                        // niente Auto negli orari Spento o Ventola (lo split la rifiuta)
+                        val sm = SCHED_MODES.getOrElse(x.mode) { "cool" }
+                        val fl = if (sm == "fan_only" || sm == "off") SCHED_FANS.drop(1) else SCHED_FANS
+                        Chip2("Ventola", FAN_LBL[fan] ?: fan, Modifier.weight(1f)) {
+                            cmd("set $i fan ${if (fan in fl) fl.after(fan) else fl.first()}")
+                        }
                         Chip2("Deflettore ↕", swLbl(SCHED_SWV.getOrElse(x.swv) { "keep" }), Modifier.weight(1f)) { cmd("set $i swv ${SCHED_SWV[(x.swv + 1) % SCHED_SWV.size]}") }
                         Chip2("Deflettore ↔", swLbl(SCHED_SWH.getOrElse(x.swh) { "keep" }), Modifier.weight(1f)) { cmd("set $i swh ${SCHED_SWH[(x.swh + 1) % SCHED_SWH.size]}") }
                     }

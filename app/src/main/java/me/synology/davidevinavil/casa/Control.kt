@@ -136,7 +136,11 @@ fun ControlScreen(ble: Ble, st: AcState, link: Link, onSettings: () -> Unit, onD
         // ── ventola, alette, timer ──
         Row(Modifier.fillMaxWidth().padding(top = 26.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             val fi = FANS.indexOf(st.fan)
-            Chip(Modifier.weight(1f), onTap = { val f = FANS.after(st.fan); cmd("fan", f) { it.copy(fan = f) } }) {
+            Chip(Modifier.weight(1f), onTap = {
+                val fs = st.fans
+                val f = if (st.fan in fs) fs.after(st.fan) else fs.first()
+                cmd("fan", f) { it.copy(fan = f) }
+            }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     SvgIcon(Icons.fan(pal.card), if (on) pal.value else pal.muted, 26.dp)
                     Text(" " + (if (fi <= 0) "A" else "$fi"), color = pal.value, fontSize = 20.sp, fontWeight = FontWeight.Medium)

@@ -11,6 +11,10 @@ import org.json.JSONObject
 
 val MODES = listOf("auto", "cool", "heat", "dry", "fan")
 val FANS = listOf("auto", "low", "medium", "high")
+// Ventola Auto da spento o in Ventola: lo split la rifiuta e poi rifiuta
+// anche i comandi successivi (il firmware la scarta comunque, on_control
+// in haier.yaml). Qui non si propone nemmeno.
+fun fansFor(mode: String) = if (mode !in MODES || mode == "fan") FANS.drop(1) else FANS
 val VSWINGS = listOf("Auto", "Health Up", "Max Up", "Up", "Center", "Down", "Max Down", "Health Down")
 val HSWINGS = listOf("Auto", "Max Left", "Left", "Center", "Right", "Max Right")
 
@@ -31,6 +35,7 @@ data class AcState(
     val last: String = "",
 ) {
     val isOn get() = mode in MODES
+    val fans get() = fansFor(mode)
 
     companion object {
         fun parse(j: JSONObject) = AcState(
