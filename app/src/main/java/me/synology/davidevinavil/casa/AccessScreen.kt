@@ -54,7 +54,7 @@ private fun norm(s: String) = s.lowercase().filter { it.isLetterOrDigit() }
  * cancello e' in linea, altrimenti Bluetooth (da vicino, anche senza internet).
  */
 @Composable
-fun AccessScreen(app: CasaApp, setWho: (String) -> Unit, onHistory: () -> Unit, onBt: () -> Unit) {
+fun AccessScreen(app: CasaApp, setWho: (String) -> Unit, onHistory: () -> Unit, onBt: () -> Unit, onRelogin: (String) -> Unit = {}) {
     val store = app.store
     val gb = app.gates
     var relay by remember { mutableStateOf(Relay.parseGates(store.relayGates)) }
@@ -168,7 +168,11 @@ fun AccessScreen(app: CasaApp, setWho: (String) -> Unit, onHistory: () -> Unit, 
                 Text(who.ifBlank { "scegli" }, color = if (who.isBlank()) Color(0xFFE7C12C) else Color(0xFF00C6FF),
                     fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
-            if (accs.isEmpty()) Note(if (loaded) "Nessun accesso. Entra nei dispositivi dei cancelli dalla scheda Tutti, oppure abbina un cancello via Bluetooth qui sotto."
+            // cancelli con l'accesso scaduto: restano qui, un tocco porta all'accesso
+            relay.filter { !it.auth }.forEach { g ->
+                RowCard(g.name, "accedi di nuovo") { onRelogin(g.id) }
+            }
+            if (accs.isEmpty() && relay.none { !it.auth }) Note(if (loaded) "Nessun accesso. Entra nei dispositivi dei cancelli dalla scheda Tutti, oppure abbina un cancello via Bluetooth qui sotto."
                                      else "Leggo gli accessi…", center = true)
             accs.chunked(2).forEach { row ->
                 Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {

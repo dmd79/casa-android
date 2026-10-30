@@ -136,7 +136,7 @@ fun ClimaScreen(app: CasaApp, openRelay: (RelayDev) -> Unit, openBt: (String) ->
                         // temperatura da un sensore scelto (umidita' compresa), altrimenti dello split
                         val src = acChoice[d.id]?.let { k -> acOpts.firstOrNull { it.key == k } ?: app.acSrc.of(d.id) }
                         AcCard(Modifier.weight(1f), x.name, src?.t ?: if (src == null) d.cur else null, if (d.mode != "off") d.tgt else null,
-                            d.mode, "wifi", if (on) null else "Non raggiungibile", hum = src?.h, src = src?.name,
+                            d.mode, "wifi", if (!d.auth) "Accedi di nuovo" else if (on) null else "Non raggiungibile", hum = src?.h, src = src?.name,
                             onLong = { pickFor = d }) { openRelay(d) }
                     } else {
                         val b = x.bt!!

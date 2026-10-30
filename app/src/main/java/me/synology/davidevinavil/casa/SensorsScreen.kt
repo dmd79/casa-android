@@ -167,7 +167,7 @@ private fun SensorsMain(app: CasaApp, openRelay: (RelayDev) -> Unit, onCharts: (
                     if (viaRelay(x)) {
                         val d = x.relay!!
                         val on = d.online && relayOk
-                        SensorCard(Modifier.weight(1f), x.name, d.cur, d.hum, "wifi", if (on) null else "non raggiungibile") { openRelay(d) }
+                        SensorCard(Modifier.weight(1f), x.name, d.cur, d.hum, "wifi", if (!d.auth) "accedi di nuovo" else if (on) null else "non raggiungibile") { openRelay(d) }
                     } else {
                         val b = x.bt!!
                         val s = stati[b.address]

@@ -152,6 +152,8 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     // copertura al massimo 5 s (rete lenta o pagina che non arriva)
     LaunchedEffect(busy) { if (busy) { delay(5000); nav.busy.value = false } }
     fun openDev(d: RelayDev) {
+        // accesso scaduto: pagina di accesso con la password
+        if (!d.auth) { go("/_login?id=" + d.id, Cat.ALL); return }
         nav.dev.value = d.id
         go("/_go?d=" + d.id, when (d.type) { "thermostat" -> Cat.HEAT; "ac" -> Cat.AC; "gate" -> Cat.GATE; "sensor" -> Cat.SENS; else -> Cat.MORE })
     }
@@ -210,7 +212,8 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
                         Pane.GATE -> GateApp(gb, store, app.gateGo, ::setWho)
                         Pane.CLIMI -> ClimaScreen(app, openRelay = { openDev(it) }, openBt = { openBt(it) },
                             onList = { app.climaGo.value = Scr.DEVICES; setView(Pane.CLIMA) })
-                        Pane.ACC -> AccessScreen(app, ::setWho, onHistory = { go("/_gates", Cat.GATE) }, onBt = { openGate("list") })
+                        Pane.ACC -> AccessScreen(app, ::setWho, onHistory = { go("/_gates", Cat.GATE) }, onBt = { openGate("list") },
+                            onRelogin = { id -> go("/_login?id=" + id, Cat.ALL) })
                         Pane.NEW -> SetupScreen(app, onClose = { refresh(true); go("/_home", Cat.ALL) })
                         Pane.SENS -> SensorsApp(app, app.sensorGo, openRelay = { openDev(it) }, onCharts = { go("/_sensors", Cat.SENS) })
                         else -> ShortcutsScreen(store, web)
@@ -335,6 +338,7 @@ private fun webCat(url: String, dev: RelayDev?): Cat? {
 private fun fmt(v: Double) = String.format(Locale.ITALY, if (v % 1.0 == 0.0) "%.0f" else "%.1f", v)
 
 private fun devSub(d: RelayDev): String {
+    if (!d.auth) return "accedi di nuovo"
     if (!d.online) return "non in linea"
     val now = d.cur?.let { "ora ${fmt(it)}°" }
     return when (d.type) {

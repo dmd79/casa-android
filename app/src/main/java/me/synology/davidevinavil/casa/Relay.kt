@@ -13,12 +13,16 @@ data class GateBtn(val dev: String, val devName: String, val azione: String) {
 }
 
 /** Cancello del relay con pulsanti e stato (/_gatedata). */
-data class RelayGate(val id: String, val name: String, val online: Boolean, val azioni: List<String>, val stati: Map<String, String>)
+data class RelayGate(val id: String, val name: String, val online: Boolean, val azioni: List<String>, val stati: Map<String, String>,
+                     /** false: accesso scaduto, si rientra con la password */
+                     val auth: Boolean = true)
 
 /** Dispositivo del relay, come lo riassume /_list. */
 data class RelayDev(
     val id: String, val name: String, val type: String, val online: Boolean,
     val cur: Double?, val tgt: Double?, val hum: Double?, val heat: Boolean, val mode: String,
+    /** false: accesso scaduto (password cambiata sul dispositivo), si rientra con la password. */
+    val auth: Boolean = true,
 ) {
     companion object {
         fun parse(o: JSONObject): RelayDev {
@@ -27,7 +31,7 @@ data class RelayDev(
             val id = o.optString("id")
             return RelayDev(id, o.optString("name").takeIf { it.isNotBlank() && it != "null" } ?: id,
                 o.optString("type").ifBlank { "other" }, o.optBoolean("online"),
-                num("cur"), num("tgt"), num("hum"), s.optBoolean("heat"), s.optString("mode"))
+                num("cur"), num("tgt"), num("hum"), s.optBoolean("heat"), s.optString("mode"), o.optBoolean("ok"))
         }
     }
 }
@@ -70,7 +74,8 @@ object Relay {
 
     fun parseList(raw: String?): List<RelayDev> = try {
         val a = JSONArray(raw ?: "[]")
-        (0 until a.length()).mapNotNull { a.optJSONObject(it) }.filter { it.optBoolean("ok") }.map { RelayDev.parse(it) }
+        // anche quelli con l'accesso scaduto ("ok": false): restano, con "Accedi di nuovo"
+        (0 until a.length()).mapNotNull { a.optJSONObject(it) }.map { RelayDev.parse(it) }
     } catch (e: Exception) { emptyList() }
 
     /** Tutti i pulsanti degli Accessi dei dispositivi entrati nell'app. */
@@ -100,8 +105,13 @@ object Relay {
             val out = mutableListOf<RelayGate>()
             for (i in 0 until list.length()) {
                 val o = list.optJSONObject(i) ?: continue
-                if (!o.optBoolean("ok") || o.optString("type") != "gate") continue
+                if (o.optString("type") != "gate") continue
                 val id = o.getString("id")
+                if (!o.optBoolean("ok")) {
+                    // accesso scaduto: resta, senza pulsanti, con "Accedi di nuovo"
+                    out += RelayGate(id, o.optString("name").takeIf { it.isNotBlank() && it != "null" } ?: id, false, emptyList(), emptyMap(), auth = false)
+                    continue
+                }
                 val g = try { JSONObject(text(conn("/_gatedata?d=$id", cookie)).second) } catch (e: Exception) { JSONObject() }
                 val az = g.optJSONObject("log")?.optJSONArray("azioni")
                 val st = g.optJSONObject("stati")

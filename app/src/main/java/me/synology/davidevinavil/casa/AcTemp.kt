@@ -84,7 +84,7 @@ class AcSources(private val store: Store) {
         val now = System.currentTimeMillis()
         if (now - lastT < minMs) return
         lastT = now
-        val devs = Relay.parseList(store.relayList).filter { (it.type == "thermostat" || it.type == "sensor") }
+        val devs = Relay.parseList(store.relayList).filter { it.auth && (it.type == "thermostat" || it.type == "sensor") }
         val out = mutableListOf<AcSrc>()
         val seen = HashSet<String>()
         devs.sortedBy { if (it.type == "sensor") 0 else 1 }.forEach { d ->
