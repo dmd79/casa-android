@@ -179,7 +179,7 @@ fun AccessScreen(app: CasaApp, setWho: (String) -> Unit, onHistory: () -> Unit, 
             if (accs.isEmpty() && relay.none { !it.auth }) Note(if (loaded) "Nessun accesso. Entra nei dispositivi dei cancelli dalla scheda Tutti, oppure abbina un cancello via Bluetooth qui sotto."
                                      else "Leggo gli accessi…", center = true)
             shown.chunked(2).forEach { row ->
-                Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.fillMaxWidth().orgRow(org, row.map { it.key }).padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     row.forEach { x -> OrgTile(org, keys, x.key) { m ->
                         val ch = channel(x)
                         // Bluetooth: stato solo se ha appena risposto, altrimenti "cerco…" / "non raggiungibile"
@@ -192,7 +192,6 @@ fun AccessScreen(app: CasaApp, setWho: (String) -> Unit, onHistory: () -> Unit, 
                     if (row.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
-            if (org.editing) Note("Usa le frecce per spostare i pulsanti, poi tocca Fine.", center = true)
             if (accs.isNotEmpty()) Row(Modifier.padding(top = 2.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 SvgIcon(ICO_WIFI, CH_WIFI, 13.dp, stroke = 2f)
                 Text(" via relay    ", color = pal.muted, fontSize = 12.sp)

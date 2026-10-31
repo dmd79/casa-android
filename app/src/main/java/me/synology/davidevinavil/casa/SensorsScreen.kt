@@ -177,7 +177,7 @@ private fun SensorsMain(app: CasaApp, openRelay: (RelayDev) -> Unit, onCharts: (
         if (items.isEmpty()) Note(if (loaded) "Nessun sensore. Entra nei sensori dalla scheda Tutti, oppure abbinane uno via Bluetooth qui sotto."
                                  else "Leggo i sensori…", center = true)
         items.chunked(2).forEach { row ->
-            Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.fillMaxWidth().orgRow(org, row.map { it.key }).padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 row.forEach { it2 -> OrgTile(org, keys, it2.key) { m ->
                     val o = it2.th
                     val x = it2.sn
@@ -207,7 +207,6 @@ private fun SensorsMain(app: CasaApp, openRelay: (RelayDev) -> Unit, onCharts: (
                 if (row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
-        if (org.editing) Note("Usa le frecce per spostare i riquadri, poi tocca Fine.", center = true)
         Spacer(Modifier.height(8.dp))
         RowCard("Grafici e storico", onClick = onCharts)
         LinkCard("Sensori Bluetooth", "elenco, aggiungi, dimentica", onClick = onList)

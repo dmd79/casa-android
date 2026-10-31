@@ -132,7 +132,7 @@ fun ClimaScreen(app: CasaApp, openRelay: (RelayDev) -> Unit, openBt: (String) ->
         if (list.isEmpty()) Note(if (loaded) "Nessun condizionatore. Entra nei condizionatori dalla scheda Tutti, oppure abbinane uno via Bluetooth qui sotto."
                                  else "Leggo i condizionatori…", center = true)
         shown.chunked(2).forEach { row ->
-            Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(Modifier.fillMaxWidth().orgRow(org, row.map { ordKey(it.name) }).padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 row.forEach { x -> OrgTile(org, keys, ordKey(x.name)) { m ->
                     if (viaRelay(x)) {
                         val d = x.relay!!
@@ -161,8 +161,7 @@ fun ClimaScreen(app: CasaApp, openRelay: (RelayDev) -> Unit, openBt: (String) ->
         }
         Spacer(Modifier.height(8.dp))
         LinkCard("Condizionatori Bluetooth", "elenco, aggiungi, dimentica", onClick = onList)
-        if (org.editing) Note("Usa le frecce per spostare i riquadri, poi tocca Fine.", center = true)
-        else if (devs.isNotEmpty()) Note("Tieni premuto un riquadro per scegliere la temperatura mostrata.", center = true)
+        if (!org.editing && devs.isNotEmpty()) Note("Tieni premuto un riquadro per scegliere la temperatura mostrata.", center = true)
         Spacer(Modifier.height(16.dp))
     }
     pickFor?.let { d -> AcSrcSheet(app, d.id, d.name) { pickFor = null } }
