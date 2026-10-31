@@ -59,6 +59,8 @@ private enum class SScr { MAIN, LIST, SCAN, DETAIL, UPDATE }
 
 /** Un sensore della pagina: via relay, via Bluetooth o tutti e due (stesso nome). */
 private data class Sn(val name: String, val relay: RelayDev?, val bt: BtSensor?)
+/** Riquadro della griglia: un sensore (relay/Bluetooth) o un sensore letto da un termostato. */
+private data class SnItem(val key: String, val sn: Sn?, val th: AcSrc?)
 
 private fun f1(v: Double?) = v?.let { String.format(Locale.ITALY, "%.1f", it) } ?: "--"
 private fun f0(v: Double?) = v?.let { String.format(Locale.ITALY, "%.0f", it) } ?: "--"
@@ -150,8 +152,21 @@ private fun SensorsMain(app: CasaApp, openRelay: (RelayDev) -> Unit, onCharts: (
         }
     }
 
+    // Sensori dei termostati: l'integrato e le sonde che il termostato legge
+    // (quelle che sono gia' un ext-sensor della lista non si ripetono).
+    // Simbolo della fiamma; un tocco apre la home del termostato.
+    val ths = Relay.parseList(store.relayList).filter { it.type == "thermostat" }
+    val thList = if (!relayOk) emptyList() else thOpts.filter { o ->
+        (o.kind == "thermo" || o.kind == "probe") && list.none { same(it.name, o.name.substringAfter(" · ")) }
+    }
+    // tutti i riquadri insieme, nell'ordine scelto con "Organizza" (Order.kt)
+    val org = rememberOrganizer(store, "sensori")
+    val items = (list.map { SnItem("s:" + ordKey(it.name), it, null) } + thList.map { SnItem("t:" + it.key, null, it) })
+        .ordered(org.order) { it.key }
+    val keys = items.map { it.key }
+
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Title("Sensori", Modifier.padding(bottom = 14.dp))
+        OrgTitle("Sensori", org, items.size > 1)
         if (loaded && !relayOk && list.isNotEmpty()) {
             val y = Color(0xFFE7C12C)
             Text(if (bts.isNotEmpty()) "Relay non raggiungibile: leggo via Bluetooth, da vicino" else "Relay non raggiungibile",
@@ -159,16 +174,25 @@ private fun SensorsMain(app: CasaApp, openRelay: (RelayDev) -> Unit, onCharts: (
                 modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(12.dp))
                     .background(y.copy(alpha = .12f)).border(BW, y, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 10.dp))
         }
-        if (list.isEmpty()) Note(if (loaded) "Nessun sensore. Entra nei sensori dalla scheda Tutti, oppure abbinane uno via Bluetooth qui sotto."
+        if (items.isEmpty()) Note(if (loaded) "Nessun sensore. Entra nei sensori dalla scheda Tutti, oppure abbinane uno via Bluetooth qui sotto."
                                  else "Leggo i sensori…", center = true)
-        list.chunked(2).forEach { row ->
+        items.chunked(2).forEach { row ->
             Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                row.forEach { x ->
-                    if (viaRelay(x)) {
+                row.forEach { it2 -> OrgTile(org, keys, it2.key) { m ->
+                    val o = it2.th
+                    val x = it2.sn
+                    if (o != null) {
+                        val th = ths.firstOrNull { it.id == o.key.substringBefore(":") }
+                        val nome = if (o.kind == "probe") o.name.substringAfter(" · ") else o.name
+                        SensorCard(m, nome, o.t, o.h, "th", if (th != null && !th.online) "non raggiungibile" else null,
+                            foot = if (o.kind == "thermo") "sensore del termostato" else o.sub.replace("sensore del termostato", "letto dal termostato")) {
+                            th?.let(openRelay)
+                        }
+                    } else if (x != null && viaRelay(x)) {
                         val d = x.relay!!
                         val on = d.online && relayOk
-                        SensorCard(Modifier.weight(1f), x.name, d.cur, d.hum, "wifi", if (!d.auth) "accedi di nuovo" else if (on) null else "non raggiungibile") { openRelay(d) }
-                    } else {
+                        SensorCard(m, x.name, d.cur, d.hum, "wifi", if (!d.auth) "accedi di nuovo" else if (on) null else "non raggiungibile") { openRelay(d) }
+                    } else if (x != null) {
                         val b = x.bt!!
                         val s = stati[b.address]
                         val r = reach[b.address]
@@ -177,32 +201,13 @@ private fun SensorsMain(app: CasaApp, openRelay: (RelayDev) -> Unit, onCharts: (
                             r == false -> "non raggiungibile"
                             else -> null
                         }
-                        SensorCard(Modifier.weight(1f), x.name, s?.t, s?.h, "bt", status) { openBt(b.address) }
+                        SensorCard(m, x.name, s?.t, s?.h, "bt", status) { openBt(b.address) }
                     }
-                }
+                } }
                 if (row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
-        // Sensori dei termostati: l'integrato e le sonde che il termostato legge
-        // (quelle che sono gia' un ext-sensor della lista non si ripetono).
-        // Simbolo della fiamma; un tocco apre la home del termostato.
-        val ths = Relay.parseList(store.relayList).filter { it.type == "thermostat" }
-        val thList = if (!relayOk) emptyList() else thOpts.filter { o ->
-            (o.kind == "thermo" || o.kind == "probe") && list.none { same(it.name, o.name.substringAfter(" · ")) }
-        }
-        thList.chunked(2).forEach { row ->
-            Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                row.forEach { o ->
-                    val th = ths.firstOrNull { it.id == o.key.substringBefore(":") }
-                    val nome = if (o.kind == "probe") o.name.substringAfter(" · ") else o.name
-                    SensorCard(Modifier.weight(1f), nome, o.t, o.h, "th", if (th != null && !th.online) "non raggiungibile" else null,
-                        foot = if (o.kind == "thermo") "sensore del termostato" else o.sub.replace("sensore del termostato", "letto dal termostato")) {
-                        th?.let(openRelay)
-                    }
-                }
-                if (row.size == 1) Spacer(Modifier.weight(1f))
-            }
-        }
+        if (org.editing) Note("Usa le frecce per spostare i riquadri, poi tocca Fine.", center = true)
         Spacer(Modifier.height(8.dp))
         RowCard("Grafici e storico", onClick = onCharts)
         LinkCard("Sensori Bluetooth", "elenco, aggiungi, dimentica", onClick = onList)

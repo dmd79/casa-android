@@ -102,6 +102,10 @@ fun AccessScreen(app: CasaApp, setWho: (String) -> Unit, onHistory: () -> Unit, 
             }
         }
     }
+    // ordine scelto con "Organizza" (Order.kt); chiave = dispositivo|pulsante
+    val org = rememberOrganizer(app.store, "accessi")
+    val shown = accs.ordered(org.order) { it.key }
+    val keys = shown.map { it.key }
     // stesso pulsante su piu' dispositivi (due "cancello"): sotto c'e' anche il nome
     val twice = accs.groupBy { it.azione.lowercase() }.filter { it.value.size > 1 }.keys
 
@@ -150,7 +154,7 @@ fun AccessScreen(app: CasaApp, setWho: (String) -> Unit, onHistory: () -> Unit, 
 
     Box(Modifier.fillMaxSize().background(pal.bg)) {
         Column(Modifier.fillMaxSize().padding(horizontal = 22.dp, vertical = 16.dp).verticalScroll(rememberScrollState())) {
-            Title("Accessi", Modifier.padding(bottom = 14.dp))
+            OrgTitle("Accessi", org, accs.size > 1)
             if (loaded && !relayOk && accs.isNotEmpty()) {
                 val y = Color(0xFFE7C12C)
                 Text(if (btGates.isNotEmpty()) "Relay non raggiungibile: apro via Bluetooth, da vicino" else "Relay non raggiungibile",
@@ -174,20 +178,21 @@ fun AccessScreen(app: CasaApp, setWho: (String) -> Unit, onHistory: () -> Unit, 
             }
             if (accs.isEmpty() && relay.none { !it.auth }) Note(if (loaded) "Nessun accesso. Entra nei dispositivi dei cancelli dalla scheda Tutti, oppure abbina un cancello via Bluetooth qui sotto."
                                      else "Leggo gli accessi…", center = true)
-            accs.chunked(2).forEach { row ->
+            shown.chunked(2).forEach { row ->
                 Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    row.forEach { x ->
+                    row.forEach { x -> OrgTile(org, keys, x.key) { m ->
                         val ch = channel(x)
                         // Bluetooth: stato solo se ha appena risposto, altrimenti "cerco…" / "non raggiungibile"
                         val r = if (ch == "bt") x.bt?.let { reach[it.address] } else true
                         val stato = if (ch == "wifi") x.relay?.stati?.get(x.azione) else if (r == true) x.bt?.let { btStati[it.address]?.get(x.azione) } else null
-                        GateButton(Modifier.weight(1f), x.azione, stato, mark[x.key], ch = ch ?: "wifi",
+                        GateButton(m, x.azione, stato, mark[x.key], ch = ch ?: "wifi",
                             sub = if (x.azione.lowercase() in twice) x.dev else null, off = ch == null || r == false,
                             note = if (ch == "bt" && r == null) "cerco…" else null) { fire(x) }
-                    }
+                    } }
                     if (row.size == 1) Spacer(Modifier.weight(1f))
                 }
             }
+            if (org.editing) Note("Usa le frecce per spostare i pulsanti, poi tocca Fine.", center = true)
             if (accs.isNotEmpty()) Row(Modifier.padding(top = 2.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 SvgIcon(ICO_WIFI, CH_WIFI, 13.dp, stroke = 2f)
                 Text(" via relay    ", color = pal.muted, fontSize = 12.sp)

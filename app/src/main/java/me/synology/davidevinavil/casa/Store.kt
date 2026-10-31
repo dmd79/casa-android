@@ -66,6 +66,10 @@ class Store(ctx: Context) {
         p.edit().putString("barOrder", JSONArray(o).toString()).apply()
     }
 
+    /** Ordine dei riquadri di una pagina (Clima, Sensori, Accessi): chiavi, vedi Order.kt. */
+    fun order(name: String): List<String> = parseOrder(p.getString("ord:$name", "[]"))
+    fun setOrder(name: String, keys: List<String>) = p.edit().putString("ord:$name", JSONArray(keys).toString()).apply()
+
     private fun parseOrder(json: String?): List<String> = try {
         val a = JSONArray(json ?: "[]")
         (0 until a.length()).map { a.getString(it) }

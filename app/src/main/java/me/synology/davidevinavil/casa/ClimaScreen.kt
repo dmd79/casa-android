@@ -101,6 +101,10 @@ fun ClimaScreen(app: CasaApp, openRelay: (RelayDev) -> Unit, openBt: (String) ->
         bts.forEach { b -> if (none { same(it.name, b.name) }) add(Ac(b.name, null, b)) }
     }
     fun viaRelay(x: Ac) = x.relay != null && (relayOk && x.relay.online || x.bt == null)
+    // ordine scelto con "Organizza" (Order.kt); chiave = nome, come l'unione relay/Bluetooth
+    val org = rememberOrganizer(store, "clima")
+    val shown = list.ordered(org.order) { ordKey(it.name) }
+    val keys = shown.map { ordKey(it.name) }
 
     // Bluetooth: lettura breve dei condizionatori non coperti dal relay, uno
     // per volta, poi ogni minuto finche' la pagina e' aperta.
@@ -117,7 +121,7 @@ fun ClimaScreen(app: CasaApp, openRelay: (RelayDev) -> Unit, openBt: (String) ->
     }
 
     Column(Modifier.fillMaxSize().background(pal.bg).padding(horizontal = 20.dp, vertical = 16.dp).verticalScroll(rememberScrollState())) {
-        Title("Clima", Modifier.padding(bottom = 14.dp))
+        OrgTitle("Clima", org, list.size > 1)
         if (loaded && !relayOk && list.isNotEmpty()) {
             val y = Color(0xFFE7C12C)
             Text(if (bts.isNotEmpty()) "Relay non raggiungibile: apro via Bluetooth, da vicino" else "Relay non raggiungibile",
@@ -127,15 +131,15 @@ fun ClimaScreen(app: CasaApp, openRelay: (RelayDev) -> Unit, openBt: (String) ->
         }
         if (list.isEmpty()) Note(if (loaded) "Nessun condizionatore. Entra nei condizionatori dalla scheda Tutti, oppure abbinane uno via Bluetooth qui sotto."
                                  else "Leggo i condizionatori…", center = true)
-        list.chunked(2).forEach { row ->
+        shown.chunked(2).forEach { row ->
             Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                row.forEach { x ->
+                row.forEach { x -> OrgTile(org, keys, ordKey(x.name)) { m ->
                     if (viaRelay(x)) {
                         val d = x.relay!!
                         val on = d.online && relayOk
                         // temperatura da un sensore scelto (umidita' compresa), altrimenti dello split
                         val src = acChoice[d.id]?.let { k -> acOpts.firstOrNull { it.key == k } ?: app.acSrc.of(d.id) }
-                        AcCard(Modifier.weight(1f), x.name, src?.t ?: if (src == null) d.cur else null, if (d.mode != "off") d.tgt else null,
+                        AcCard(m, x.name, src?.t ?: if (src == null) d.cur else null, if (d.mode != "off") d.tgt else null,
                             d.mode, "wifi", if (!d.auth) "Accedi di nuovo" else if (on) null else "Non raggiungibile", hum = src?.h, src = src?.name,
                             onLong = { pickFor = d }) { openRelay(d) }
                     } else {
@@ -148,16 +152,17 @@ fun ClimaScreen(app: CasaApp, openRelay: (RelayDev) -> Unit, openBt: (String) ->
                             r == false || s == null -> "Non raggiungibile"
                             else -> null
                         }
-                        AcCard(Modifier.weight(1f), x.name, s?.current, if (s != null && s.mode != "off") s.target else null,
+                        AcCard(m, x.name, s?.current, if (s != null && s.mode != "off") s.target else null,
                             s?.mode ?: "off", "bt", status) { openBt(b.address) }
                     }
-                }
+                } }
                 if (row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
         Spacer(Modifier.height(8.dp))
         LinkCard("Condizionatori Bluetooth", "elenco, aggiungi, dimentica", onClick = onList)
-        if (devs.isNotEmpty()) Note("Tieni premuto un riquadro per scegliere la temperatura mostrata.", center = true)
+        if (org.editing) Note("Usa le frecce per spostare i riquadri, poi tocca Fine.", center = true)
+        else if (devs.isNotEmpty()) Note("Tieni premuto un riquadro per scegliere la temperatura mostrata.", center = true)
         Spacer(Modifier.height(16.dp))
     }
     pickFor?.let { d -> AcSrcSheet(app, d.id, d.name) { pickFor = null } }
