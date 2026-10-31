@@ -1,8 +1,10 @@
 package me.synology.davidevinavil.casa
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -38,7 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 
 // ============================================================
-// Ordine dei riquadri di Clima, Sensori e Accessi, scelto dall'utente,
+// Ordine dei riquadri di Clima, Sensori, Accessi e dell'elenco Termostati, scelto dall'utente,
 // con lo stesso gesto della Plancia: "✎ Modifica" accanto al titolo, i
 // riquadri prendono il bordo tratteggiato, si tiene premuto un riquadro e
 // lo si trascina su un altro: prende il suo posto (gli altri scorrono).
@@ -109,24 +111,43 @@ fun rememberOrganizer(store: Store, name: String) = remember(name) { Organizer(s
 /** Riga della griglia: sopra le altre mentre un suo riquadro e' trascinato. */
 fun Modifier.orgRow(org: Organizer, rowKeys: List<String>) = zIndex(org.rowZ(rowKeys))
 
+/** Come si fa, sotto il titolo durante la modifica (come nella Plancia). */
+const val ORG_HINT = "Tieni premuto un riquadro e trascinalo su un altro: prende il suo posto e gli altri scorrono. Tocca Fine quando hai finito."
+
 /**
- * Titolo della pagina con "✎ Modifica" / "✎ Fine" a destra, come la Plancia
- * ([show]: almeno due riquadri); durante la modifica, sotto, come si fa.
+ * Pulsante "✎ Modifica" / "✎ Fine", uguale a quello della Plancia (.lnk nel
+ * relay): scuro col bordo, chiaro durante la modifica.
+ */
+@Composable
+fun OrgButton(org: Organizer) {
+    val on = org.editing
+    val bg = if (on) Color(0xFFF2F0EB) else Color(0xFF1B2024)
+    val bd = if (on) Color(0xFFF2F0EB) else Color(0xFF2B3236)
+    val fg = if (on) Color(0xFF111416) else Color(0xFFC9D1D4)
+    val sh = RoundedCornerShape(17.dp)
+    Row(
+        Modifier.clip(sh).background(bg).border(1.dp, bd, sh)
+            .clickable { org.cancel(); org.editing = !org.editing }
+            .padding(horizontal = 13.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text("✎", color = fg, fontSize = 13.5.sp)
+        Text(if (on) "Fine" else "Modifica", color = fg, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+/**
+ * Titolo della pagina con il pulsante della modifica a destra ([show]:
+ * almeno due riquadri); durante la modifica, sotto, come si fa.
  */
 @Composable
 fun OrgTitle(text: String, org: Organizer, show: Boolean) {
     Column(Modifier.fillMaxWidth().padding(bottom = 14.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Title(text, Modifier.weight(1f))
-            if (show || org.editing) Text(
-                "✎ " + if (org.editing) "Fine" else "Modifica",
-                color = Color(0xFF111111), fontSize = 15.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier.clip(RoundedCornerShape(50)).background(Color(0xFFEEEDE8))
-                    .clickable { org.cancel(); org.editing = !org.editing }
-                    .padding(horizontal = 16.dp, vertical = 9.dp),
-            )
+            if (show || org.editing) OrgButton(org)
         }
-        if (org.editing) Note("Tieni premuto un riquadro e trascinalo su un altro: prende il suo posto e gli altri scorrono. Tocca Fine quando hai finito.")
+        if (org.editing) Note(ORG_HINT)
     }
 }
 
@@ -153,6 +174,43 @@ fun RowScope.OrgTile(org: Organizer, keys: List<String>, key: String, content: @
     ) {
         content(Modifier.fillMaxWidth())
         // sopra il riquadro: prende i tocchi (il riquadro non si apre) e il trascinamento
+        Box(
+            Modifier.matchParentSize()
+                .background(if (over) ORG_ON.copy(alpha = .14f) else Color.Transparent, RoundedCornerShape(R_CARD))
+                .dashed(if (over || dragging) ORG_ON else ORG_LINE, R_CARD, if (over) 2.dp else 1.5.dp)
+                .pointerInput(key, keys) {
+                    detectDragGesturesAfterLongPress(
+                        onDragStart = { org.start(key) },
+                        onDrag = { ch, d -> ch.consume(); org.drag(key, d, keys) },
+                        onDragEnd = { org.drop(key, keys) },
+                        onDragCancel = { org.cancel() },
+                    )
+                }
+        )
+    }
+}
+
+/**
+ * Come [OrgTile] ma per un elenco a tutta larghezza (Termostati). [modifier]
+ * resta fuori dal bordo tratteggiato (es. lo spazio sotto la riga).
+ */
+@Composable
+fun OrgItem(org: Organizer, keys: List<String>, key: String, modifier: Modifier = Modifier, content: @Composable (Modifier) -> Unit) {
+    if (!org.editing) { content(modifier); return }
+    val dragging = org.dragKey == key
+    val over = org.overKey == key
+    Box(
+        modifier.fillMaxWidth()
+            .onGloballyPositioned { org.bounds[key] = it.boundsInRoot() }
+            .zIndex(if (dragging) 1f else 0f)
+            .graphicsLayer {
+                if (dragging) {
+                    translationX = org.dragOff.x; translationY = org.dragOff.y
+                    scaleX = 1.03f; scaleY = 1.03f; alpha = .9f
+                }
+            }
+    ) {
+        content(Modifier.fillMaxWidth())
         Box(
             Modifier.matchParentSize()
                 .background(if (over) ORG_ON.copy(alpha = .14f) else Color.Transparent, RoundedCornerShape(R_CARD))

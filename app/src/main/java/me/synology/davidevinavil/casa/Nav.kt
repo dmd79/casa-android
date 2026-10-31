@@ -240,11 +240,17 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     val acPick by app.acSrc.pick.collectAsState()
     acPick?.let { id -> AcSrcSheet(app, id, devs.firstOrNull { it.id == id }?.name ?: "condizionatore") { app.acSrc.pick.value = null } }
 
+    // ordine dei termostati nell'elenco, scelto con "✎ Modifica" (Order.kt); chiave = id del relay
+    val heatOrg = rememberOrganizer(store, "termostati")
+    val heatShown = heat.ordered(heatOrg.order) { it.id }
+    val heatKeys = heatShown.map { it.id }
+    // elenco chiuso: la prossima volta si riapre senza la modifica in corso
+    LaunchedEffect(sheet) { if (sheet == null) { heatOrg.cancel(); heatOrg.editing = false } }
     val open = sheet ?: return
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     fun pick(f: () -> Unit) = { sheet = null; f() }
     val items: List<Item> = when (open) {
-        Cat.HEAT -> heat.map { d ->
+        Cat.HEAT -> heatShown.map { d ->
             Item(d.name, devSub(d), Icons.flame, if (d.heat) modeColor("heat") else null,
                 selected = view == Pane.WEB && pageCat == Cat.HEAT && curDev == d.id, onClick = pick { openDev(d) })
         }
@@ -264,16 +270,27 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     }
     ModalBottomSheet(onDismissRequest = { sheet = null }, sheetState = state, containerColor = pal.bg) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp).padding(bottom = 24.dp).verticalScroll(rememberScrollState())) {
-            Text(open.label, color = pal.muted, fontSize = 14.sp, modifier = Modifier.padding(start = 4.dp, bottom = 10.dp))
-            items.forEach { SheetRow(it) }
+            if (open == Cat.HEAT && heat.size > 1) {
+                Row(Modifier.fillMaxWidth().padding(start = 4.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(open.label, color = pal.muted, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                    OrgButton(heatOrg)
+                }
+                if (heatOrg.editing) Note(ORG_HINT, Modifier.padding(start = 4.dp, bottom = 10.dp))
+                items.forEachIndexed { i, it ->
+                    OrgItem(heatOrg, heatKeys, heatKeys[i], Modifier.padding(bottom = 8.dp)) { m -> SheetRow(it, m) }
+                }
+            } else {
+                Text(open.label, color = pal.muted, fontSize = 14.sp, modifier = Modifier.padding(start = 4.dp, bottom = 10.dp))
+                items.forEach { SheetRow(it) }
+            }
         }
     }
 }
 
 @Composable
-private fun SheetRow(it: Item) {
+private fun SheetRow(it: Item, modifier: Modifier = Modifier.padding(bottom = 8.dp)) {
     Row(
-        Modifier.fillMaxWidth().padding(bottom = 8.dp).clip(RoundedCornerShape(R_CARD))
+        modifier.fillMaxWidth().clip(RoundedCornerShape(R_CARD))
             .background(if (it.selected) pal.sel else pal.card)
             .border(BW, if (it.selected) pal.accent else pal.border, RoundedCornerShape(R_CARD))
             .clickable(onClick = it.onClick).padding(horizontal = 14.dp, vertical = 12.dp),
