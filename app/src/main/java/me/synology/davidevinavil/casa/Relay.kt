@@ -23,6 +23,8 @@ data class RelayDev(
     val cur: Double?, val tgt: Double?, val hum: Double?, val heat: Boolean, val mode: String,
     /** false: accesso scaduto (password cambiata sul dispositivo), si rientra con la password. */
     val auth: Boolean = true,
+    /** Termostato: riscaldamento abilitato, fiamma accesa, fiamma per l'acqua calda (null = relay vecchio). */
+    val ch: Boolean? = null, val flame: Boolean? = null, val dhw: Boolean = false,
 ) {
     companion object {
         fun parse(o: JSONObject): RelayDev {
@@ -31,7 +33,9 @@ data class RelayDev(
             val id = o.optString("id")
             return RelayDev(id, o.optString("name").takeIf { it.isNotBlank() && it != "null" } ?: id,
                 o.optString("type").ifBlank { "other" }, o.optBoolean("online"),
-                num("cur"), num("tgt"), num("hum"), s.optBoolean("heat"), s.optString("mode"), o.optBoolean("ok"))
+                num("cur"), num("tgt"), num("hum"), s.optBoolean("heat"), s.optString("mode"), o.optBoolean("ok"),
+                if (s.has("ch")) s.optBoolean("ch") else null, if (s.has("flame")) s.optBoolean("flame") else null,
+                s.optBoolean("dhw"))
         }
     }
 }

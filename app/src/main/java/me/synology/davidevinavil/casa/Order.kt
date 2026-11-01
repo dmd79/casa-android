@@ -40,7 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 
 // ============================================================
-// Ordine dei riquadri di Clima, Sensori, Accessi e dell'elenco Termostati, scelto dall'utente,
+// Ordine dei riquadri di Clima, Sensori, Accessi e Termostati, scelto dall'utente,
 // con lo stesso gesto della Plancia: "✎ Modifica" accanto al titolo, i
 // riquadri prendono il bordo tratteggiato, si tiene premuto un riquadro e
 // lo si trascina su un altro: prende il suo posto (gli altri scorrono).
@@ -174,43 +174,6 @@ fun RowScope.OrgTile(org: Organizer, keys: List<String>, key: String, content: @
     ) {
         content(Modifier.fillMaxWidth())
         // sopra il riquadro: prende i tocchi (il riquadro non si apre) e il trascinamento
-        Box(
-            Modifier.matchParentSize()
-                .background(if (over) ORG_ON.copy(alpha = .14f) else Color.Transparent, RoundedCornerShape(R_CARD))
-                .dashed(if (over || dragging) ORG_ON else ORG_LINE, R_CARD, if (over) 2.dp else 1.5.dp)
-                .pointerInput(key, keys) {
-                    detectDragGesturesAfterLongPress(
-                        onDragStart = { org.start(key) },
-                        onDrag = { ch, d -> ch.consume(); org.drag(key, d, keys) },
-                        onDragEnd = { org.drop(key, keys) },
-                        onDragCancel = { org.cancel() },
-                    )
-                }
-        )
-    }
-}
-
-/**
- * Come [OrgTile] ma per un elenco a tutta larghezza (Termostati). [modifier]
- * resta fuori dal bordo tratteggiato (es. lo spazio sotto la riga).
- */
-@Composable
-fun OrgItem(org: Organizer, keys: List<String>, key: String, modifier: Modifier = Modifier, content: @Composable (Modifier) -> Unit) {
-    if (!org.editing) { content(modifier); return }
-    val dragging = org.dragKey == key
-    val over = org.overKey == key
-    Box(
-        modifier.fillMaxWidth()
-            .onGloballyPositioned { org.bounds[key] = it.boundsInRoot() }
-            .zIndex(if (dragging) 1f else 0f)
-            .graphicsLayer {
-                if (dragging) {
-                    translationX = org.dragOff.x; translationY = org.dragOff.y
-                    scaleX = 1.03f; scaleY = 1.03f; alpha = .9f
-                }
-            }
-    ) {
-        content(Modifier.fillMaxWidth())
         Box(
             Modifier.matchParentSize()
                 .background(if (over) ORG_ON.copy(alpha = .14f) else Color.Transparent, RoundedCornerShape(R_CARD))

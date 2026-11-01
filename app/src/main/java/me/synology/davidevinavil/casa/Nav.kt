@@ -54,7 +54,7 @@ import kotlinx.coroutines.withContext
 import java.util.Locale
 
 /** Cosa occupa lo schermo sopra la barra. */
-enum class Pane { WEB, CLIMA, SCORC, GATE, ACC, CLIMI, NEW, SENS }
+enum class Pane { WEB, CLIMA, SCORC, GATE, ACC, CLIMI, NEW, SENS, TERM }
 
 /** Voci della barra: una per tipo di dispositivo. */
 enum class Cat(val label: String) { ALL("Tutti"), DASH("Plancia"), HEAT("Termostati"), AC("Clima"), GATE("Accessi"), SENS("Sensori"), MORE("Altro") }
@@ -137,7 +137,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
 
     val pageCat = webCat(url, devs.firstOrNull { it.id == curDev })
     LaunchedEffect(url) { pending = null }
-    val active = when (view) { Pane.CLIMA, Pane.CLIMI -> Cat.AC; Pane.SCORC, Pane.NEW -> Cat.MORE; Pane.GATE, Pane.ACC -> Cat.GATE; Pane.SENS -> Cat.SENS; Pane.WEB -> pending ?: pageCat }
+    val active = when (view) { Pane.CLIMA, Pane.CLIMI -> Cat.AC; Pane.SCORC, Pane.NEW -> Cat.MORE; Pane.GATE, Pane.ACC -> Cat.GATE; Pane.SENS -> Cat.SENS; Pane.TERM -> Cat.HEAT; Pane.WEB -> pending ?: pageCat }
 
     // Copertura solo arrivando da una schermata dell'app (Clima, Accessi...):
     // sotto c'e' rimasta un'altra pagina, che si vedrebbe per un attimo. Da
@@ -183,7 +183,8 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
             Cat.DASH -> go("/_plancia", c)
             Cat.GATE -> setView(Pane.ACC)        // subito i pulsanti, relay o Bluetooth
             Cat.SENS -> setView(Pane.SENS)       // relay o Bluetooth; grafici nella pagina web
-            Cat.HEAT -> if (heat.size == 1) openDev(heat[0]) else { refresh(true); sheet = c }
+            // piu' termostati: la loro pagina con i riquadri, come Clima e Sensori
+            Cat.HEAT -> if (heat.size == 1) openDev(heat[0]) else setView(Pane.TERM)
             Cat.AC -> setView(Pane.CLIMI)        // tutti i condizionatori, relay o Bluetooth
             Cat.MORE -> sheet = c
         }
@@ -216,6 +217,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
                             onRelogin = { id -> go("/_login?id=" + id, Cat.ALL) })
                         Pane.NEW -> SetupScreen(app, onClose = { refresh(true); go("/_home", Cat.ALL) })
                         Pane.SENS -> SensorsApp(app, app.sensorGo, openRelay = { openDev(it) }, onCharts = { go("/_sensors", Cat.SENS) })
+                        Pane.TERM -> ThermoScreen(app, openRelay = { openDev(it) })
                         else -> ShortcutsScreen(store, web)
                     }
                 }
@@ -240,17 +242,11 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     val acPick by app.acSrc.pick.collectAsState()
     acPick?.let { id -> AcSrcSheet(app, id, devs.firstOrNull { it.id == id }?.name ?: "condizionatore") { app.acSrc.pick.value = null } }
 
-    // ordine dei termostati nell'elenco, scelto con "✎ Modifica" (Order.kt); chiave = id del relay
-    val heatOrg = rememberOrganizer(store, "termostati")
-    val heatShown = heat.ordered(heatOrg.order) { it.id }
-    val heatKeys = heatShown.map { it.id }
-    // elenco chiuso: la prossima volta si riapre senza la modifica in corso
-    LaunchedEffect(sheet) { if (sheet == null) { heatOrg.cancel(); heatOrg.editing = false } }
     val open = sheet ?: return
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     fun pick(f: () -> Unit) = { sheet = null; f() }
     val items: List<Item> = when (open) {
-        Cat.HEAT -> heatShown.map { d ->
+        Cat.HEAT -> heat.map { d ->
             Item(d.name, devSub(d), Icons.flame, if (d.heat) modeColor("heat") else null,
                 selected = view == Pane.WEB && pageCat == Cat.HEAT && curDev == d.id, onClick = pick { openDev(d) })
         }
@@ -270,19 +266,8 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     }
     ModalBottomSheet(onDismissRequest = { sheet = null }, sheetState = state, containerColor = pal.bg) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp).padding(bottom = 24.dp).verticalScroll(rememberScrollState())) {
-            if (open == Cat.HEAT && heat.size > 1) {
-                Row(Modifier.fillMaxWidth().padding(start = 4.dp, bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(open.label, color = pal.muted, fontSize = 14.sp, modifier = Modifier.weight(1f))
-                    OrgButton(heatOrg)
-                }
-                if (heatOrg.editing) Note(ORG_HINT, Modifier.padding(start = 4.dp, bottom = 10.dp))
-                items.forEachIndexed { i, it ->
-                    OrgItem(heatOrg, heatKeys, heatKeys[i], Modifier.padding(bottom = 8.dp)) { m -> SheetRow(it, m) }
-                }
-            } else {
-                Text(open.label, color = pal.muted, fontSize = 14.sp, modifier = Modifier.padding(start = 4.dp, bottom = 10.dp))
-                items.forEach { SheetRow(it) }
-            }
+            Text(open.label, color = pal.muted, fontSize = 14.sp, modifier = Modifier.padding(start = 4.dp, bottom = 10.dp))
+            items.forEach { SheetRow(it) }
         }
     }
 }
