@@ -27,6 +27,9 @@ android {
         versionCode = 2
         versionName = "2.0"
         buildConfigField("String", "BASE_URL", "\"https://davidevinavil.synology.me:8443\"")
+        // stesso indirizzo del relay, per i link che apre l'app (AndroidManifest)
+        manifestPlaceholders["relayHost"] = "davidevinavil.synology.me"
+        manifestPlaceholders["relayPort"] = "8443"
     }
 
     buildTypes {

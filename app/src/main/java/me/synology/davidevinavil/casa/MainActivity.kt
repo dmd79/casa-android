@@ -1,6 +1,7 @@
 package me.synology.davidevinavil.casa
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.webkit.WebView
 import androidx.activity.ComponentActivity
@@ -42,6 +43,22 @@ class MainActivity : ComponentActivity() {
 
     private fun handle(i: Intent?) {
         if (i?.getStringExtra("tab") == "SCORC") pane.value = Pane.SCORC
+        // QR del dispositivo: login con il codice gia' scritto, o la sua
+        // pagina se e' gia' fra i dispositivi (lo decide il relay)
+        linkPath(i)?.let { p ->
+            pane.value = Pane.WEB
+            if (::web.isInitialized) web.loadUrl(Relay.BASE + p) else nav.startPath = p
+        }
+    }
+
+    /** Link del relay aperto da fuori: solo l'indirizzo di un dispositivo (/<codice>). */
+    private fun linkPath(i: Intent?): String? {
+        if (i?.action != Intent.ACTION_VIEW) return null
+        val u = i.data ?: return null
+        val base = Uri.parse(Relay.BASE)
+        if (u.scheme != "https" || u.host != base.host || u.port != base.port) return null
+        val code = u.path?.trim('/')?.lowercase() ?: return null
+        return if (Regex("[a-z0-9]{8}").matches(code)) "/$code" else null
     }
 
     override fun onStart() {

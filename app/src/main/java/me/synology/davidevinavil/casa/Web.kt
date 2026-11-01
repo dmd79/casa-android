@@ -69,6 +69,9 @@ class WebNav {
     @Volatile var loading = false
     /** Pagina finita di caricare: occasione per riaggiornare l'elenco. */
     var onLoaded: () -> Unit = {}
+    /** Prima pagina al posto di /_start (app aperta da un link, es. il QR di un dispositivo). */
+    var startPath: String? = null
+    fun firstUrl(): String = Relay.BASE + (startPath ?: "/_start").also { startPath = null }
 
     fun note(u: String?) {
         if (u == null || !u.startsWith(Relay.BASE)) return
@@ -161,17 +164,17 @@ fun makeWeb(ctx: Context, store: Store, nav: WebNav): WebView = WebView(ctx).app
     // La prima pagina si carica solo quando la WebView ha la sua misura vera:
     // caricata prima (0x0) la Home del termostato calcola il quadrante su
     // un'area vuota e resta impaginata male.
-    loadWhenSized()
+    loadWhenSized(nav)
 }
 
-private fun WebView.loadWhenSized() {
-    if (width > 0 && height > 0) { loadUrl(Relay.BASE + "/_start"); return }
+private fun WebView.loadWhenSized(nav: WebNav) {
+    if (width > 0 && height > 0) { loadUrl(nav.firstUrl()); return }
     addOnLayoutChangeListener(object : View.OnLayoutChangeListener {
         override fun onLayoutChange(v: View, l: Int, t: Int, r: Int, b: Int, oldL: Int, oldT: Int, oldR: Int, oldB: Int) {
             if (r - l <= 0 || b - t <= 0) return
             v.removeOnLayoutChangeListener(this)
             // dopo il layout, non durante
-            v.post { (v as WebView).loadUrl(Relay.BASE + "/_start") }
+            v.post { (v as WebView).loadUrl(nav.firstUrl()) }
         }
     })
 }

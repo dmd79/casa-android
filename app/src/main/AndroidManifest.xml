@@ -40,6 +40,14 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <!-- indirizzo di un dispositivo sul relay (QR del display, /<codice>):
+                 il relay, aperto in Chrome, rimanda qui (intent con il pacchetto) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="${relayHost}" android:port="${relayPort}" />
+            </intent-filter>
         </activity>
 
         <!-- riquadri nelle impostazioni rapide: un pulsante degli Accessi ciascuno -->
