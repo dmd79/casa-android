@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -195,16 +196,21 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setVi
         }
     }.sortedBy { c -> CAT_KEY[c]?.let { ord.indexOf(it) } ?: Int.MAX_VALUE }   // Altro resta in fondo
 
+    // Un tocco sulla barra porta sempre alla pagina iniziale della voce, mai
+    // all'ultima sottopagina vista (dettaglio di un sensore, registrazioni...):
+    // la schermata dell'app riparte da zero con uno stato nuovo.
+    val gen = remember { mutableStateMapOf<Pane, Int>() }
+    fun fresh(p: Pane) { gen[p] = (gen[p] ?: 0) + 1; setView(p) }
     fun tap(c: Cat) {
         when (c) {
             Cat.ALL -> go("/_home", c)
             Cat.DASH -> go("/_plancia", c)
-            Cat.GATE -> setView(Pane.ACC)        // subito i pulsanti, relay o Bluetooth
-            Cat.SENS -> setView(Pane.SENS)       // relay o Bluetooth; grafici nella pagina web
+            Cat.GATE -> fresh(Pane.ACC)          // subito i pulsanti, relay o Bluetooth
+            Cat.SENS -> fresh(Pane.SENS)         // relay o Bluetooth; grafici nella pagina web
             // piu' termostati: la loro pagina con i riquadri, come Clima e Sensori
-            Cat.HEAT -> if (heat.size == 1) openDev(heat[0]) else setView(Pane.TERM)
-            Cat.AC -> setView(Pane.CLIMI)        // tutti i condizionatori, relay o Bluetooth
-            Cat.CAM -> setView(Pane.CAM)         // Frigate dal relay: live, registrazioni
+            Cat.HEAT -> if (heat.size == 1) openDev(heat[0]) else fresh(Pane.TERM)
+            Cat.AC -> fresh(Pane.CLIMI)          // tutti i condizionatori, relay o Bluetooth
+            Cat.CAM -> { cam.home(); setView(Pane.CAM) }   // Frigate dal relay: il live
             Cat.MORE -> sheet = c
         }
     }
@@ -230,7 +236,7 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setVi
             // Telecamere: WebView sua, il live resta cambiando scheda
             CamPane(cam, visible = view == Pane.CAM)
             if (view != Pane.WEB && view != Pane.CAM) Box(Modifier.fillMaxSize().background(pal.bg)) {
-                holder.SaveableStateProvider(view.name) {
+                holder.SaveableStateProvider(view.name + (gen[view] ?: 0)) {
                     when (view) {
                         Pane.CLIMA -> App(ble, store, app.climaGo)
                         Pane.GATE -> GateApp(gb, store, app.gateGo, ::setWho)

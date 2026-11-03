@@ -46,6 +46,13 @@ class CamWeb(private val act: Activity) {
         if (!loaded) { loaded = true; web.loadUrl(START) }
     }
 
+    /** Tocco su Telecamere nella barra: sempre il live, non l'ultima pagina di Frigate. */
+    fun home() {
+        if (full != null) hideFull()
+        val w = view ?: return
+        if (loaded && w.url?.trimEnd('/') != START.trimEnd('/')) w.loadUrl(START)
+    }
+
     /** Scheda lasciata: si ferma il video, la pagina resta. */
     fun pause() { view?.onPause() }
 
