@@ -89,15 +89,17 @@ fun ClimaTheme(content: @Composable () -> Unit) {
 
 // ── icone dai tracciati SVG della pagina web (viewBox 24×24) ──
 
-class IconPart(val d: String, val fill: Boolean = false, val color: Color? = null)
+/** [tint]: zona che sull'icona accesa si riempie (colore al 28%), il contorno resta. */
+class IconPart(val d: String, val fill: Boolean = false, val color: Color? = null, val tint: Boolean = false)
 
 @Composable
-fun SvgIcon(parts: List<IconPart>, color: Color, size: Dp, stroke: Float = 2f) {
+fun SvgIcon(parts: List<IconPart>, color: Color, size: Dp, stroke: Float = 2f, on: Boolean = false) {
     val paths = remember(parts) { parts.map { PathParser().parsePathString(it.d).toPath() } }
     Canvas(Modifier.size(size)) {
         scale(this.size.width / 24f, pivot = Offset.Zero) {
             paths.forEachIndexed { i, p ->
                 val part = parts[i]
+                if (on && part.tint) drawPath(p, (part.color ?: color).copy(alpha = .28f), style = Fill)
                 drawPath(p, part.color ?: color,
                     style = if (part.fill) Fill else Stroke(stroke, cap = StrokeCap.Round, join = StrokeJoin.Round))
             }
@@ -107,6 +109,24 @@ fun SvgIcon(parts: List<IconPart>, color: Color, size: Dp, stroke: Float = 2f) {
 
 private fun circle(cx: Float, cy: Float, r: Float) =
     "M${cx - r} ${cy}a$r $r 0 1 0 ${2 * r} 0a$r $r 0 1 0 ${-2 * r} 0z"
+
+/** Rettangolo con gli angoli arrotondati (come <rect rx> dell'SVG). */
+private fun rrect(x: Float, y: Float, w: Float, h: Float, r: Float) =
+    "M${x + r} ${y}h${w - 2 * r}a$r $r 0 0 1 $r ${r}v${h - 2 * r}a$r $r 0 0 1 ${-r} ${r}h${-(w - 2 * r)}a$r $r 0 0 1 ${-r} ${-r}v${-(h - 2 * r)}a$r $r 0 0 1 $r ${-r}z"
+
+/** Icone della barra: stesso tratto (1.8), angoli arrotondati, zona piena sulla voce aperta. */
+object NavIcons {
+    val house = listOf(IconPart("M4 10.5L12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19z", tint = true), IconPart("M9.5 20.5v-5.5h5v5.5"))
+    val dash = listOf(IconPart(rrect(3.5f, 3.5f, 7.5f, 9f, 2f), tint = true), IconPart(rrect(13f, 3.5f, 7.5f, 5.5f, 2f), tint = true),
+        IconPart(rrect(13f, 11f, 7.5f, 9.5f, 2f), tint = true), IconPart(rrect(3.5f, 14.5f, 7.5f, 6f, 2f), tint = true))
+    val heat = listOf(IconPart("M12 3.5c.6 3 4.8 5.2 4.8 10a4.8 4.8 0 0 1-9.6 0c0-2.4 1.4-3.7 2.1-5.6 1 .9 1.7 1.9 2 3.1.8-2.3.7-5 .7-7.5z", tint = true), IconPart("M5 20.5h14"))
+    val ac = listOf(IconPart(rrect(3f, 4.5f, 18f, 8f, 2.5f), tint = true), IconPart("M6.5 9.5h11"), IconPart("M8 15.5q-1 1.5 0 3M12 15.5q-1 1.5 0 3M16 15.5q-1 1.5 0 3"))
+    val gate = listOf(IconPart("M4 20.5V10q8-5 16 0v10.5z", tint = true), IconPart("M8.5 7.6v12.9M12 7v13.5M15.5 7.6v12.9"))
+    val sens = listOf(IconPart("M9.5 5a2.5 2.5 0 0 1 5 0v8.6a4.5 4.5 0 1 1-5 0z", tint = true), IconPart("M12 17.5v-7"), IconPart("M18 5.5h2.5M18 8.5h2.5"))
+    val cam = listOf(IconPart("M3.5 7.5l13-3.5 1.6 5.8-13 3.5z", tint = true), IconPart("M18.1 9.8l2.4-.7M11 12l1.3 4.3H6.5M6.5 13.5v6"))
+    val more = listOf(IconPart(circle(12f, 12f, 8.5f), tint = true), IconPart(circle(8.2f, 12f, 1.2f), fill = true),
+        IconPart(circle(12f, 12f, 1.2f), fill = true), IconPart(circle(15.8f, 12f, 1.2f), fill = true))
+}
 
 object Icons {
     val power = listOf(IconPart("M12 3v8"), IconPart("M6.3 6.3a8 8 0 1 0 11.4 0"))

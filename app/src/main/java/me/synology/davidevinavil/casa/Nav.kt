@@ -47,6 +47,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.content.res.Configuration
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -56,8 +68,8 @@ import java.util.Locale
 /** Cosa occupa lo schermo sopra la barra. */
 enum class Pane { WEB, CLIMA, SCORC, GATE, ACC, CLIMI, NEW, SENS, TERM, CAM }
 
-/** Voci della barra: una per tipo di dispositivo. */
-enum class Cat(val label: String) { ALL("Tutti"), DASH("Plancia"), HEAT("Termostati"), AC("Clima"), GATE("Accessi"), SENS("Sensori"), CAM("Telecamere"), MORE("Altro") }
+/** Voci della barra: una per tipo di dispositivo ([short]: nome nella barra). */
+enum class Cat(val label: String, val short: String = label) { ALL("Tutti"), DASH("Plancia"), HEAT("Termostati", "Termo"), AC("Clima"), GATE("Accessi"), SENS("Sensori"), CAM("Telecamere", "Video"), MORE("Altro") }
 
 /** Voce dei pannelli: un dispositivo del relay, un condizionatore Bluetooth o una pagina. */
 private class Item(
@@ -206,8 +218,9 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setVi
         }
     }
 
-    Column(Modifier.fillMaxSize().background(pal.bg).statusBarsPadding()) {
-        Box(Modifier.weight(1f).fillMaxWidth()) {
+    // Pagine sopra (o a destra) della barra
+    val body: @Composable (Modifier) -> Unit = { m ->
+        Box(m) {
             CasaWeb(web, visible = view == Pane.WEB)
             // pagina nuova in arrivo: niente lampo di quella di prima
             PageCover(view == Pane.WEB && busy)
@@ -230,15 +243,35 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setVi
                 }
             }
         }
-        Row(Modifier.fillMaxWidth().background(pal.card).navigationBarsPadding().height(62.dp)) {
-            cats.forEach { c ->
-                val on = c == active
-                val col = if (on) pal.accent else pal.muted
-                Column(Modifier.weight(1f).fillMaxSize().clickable { tap(c) }.padding(top = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally) {
-                    SvgIcon(catIcon(c), col, 23.dp)
-                    Text(c.label, color = col, fontSize = if (cats.size > 6) 10.sp else 11.sp, maxLines = 1, softWrap = false)
+    }
+    // In orizzontale (telefono girato, autoradio) la barra va a sinistra e la
+    // pagina ha tutta l'altezza; sugli schermi grandi (autoradio) e' piu' grande.
+    val cfg = LocalConfiguration.current
+    val land = cfg.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val big = land && cfg.screenHeightDp >= 480
+    if (land) {
+        Row(Modifier.fillMaxSize().background(pal.bg).statusBarsPadding()) {
+            Column(
+                // sfondo anche sotto il foro della fotocamera, voci accanto
+                Modifier.fillMaxHeight().background(pal.card)
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Start + WindowInsetsSides.Bottom))
+                    .width(if (big) 116.dp else 80.dp).padding(vertical = 6.dp),
+                verticalArrangement = Arrangement.Center,
+            ) {
+                cats.forEach { c ->
+                    NavItem(c, c == active, big, Modifier.fillMaxWidth().weight(1f, fill = false)
+                        .heightIn(max = if (big) 104.dp else 64.dp).fillMaxHeight()) { tap(c) }
                 }
+            }
+            Box(Modifier.width(BW).fillMaxHeight().background(pal.border))
+            body(Modifier.weight(1f).fillMaxHeight().navigationBarsPadding())
+        }
+    } else {
+        Column(Modifier.fillMaxSize().background(pal.bg).statusBarsPadding()) {
+            body(Modifier.weight(1f).fillMaxWidth())
+            Box(Modifier.fillMaxWidth().height(BW).background(pal.border))
+            Row(Modifier.fillMaxWidth().background(pal.card).navigationBarsPadding().height(64.dp)) {
+                cats.forEach { c -> NavItem(c, c == active, false, Modifier.weight(1f).fillMaxHeight()) { tap(c) } }
             }
         }
     }
@@ -358,6 +391,25 @@ private fun devSub(d: RelayDev): String {
 }
 
 private fun catIcon(c: Cat) = when (c) {
-    Cat.ALL -> Icons.house; Cat.DASH -> Icons.dash; Cat.HEAT -> Icons.flame
-    Cat.AC -> Icons.cool; Cat.GATE -> Icons.gate; Cat.SENS -> Icons.gauge; Cat.CAM -> Icons.cam; Cat.MORE -> Icons.dots
+    Cat.ALL -> NavIcons.house; Cat.DASH -> NavIcons.dash; Cat.HEAT -> NavIcons.heat
+    Cat.AC -> NavIcons.ac; Cat.GATE -> NavIcons.gate; Cat.SENS -> NavIcons.sens; Cat.CAM -> NavIcons.cam; Cat.MORE -> NavIcons.more
+}
+
+/**
+ * Voce della barra: icona nella pillola (piena e colorata sulla voce aperta)
+ * e nome corto sotto. [big]: barra laterale dell'autoradio.
+ */
+@Composable
+private fun NavItem(c: Cat, on: Boolean, big: Boolean, modifier: Modifier, onTap: () -> Unit) {
+    val col = if (on) pal.accent else lerp(pal.muted, pal.value, .35f)
+    Column(modifier.clickable(onClick = onTap), horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center) {
+        Box(Modifier.size(if (big) 68.dp else 48.dp, if (big) 44.dp else 30.dp).clip(RoundedCornerShape(50))
+            .background(if (on) pal.accent.copy(alpha = .15f) else Color.Transparent), contentAlignment = Alignment.Center) {
+            SvgIcon(catIcon(c), col, if (big) 36.dp else 26.dp, stroke = 1.8f, on = on)
+        }
+        Text(c.short, color = col, fontSize = if (big) 15.sp else 10.5.sp, maxLines = 1, softWrap = false,
+            fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+            modifier = Modifier.padding(top = if (big) 5.dp else 3.dp))
+    }
 }
