@@ -28,6 +28,11 @@ class Store(ctx: Context) {
         set(v) = p.edit().putString("who", v.trim().take(15)).apply()
 
     /** Ultimo elenco dei dispositivi del relay: la barra compare subito all'avvio. */
+    /** Il relay ha Frigate collegato: voce Telecamere nella barra (ricordato fra un avvio e l'altro). */
+    var frigate: Boolean
+        get() = p.getBoolean("frigate", false)
+        set(v) = p.edit().putBoolean("frigate", v).apply()
+
     var relayList: String
         get() = p.getString("relayList", "[]") ?: "[]"
         set(v) = p.edit().putString("relayList", v).apply()

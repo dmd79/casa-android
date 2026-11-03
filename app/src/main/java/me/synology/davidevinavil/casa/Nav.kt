@@ -54,10 +54,10 @@ import kotlinx.coroutines.withContext
 import java.util.Locale
 
 /** Cosa occupa lo schermo sopra la barra. */
-enum class Pane { WEB, CLIMA, SCORC, GATE, ACC, CLIMI, NEW, SENS, TERM }
+enum class Pane { WEB, CLIMA, SCORC, GATE, ACC, CLIMI, NEW, SENS, TERM, CAM }
 
 /** Voci della barra: una per tipo di dispositivo. */
-enum class Cat(val label: String) { ALL("Tutti"), DASH("Plancia"), HEAT("Termostati"), AC("Clima"), GATE("Accessi"), SENS("Sensori"), MORE("Altro") }
+enum class Cat(val label: String) { ALL("Tutti"), DASH("Plancia"), HEAT("Termostati"), AC("Clima"), GATE("Accessi"), SENS("Sensori"), CAM("Telecamere"), MORE("Altro") }
 
 /** Voce dei pannelli: un dispositivo del relay, un condizionatore Bluetooth o una pagina. */
 private class Item(
@@ -67,7 +67,7 @@ private class Item(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) -> Unit) {
+fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setView: (Pane) -> Unit) {
     val holder = rememberSaveableStateHolder()
     val act = LocalContext.current as? Activity
     val scope = rememberCoroutineScope()
@@ -78,6 +78,8 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     // elenco dei dispositivi del relay: subito quello salvato, poi aggiornato
     var devs by remember { mutableStateOf(Relay.parseList(store.relayList)) }
     var lastLoad by remember { mutableStateOf(0L) }
+    // Frigate collegato al relay: voce Telecamere
+    var hasCam by remember { mutableStateOf(store.frigate) }
     fun refresh(force: Boolean = false) {
         if (!force && System.currentTimeMillis() - lastLoad < 20_000) return
         lastLoad = System.currentTimeMillis()
@@ -87,6 +89,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
             if (raw == null) return@launch
             store.relayList = raw
             devs = Relay.parseList(raw)
+            Relay.frigate?.let { if (it != hasCam) { hasCam = it; store.frigate = it } }
         }
     }
     // Bluetooth del clima solo mentre se ne guarda la schermata (come i cancelli)
@@ -137,7 +140,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
 
     val pageCat = webCat(url, devs.firstOrNull { it.id == curDev })
     LaunchedEffect(url) { pending = null }
-    val active = when (view) { Pane.CLIMA, Pane.CLIMI -> Cat.AC; Pane.SCORC, Pane.NEW -> Cat.MORE; Pane.GATE, Pane.ACC -> Cat.GATE; Pane.SENS -> Cat.SENS; Pane.TERM -> Cat.HEAT; Pane.WEB -> pending ?: pageCat }
+    val active = when (view) { Pane.CLIMA, Pane.CLIMI -> Cat.AC; Pane.SCORC, Pane.NEW -> Cat.MORE; Pane.GATE, Pane.ACC -> Cat.GATE; Pane.SENS -> Cat.SENS; Pane.TERM -> Cat.HEAT; Pane.CAM -> Cat.CAM; Pane.WEB -> pending ?: pageCat }
 
     // Copertura solo arrivando da una schermata dell'app (Clima, Accessi...):
     // sotto c'e' rimasta un'altra pagina, che si vedrebbe per un attimo. Da
@@ -173,7 +176,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     val cats = Cat.entries.filter {
         when (it) {
             Cat.HEAT -> heat.isNotEmpty(); Cat.AC -> acs.isNotEmpty() || bts.isNotEmpty(); Cat.GATE -> gates.isNotEmpty() || btGates.isNotEmpty(); Cat.SENS -> sensors.isNotEmpty() || btSensors.isNotEmpty()
-            Cat.DASH -> devs.isNotEmpty(); else -> true
+            Cat.DASH -> devs.isNotEmpty(); Cat.CAM -> hasCam; else -> true
         }
     }.sortedBy { c -> CAT_KEY[c]?.let { ord.indexOf(it) } ?: Int.MAX_VALUE }   // Altro resta in fondo
 
@@ -186,6 +189,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
             // piu' termostati: la loro pagina con i riquadri, come Clima e Sensori
             Cat.HEAT -> if (heat.size == 1) openDev(heat[0]) else setView(Pane.TERM)
             Cat.AC -> setView(Pane.CLIMI)        // tutti i condizionatori, relay o Bluetooth
+            Cat.CAM -> setView(Pane.CAM)         // Frigate dal relay: live, registrazioni
             Cat.MORE -> sheet = c
         }
     }
@@ -195,6 +199,7 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
     BackHandler {
         when (view) {
             Pane.WEB -> act?.moveTaskToBack(true)
+            Pane.CAM -> if (!cam.back()) act?.moveTaskToBack(true)
             Pane.GATE -> setView(Pane.ACC)      // dai cancelli Bluetooth alla scheda Accessi
             Pane.CLIMA -> setView(Pane.CLIMI)   // dal condizionatore Bluetooth alla pagina Clima
             else -> setView(Pane.WEB)
@@ -206,7 +211,9 @@ fun Root(app: CasaApp, web: WebView, nav: WebNav, view: Pane, setView: (Pane) ->
             CasaWeb(web, visible = view == Pane.WEB)
             // pagina nuova in arrivo: niente lampo di quella di prima
             PageCover(view == Pane.WEB && busy)
-            if (view != Pane.WEB) Box(Modifier.fillMaxSize().background(pal.bg)) {
+            // Telecamere: WebView sua, il live resta cambiando scheda
+            CamPane(cam, visible = view == Pane.CAM)
+            if (view != Pane.WEB && view != Pane.CAM) Box(Modifier.fillMaxSize().background(pal.bg)) {
                 holder.SaveableStateProvider(view.name) {
                     when (view) {
                         Pane.CLIMA -> App(ble, store, app.climaGo)
@@ -352,5 +359,5 @@ private fun devSub(d: RelayDev): String {
 
 private fun catIcon(c: Cat) = when (c) {
     Cat.ALL -> Icons.house; Cat.DASH -> Icons.dash; Cat.HEAT -> Icons.flame
-    Cat.AC -> Icons.cool; Cat.GATE -> Icons.gate; Cat.SENS -> Icons.gauge; Cat.MORE -> Icons.dots
+    Cat.AC -> Icons.cool; Cat.GATE -> Icons.gate; Cat.SENS -> Icons.gauge; Cat.CAM -> Icons.cam; Cat.MORE -> Icons.dots
 }

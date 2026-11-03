@@ -48,6 +48,9 @@ data class RelayDev(
 object Relay {
     val BASE: String = BuildConfig.BASE_URL
 
+    /** Frigate collegato al relay (header X-Frigate di /_list); null = non ancora saputo. */
+    @Volatile var frigate: Boolean? = null
+
     fun cookie(): String? = try { CookieManager.getInstance().getCookie(BASE) } catch (e: Exception) { null }
 
     private fun conn(path: String, cookie: String?, method: String = "GET"): HttpURLConnection {
@@ -72,7 +75,11 @@ object Relay {
 
     /** Dispositivi entrati nell'app (JSON grezzo di /_list, null se non raggiungibile). */
     fun listRaw(cookie: String?): String? = try {
-        val (code, body) = text(conn("/_list", cookie))
+        val c = conn("/_list", cookie)
+        val fr = if (c.responseCode == 200) c.getHeaderField("X-Frigate") else null
+        val (code, body) = text(c)
+        // relay con Frigate collegato: voce Telecamere nella barra
+        if (code == 200 && fr != null) frigate = fr == "1"
         if (code == 200 && body.trimStart().startsWith("[")) body else null
     } catch (e: Exception) { null }
 

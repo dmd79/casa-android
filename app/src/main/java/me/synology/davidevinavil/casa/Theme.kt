@@ -121,6 +121,7 @@ object Icons {
     val dots = listOf(IconPart(circle(5f, 12f, 1.8f), fill = true), IconPart(circle(12f, 12f, 1.8f), fill = true), IconPart(circle(19f, 12f, 1.8f), fill = true))
     val gauge = listOf(IconPart("M10 4a2 2 0 1 1 4 0v9.5a4 4 0 1 1-4 0z"), IconPart("M12 17.5v-6"))
     val users = listOf(IconPart(circle(9f, 8f, 3.5f)), IconPart("M2.5 20c.5-3.5 3.2-5.5 6.5-5.5s6 2 6.5 5.5"), IconPart("M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.8c1.8.8 2.8 2.7 3 5.2"))
+    val cam = listOf(IconPart("M4.5 6.5h9a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z"), IconPart("M15.5 10.5l6-3.5v10l-6-3.5"))
     val house = listOf(IconPart("M3 11l9-8 9 8M5 9.5V21h14V9.5M10 21v-6h4v6"))
     val gate = listOf(IconPart("M3 21V6M21 21V6M3 9q4.5-3 9 0q4.5-3 9 0M7 8v13M12 9v12M17 8v13"))
     val cool = listOf(IconPart("M12 2v20M3.3 7l17.4 10M3.3 17L20.7 7M9 4l3 2 3-2M9 20l3-2 3 2"))

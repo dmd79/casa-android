@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 class MainActivity : ComponentActivity() {
     private val app get() = application as CasaApp
     private lateinit var web: WebView
+    private lateinit var cam: CamWeb
     private val nav = WebNav()
     private val pane = MutableStateFlow(Pane.WEB)
 
@@ -27,10 +28,11 @@ class MainActivity : ComponentActivity() {
         )
         handle(intent)
         web = makeWeb(this, app.store, nav)
+        cam = CamWeb(this)
         setContent {
             ClimaTheme {
                 val p by pane.collectAsState()
-                Root(app, web, nav, p) { pane.value = it }
+                Root(app, web, cam, nav, p) { pane.value = it }
             }
         }
     }
@@ -65,15 +67,18 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         app.fg = true
         app.ble.resume()   // tornando in primo piano: ricollega subito il clima se serve
+        if (::cam.isInitialized && pane.value == Pane.CAM) cam.open()
     }
 
     override fun onStop() {
         app.fg = false
+        if (::cam.isInitialized) cam.pause()   // in secondo piano il live si ferma
         super.onStop()
     }
 
     override fun onDestroy() {
         web.destroy()
+        cam.destroy()
         super.onDestroy()
     }
 }
