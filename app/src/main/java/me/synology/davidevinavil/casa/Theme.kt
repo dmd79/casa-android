@@ -13,6 +13,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
@@ -37,6 +39,11 @@ import androidx.compose.ui.unit.sp
 data class Pal(
     val bg: Color, val card: Color, val border: Color, val accent: Color, val text: Color,
     val value: Color, val muted: Color, val sel: Color, val danger: Color, val ok: Color, val onAccent: Color,
+    /** Tema chiaro (segue Android). */
+    val light: Boolean = false,
+    /** Nome nei riquadri, scritte secondarie, simboli spenti, stato spento, avvisi, errori. */
+    val name: Color = Color(0xFFC9D1D4), val sub: Color = Color(0xFF8A9599), val dim: Color = Color(0xFF5A6266),
+    val off: Color = Color(0xFF6B7479), val warn: Color = Color(0xFFE7C12C), val bad: Color = Color(0xFFFF5A5A),
 )
 
 private val DarkPal = Pal(
@@ -48,6 +55,8 @@ private val LightPal = Pal(
     bg = Color(0xFFF4F3EF), card = Color.White, border = Color(0xFFD9D6CF), accent = Color(0xFF0A7FBF),
     text = Color(0xFF1A1A1A), value = Color(0xFF5F5B55), muted = Color(0xFF8A867F), sel = Color(0xFFDCEEFA),
     danger = Color(0xFFD6004C), ok = Color(0xFF1FA77A), onAccent = Color.White,
+    light = true, name = Color(0xFF33383B), sub = Color(0xFF6B7479), dim = Color(0xFFA7AEB1),
+    off = Color(0xFF8F969A), warn = Color(0xFFB58900), bad = Color(0xFFD63A3A),
 )
 
 val LocalPal = staticCompositionLocalOf { DarkPal }
@@ -64,6 +73,19 @@ fun tintBg(card: Color, c: Color) = androidx.compose.ui.graphics.lerp(card, c, 0
 fun tintBd(card: Color, c: Color) = androidx.compose.ui.graphics.lerp(card, c, 0.55f)
 val pal: Pal @Composable get() = LocalPal.current
 
+/**
+ * Colore di un modo o di uno stato usato per scritte e simboli: sul fondo
+ * chiaro i colori vivi (azzurro, giallo) si leggono male, si scuriscono.
+ */
+@Composable
+fun ink(c: Color): Color = if (pal.light) androidx.compose.ui.graphics.lerp(c, Color.Black, 0.28f) else c
+
+/** Pastiglia del modo (Clima, Termostati): scura col colore del modo, in chiaro piena del colore con la scritta bianca. */
+@Composable
+fun pillBg(c: Color): Color = if (pal.light) ink(c) else Color.Black.copy(alpha = 0.45f)
+@Composable
+fun pillFg(c: Color): Color = if (pal.light) Color.White else c
+
 /** Colore di ogni modo, uguale al termostato e alla pagina web. */
 fun modeColor(m: String) = when (m) {
     "auto" -> Color(0xFF9670D6); "cool" -> Color(0xFF2FC0FF); "heat" -> Color(0xFFFF6600)
@@ -74,14 +96,15 @@ fun modeLabel(m: String) = when (m) {
 }
 
 /**
- * Sempre scuro, anche col telefono (o l'autoradio) in modalita' chiara: le
- * pagine del relay e dei dispositivi sono scure e diversi colori dell'app
- * (Clima, Accessi) sono pensati sul nero. In chiaro le scritte si leggevano male.
+ * Chiaro o scuro come Android. Le pagine del relay seguono lo stesso tema
+ * (prefers-color-scheme della WebView); quelle dei dispositivi restano scure.
  */
 @Composable
 fun ClimaTheme(content: @Composable () -> Unit) {
-    val p = DarkPal
-    val scheme = darkColorScheme(primary = p.accent, background = p.bg, surface = p.bg, onSurface = p.text)
+    val dark = isSystemInDarkTheme()
+    val p = if (dark) DarkPal else LightPal
+    val scheme = if (dark) darkColorScheme(primary = p.accent, background = p.bg, surface = p.bg, onSurface = p.text)
+        else lightColorScheme(primary = p.accent, background = p.bg, surface = p.bg, onSurface = p.text)
     CompositionLocalProvider(LocalPal provides p) {
         MaterialTheme(colorScheme = scheme, content = content)
     }

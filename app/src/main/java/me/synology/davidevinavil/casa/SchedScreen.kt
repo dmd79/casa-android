@@ -150,6 +150,9 @@ private fun DayGraph(s: Sched, day: Int, modifier: Modifier, big: Boolean, onDot
     val muted = pal.muted
     val grid = pal.border
     val txt = pal.text
+    // scritte sopra i pallini e sfondo dei pallini: chiari sullo scuro, scuri sul chiaro
+    val lab = if (pal.light) android.graphics.Color.argb(255, 60, 60, 60) else android.graphics.Color.argb(255, 221, 221, 221)
+    val dotBg = if (pal.light) Color.White else Color(0xFFEEEEEE)
     val ctx = LocalContext.current
     val dens = ctx.resources.displayMetrics.scaledDensity
     // tocco su un pallino (entro ~20 dp): stesse coordinate del disegno
@@ -197,12 +200,12 @@ private fun DayGraph(s: Sched, day: Int, modifier: Modifier, big: Boolean, onDot
                     drawLine(Color(0xFF777777), Offset(x(a), minOf(py, yy)), Offset(x(a), maxOf(py, yy)), 1.5f,
                         pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f)))
                     if (big) {
-                        drawCircle(Color(0xFFEEEEEE), 6.dp.toPx(), Offset(x(a), yy))
+                        drawCircle(dotBg, 6.dp.toPx(), Offset(x(a), yy))
                         drawCircle(c, 6.dp.toPx(), Offset(x(a), yy), style = Stroke(3.dp.toPx()))
                         paint.textAlign = android.graphics.Paint.Align.CENTER
                         paint.color = android.graphics.Color.argb(255, (c.red * 255).toInt(), (c.green * 255).toInt(), (c.blue * 255).toInt())
                         drawContext.canvas.nativeCanvas.drawText(hm(a / 60, a % 60), x(a), yy - 24 * dens, paint)
-                        paint.color = android.graphics.Color.argb(255, 221, 221, 221)
+                        paint.color = lab
                         drawContext.canvas.nativeCanvas.drawText(if (withTemp(m)) "$t°" else MODE_LBL[m]?.lowercase() ?: "", x(a), yy - 11 * dens, paint)
                     }
                 }
@@ -246,7 +249,7 @@ private fun DaySheet(ble: Ble, s: Sched, day: Int, start: Int?, onClose: () -> U
             }
             DayGraph(s, day, Modifier.fillMaxWidth().height(56.dp).padding(vertical = 6.dp), big = false)
             list.forEach { (i, x) ->
-                val c = schedColor(x.modeKey)
+                val c = ink(schedColor(x.modeKey))
                 val on = sel == i
                 Row(Modifier.fillMaxWidth().padding(bottom = 5.dp).clip(RoundedCornerShape(12.dp))
                     .background(if (on) c.copy(alpha = .15f) else Color.Transparent)
@@ -282,7 +285,7 @@ private fun DaySheet(ble: Ble, s: Sched, day: Int, start: Int?, onClose: () -> U
                     SCHED_MODES.chunked(2).forEach { pair ->
                         Row(Modifier.fillMaxWidth().padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             pair.forEach { m ->
-                                val c = schedColor(m)
+                                val c = ink(schedColor(m))
                                 val on = x.modeKey == m
                                 Row(Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).background(if (on) c.copy(alpha = .15f) else Color.Transparent)
                                     .border(BW, if (on) c else pal.border, RoundedCornerShape(10.dp)).clickable { if (!on) cmd("set $i mode $m") }

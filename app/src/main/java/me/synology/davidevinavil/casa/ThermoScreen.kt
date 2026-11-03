@@ -106,7 +106,7 @@ fun ThermoScreen(app: CasaApp, openRelay: (RelayDev) -> Unit) {
 private fun ThermoCard(modifier: Modifier, d: RelayDev, status: String?, onClick: () -> Unit) {
     val st = thState(d)
     val off = status != null
-    val col = when { off -> Color(0xFF6B7479); st == "flame" -> TH_FLAME; st == "idle" -> TH_IDLE; else -> TH_OFF }
+    val col = when { off -> pal.off; st == "flame" -> TH_FLAME; st == "idle" -> TH_IDLE; else -> TH_OFF }
     val label = status ?: when (st) { "flame" -> if (d.dhw) "Acqua calda" else "Riscalda"; "idle" -> "In attesa"; else -> "Spento" }
     // fondo e bordo nella tonalita' dello stato (scollegato o accesso scaduto: neutro)
     val bg = if (off) pal.card else tintBg(pal.card, col)
@@ -118,20 +118,20 @@ private fun ThermoCard(modifier: Modifier, d: RelayDev, status: String?, onClick
             .padding(horizontal = 13.dp, vertical = 12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(d.name, color = Color(0xFFC9D1D4), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
+            Text(d.name, color = pal.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
                 overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-            SvgIcon(Icons.flame, if (off) Color(0xFF5A6266) else col, 15.dp, stroke = 2f)
+            SvgIcon(Icons.flame, if (off) pal.dim else ink(col), 15.dp, stroke = 2f)
         }
         ValueRows(if (off) null else d.cur, if (off) null else d.hum, hasHum = d.hum != null && !off,
             icon = ICO_THERMO, iconColor = CH_SENS, dim = off)
         val tg = (if (off) null else tgt0(d.tgt))?.let { "→ $it °C  " }
         Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (tg != null) Text(tg, color = Color(0xFF8A9599), fontSize = 12.sp, maxLines = 1, softWrap = false)
+            if (tg != null) Text(tg, color = pal.sub, fontSize = 12.sp, maxLines = 1, softWrap = false)
             // scritta dello stato su una pastiglia scura: resta leggibile sul fondo colorato
-            Text("● " + label.uppercase(), color = col,
+            Text("● " + label.uppercase(), color = if (off) col else pillFg(col),
                 fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, maxLines = 1, softWrap = false,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(alpha = 0.45f))
+                modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(if (off) (if (pal.light) pal.bg else Color.Black.copy(alpha = 0.45f)) else pillBg(col))
                     .padding(horizontal = 7.dp, vertical = 2.dp))
         }
     }

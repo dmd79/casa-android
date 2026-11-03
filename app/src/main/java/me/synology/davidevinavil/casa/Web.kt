@@ -160,7 +160,8 @@ fun makeWeb(ctx: Context, store: Store, nav: WebNav): WebView = WebView(ctx).app
         }
     }
     webChromeClient = WebChromeClient()
-    setBackgroundColor(0xFF0D0D0D.toInt())
+    // fondo mentre arriva la pagina: come il tema del telefono
+    setBackgroundColor(if (isNight(ctx)) 0xFF0D0D0D.toInt() else 0xFFF4F3EF.toInt())
     // La prima pagina si carica solo quando la WebView ha la sua misura vera:
     // caricata prima (0x0) la Home del termostato calcola il quadrante su
     // un'area vuota e resta impaginata male.
@@ -307,5 +308,9 @@ fun CasaWeb(web: WebView, visible: Boolean) {
         web
     }, update = { it.visibility = if (visible) View.VISIBLE else View.INVISIBLE })
 }
+
+/** Telefono in tema scuro. */
+fun isNight(ctx: Context): Boolean =
+    (ctx.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK) == android.content.res.Configuration.UI_MODE_NIGHT_YES
 
 fun WebView.reloadStart() = loadUrl(Relay.BASE + "/_start")

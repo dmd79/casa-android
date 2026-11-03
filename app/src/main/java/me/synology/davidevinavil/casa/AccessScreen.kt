@@ -156,7 +156,7 @@ fun AccessScreen(app: CasaApp, setWho: (String) -> Unit, onHistory: () -> Unit, 
         Column(Modifier.fillMaxSize().padding(horizontal = 22.dp, vertical = 16.dp).verticalScroll(rememberScrollState())) {
             OrgTitle("Accessi", org, accs.size > 1)
             if (loaded && !relayOk && accs.isNotEmpty()) {
-                val y = Color(0xFFE7C12C)
+                val y = pal.warn
                 Text(if (btGates.isNotEmpty()) "Relay non raggiungibile: apro via Bluetooth, da vicino" else "Relay non raggiungibile",
                     color = y, fontSize = 14.sp,
                     modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(12.dp))
@@ -169,7 +169,7 @@ fun AccessScreen(app: CasaApp, setWho: (String) -> Unit, onHistory: () -> Unit, 
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text("APRI COME", color = pal.muted, fontSize = 12.sp, letterSpacing = 1.sp)
-                Text(who.ifBlank { "scegli" }, color = if (who.isBlank()) Color(0xFFE7C12C) else Color(0xFF00C6FF),
+                Text(who.ifBlank { "scegli" }, color = if (who.isBlank()) pal.warn else pal.accent,
                     fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
             // cancelli con l'accesso scaduto: restano qui, un tocco porta all'accesso

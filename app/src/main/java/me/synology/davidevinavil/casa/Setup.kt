@@ -645,20 +645,20 @@ fun SetupScreen(app: CasaApp, onClose: () -> Unit) {
                             val h = hook
                             when {
                                 h?.hooked == true -> DoneRow(ICO_RADIO, "Termostato", "agganciato, canale ${h.ch}", pal.ok)
-                                hookGiveUp -> DoneRow(ICO_RADIO, "Termostato", "non trovato: inserisci il MAC sul termostato, il sensore continua a cercarlo", Color(0xFFE7C12C))
-                                else -> DoneRow(ICO_RADIO, "Termostato", "cerco il canale…", Color(0xFFE7C12C))
+                                hookGiveUp -> DoneRow(ICO_RADIO, "Termostato", "non trovato: inserisci il MAC sul termostato, il sensore continua a cercarlo", pal.warn)
+                                else -> DoneRow(ICO_RADIO, "Termostato", "cerco il canale…", pal.warn)
                             }
                         } else {
                             DoneRow(ICO_BT, "Bluetooth", "abbinato: da vicino anche senza internet", pal.ok)
                             when {
-                                noWifi -> DoneRow(ICO_WIFI, "Wi-Fi", "non collegato: impostalo da Impostazioni → Wi-Fi", Color(0xFFE7C12C))
+                                noWifi -> DoneRow(ICO_WIFI, "Wi-Fi", "non collegato: impostalo da Impostazioni → Wi-Fi", pal.warn)
                                 bt != null -> DoneRow(ICO_WIFI, "Wi-Fi", "collegato a «${ssid.trim()}»", pal.ok)
                                 else -> DoneRow(ICO_WIFI, "Wi-Fi", "«${ssid.trim()}» salvato: si collega da solo", pal.muted)
                             }
                             when {
                                 relayIn -> DoneRow(LOCK, "Relay", "nella tua lista", pal.ok)
-                                noWifi -> DoneRow(LOCK, "Relay", "quando c'è il Wi-Fi", Color(0xFFE7C12C))
-                                else -> DoneRow(LOCK, "Relay", "lo aggiungo alla lista appena è online", Color(0xFFE7C12C))
+                                noWifi -> DoneRow(LOCK, "Relay", "quando c'è il Wi-Fi", pal.warn)
+                                else -> DoneRow(LOCK, "Relay", "lo aggiungo alla lista appena è online", pal.warn)
                             }
                         }
                     }
@@ -718,7 +718,7 @@ private val LOCK = listOf(IconPart("M7 11h10a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H7a2 2
         modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp))
 
 @Composable private fun Warn(t: String) =
-    Text(t, color = Color(0xFFE7C12C), fontSize = 14.sp, modifier = Modifier.fillMaxWidth().padding(top = 10.dp))
+    Text(t, color = pal.warn, fontSize = 14.sp, modifier = Modifier.fillMaxWidth().padding(top = 10.dp))
 
 /** Campo di testo; [secret]: password, con "mostra" per vederla. */
 @Composable
@@ -746,7 +746,7 @@ private fun Field(label: String, v: String, set: (String) -> Unit, secret: Boole
 
 @Composable
 private fun StepRow(t: String, ok: Boolean, now: Boolean, bad: Boolean) {
-    val red = Color(0xFFFF5A5A)
+    val red = pal.bad
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.width(26.dp), contentAlignment = Alignment.CenterStart) {
             when {

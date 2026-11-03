@@ -267,7 +267,7 @@ fun ScanScreen(ble: Ble, store: Store, onBack: () -> Unit, onPick: (Found) -> Un
 @Composable
 fun SignalBars(rssi: Int) {
     val lv = when { rssi > -60 -> 3; rssi > -70 -> 2; rssi > -80 -> 1; else -> 0 }
-    val col = if (lv >= 2) pal.ok else androidx.compose.ui.graphics.Color(0xFFE7C12C)
+    val col = if (lv >= 2) pal.ok else pal.warn
     Row(verticalAlignment = Alignment.Bottom) {
         (0..3).forEach { b ->
             Box(Modifier.padding(start = 3.dp).width(5.dp).height((7 + b * 5).dp).clip(RoundedCornerShape(2.dp))

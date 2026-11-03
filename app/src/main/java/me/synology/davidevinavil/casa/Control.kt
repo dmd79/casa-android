@@ -63,7 +63,7 @@ import kotlin.math.sin
 fun ControlScreen(ble: Ble, st: AcState, link: Link, onSettings: () -> Unit, onDevices: () -> Unit, onSched: () -> Unit = {}) {
     val sc by ble.sched.collectAsState()
     val on = st.isOn
-    val mc = modeColor(st.mode)
+    val mc = ink(modeColor(st.mode))
     var tmrDlg by remember { mutableStateOf(false) }
     // il comando parte nella coda del collegamento: non si perde cambiando schermata
     // [apply] mostra subito il valore scelto e lo tiene per 4 s anche sopra le
@@ -124,7 +124,7 @@ fun ControlScreen(ble: Ble, st: AcState, link: Link, onSettings: () -> Unit, onD
         Row(Modifier.fillMaxWidth().padding(top = 28.dp), horizontalArrangement = Arrangement.SpaceBetween) {
             MODES.forEach { m ->
                 val sel = on && st.mode == m
-                val c = modeColor(m)
+                val c = ink(modeColor(m))
                 Box(Modifier.size(62.dp).clip(CircleShape).background(if (sel) c.copy(alpha = .3f) else Color.Transparent)
                     .border(BW, if (sel) c else pal.border, CircleShape)
                     .clickable { cmd("mode", m) { it.copy(mode = m) } }, contentAlignment = Alignment.Center) {

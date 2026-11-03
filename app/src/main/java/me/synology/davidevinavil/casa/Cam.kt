@@ -100,7 +100,7 @@ class CamWeb(private val act: Activity) {
         settings.textZoom = 100
         CookieManager.getInstance().setAcceptCookie(true)
         CookieManager.getInstance().setAcceptThirdPartyCookies(this, true)
-        setBackgroundColor(0xFF0D0D0D.toInt())
+        setBackgroundColor(if (isNight(act)) 0xFF0D0D0D.toInt() else 0xFFF4F3EF.toInt())
 
         webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(v: WebView, r: WebResourceRequest): Boolean {

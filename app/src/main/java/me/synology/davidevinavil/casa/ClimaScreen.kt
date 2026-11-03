@@ -123,7 +123,7 @@ fun ClimaScreen(app: CasaApp, openRelay: (RelayDev) -> Unit, openBt: (String) ->
     Column(Modifier.fillMaxSize().background(pal.bg).padding(horizontal = 20.dp, vertical = 16.dp).verticalScroll(rememberScrollState())) {
         OrgTitle("Clima", org, list.size > 1)
         if (loaded && !relayOk && list.isNotEmpty()) {
-            val y = Color(0xFFE7C12C)
+            val y = pal.warn
             Text(if (bts.isNotEmpty()) "Relay non raggiungibile: apro via Bluetooth, da vicino" else "Relay non raggiungibile",
                 color = y, fontSize = 14.sp,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(12.dp))
@@ -177,7 +177,7 @@ fun ClimaScreen(app: CasaApp, openRelay: (RelayDev) -> Unit, openBt: (String) ->
 private fun AcCard(modifier: Modifier, name: String, cur: Double?, tgt: Double?, mode: String, ch: String, status: String?,
                    hum: Double? = null, src: String? = null, onLong: (() -> Unit)? = null, onClick: () -> Unit) {
     val off = status != null || mode == "off" || mode.isBlank()
-    val col = if (status != null) Color(0xFF6B7479) else acColor(mode)
+    val col = if (status != null) pal.off else acColor(mode)
     // fondo e bordo con la tonalita' del modo (spento, Cerco... e Non
     // raggiungibile restano neutri, come i riquadri dei Sensori)
     val bg = if (off) pal.card else tintBg(pal.card, col)
@@ -191,20 +191,21 @@ private fun AcCard(modifier: Modifier, name: String, cur: Double?, tgt: Double?,
         // stesso schema dei riquadri dei Sensori: nome e canale; temperatura con
         // l'icona della provenienza; umidita' con la goccia; in fondo impostata e modo
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(name, color = Color(0xFFC9D1D4), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
+            Text(name, color = pal.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
                 overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             SvgIcon(if (ch == "bt") ICO_BT else ICO_WIFI, chColor(ch, status != null), 14.dp, stroke = 2f)
         }
         ValueRows(if (status != null) null else cur, if (src != null && status == null) hum else null, hasHum = src != null && status == null,
-            icon = if (src != null) ICO_THERMO else ICO_AC, iconColor = if (src != null) CH_SENS else Color(0xFF8A9599), dim = status != null)
+            icon = if (src != null) ICO_THERMO else ICO_AC, iconColor = if (src != null) CH_SENS else pal.sub, dim = status != null)
         val tg = (if (status != null) null else t0(tgt))?.let { "→ $it °C  " }
         Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (tg != null) Text(tg, color = Color(0xFF8A9599), fontSize = 12.sp, maxLines = 1, softWrap = false)
+            if (tg != null) Text(tg, color = pal.sub, fontSize = 12.sp, maxLines = 1, softWrap = false)
             // scritta del modo su una pastiglia scura: resta leggibile sul fondo colorato
-            Text("● " + (status ?: acLabel(mode)).uppercase(), color = if (off) Color(0xFF6B7479) else col,
+            // (in chiaro: pastiglia piena del colore del modo, scritta bianca)
+            Text("● " + (status ?: acLabel(mode)).uppercase(), color = if (off) pal.off else pillFg(col),
                 fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, letterSpacing = 1.sp, maxLines = 1, softWrap = false,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(alpha = 0.45f))
+                modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(if (off) (if (pal.light) pal.bg else Color.Black.copy(alpha = 0.45f)) else pillBg(col))
                     .padding(horizontal = 7.dp, vertical = 2.dp))
         }
     }
@@ -212,11 +213,13 @@ private fun AcCard(modifier: Modifier, name: String, cur: Double?, tgt: Double?,
 
 // Colori dei simboli (Clima e Sensori): relay verde, Bluetooth blu, sensore
 // scelto giallo, umidita' azzurra come sul termostato; grigio se non raggiungibile
-val CH_WIFI = Color(0xFF39D19C)
-val CH_BT = Color(0xFF4F8CFF)
-val CH_SENS = Color(0xFFE7C12C)
-val HUM_BLUE = Color(0xFF00C6FF)
-fun chColor(ch: String, off: Boolean) = if (off) Color(0xFF5A6266) else if (ch == "bt") CH_BT else CH_WIFI
+// (in chiaro un po' piu' scuri, per leggerli sul bianco)
+val CH_WIFI: Color @Composable get() = ink(Color(0xFF39D19C))
+val CH_BT: Color @Composable get() = ink(Color(0xFF4F8CFF))
+val CH_SENS: Color @Composable get() = ink(Color(0xFFE7C12C))
+val HUM_BLUE: Color @Composable get() = ink(Color(0xFF00C6FF))
+@Composable
+fun chColor(ch: String, off: Boolean) = if (off) pal.dim else if (ch == "bt") CH_BT else CH_WIFI
 
 val ICO_THERMO = listOf(IconPart("M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z"))
 val ICO_DROP = listOf(IconPart("M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"))
@@ -230,14 +233,14 @@ val ICO_AC = listOf(IconPart("M4.5 5h15a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-15a2 2 0 
 @Composable
 fun ValueRows(t: Double?, h: Double?, hasHum: Boolean, icon: List<IconPart>, iconColor: Color, dim: Boolean) {
     Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.width(22.dp)) { SvgIcon(icon, if (dim) Color(0xFF5A6266) else iconColor, 17.dp, stroke = 1.8f) }
+        Box(Modifier.width(22.dp)) { SvgIcon(icon, if (dim) pal.dim else iconColor, 17.dp, stroke = 1.8f) }
         Text(if (dim) "--" else d2(t), color = if (dim) pal.muted else pal.text, fontSize = 30.sp, fontWeight = FontWeight.Light,
             maxLines = 1, softWrap = false)
-        Text(" °C", color = Color(0xFF8A9599), fontSize = 13.sp, maxLines = 1, softWrap = false, modifier = Modifier.padding(top = 10.dp))
+        Text(" °C", color = pal.sub, fontSize = 13.sp, maxLines = 1, softWrap = false, modifier = Modifier.padding(top = 10.dp))
     }
     Row(Modifier.height(22.dp), verticalAlignment = Alignment.CenterVertically) {
         if (hasHum) {
-            Box(Modifier.width(22.dp)) { SvgIcon(ICO_DROP, if (dim) Color(0xFF5A6266) else HUM_BLUE, 16.dp, stroke = 2f) }
+            Box(Modifier.width(22.dp)) { SvgIcon(ICO_DROP, if (dim) pal.dim else HUM_BLUE, 16.dp, stroke = 2f) }
             Text("${if (dim) "--" else d2(h)} %", color = if (dim) pal.muted else HUM_BLUE, fontSize = 16.sp, maxLines = 1, softWrap = false)
         }
     }

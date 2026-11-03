@@ -58,9 +58,10 @@ import java.util.Locale
 private enum class GScr { LIST, SCAN, PAIR, CTL, FW }
 
 // colori della pagina del dispositivo (gate.css)
-private val G_BLUE = Color(0xFF00C6FF)
-private val G_YEL = Color(0xFFE7C12C)
-private val G_DIM = Color(0xFF8A93A3)
+// (in chiaro un po' piu' scuri, per leggerli sul bianco)
+private val G_BLUE: Color @Composable get() = ink(Color(0xFF00C6FF))
+private val G_YEL: Color @Composable get() = ink(Color(0xFFE7C12C))
+private val G_DIM: Color @Composable get() = if (pal.light) Color(0xFF6B7380) else Color(0xFF8A93A3)
 
 // icone dei pulsanti, come gate.js (da chiusi)
 private fun dot(cx: Float, cy: Float, r: Float) = "M${cx - r} ${cy}a$r $r 0 1 0 ${2 * r} 0a$r $r 0 1 0 ${-2 * r} 0z"

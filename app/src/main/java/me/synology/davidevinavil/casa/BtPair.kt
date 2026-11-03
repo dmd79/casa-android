@@ -283,7 +283,7 @@ fun BtPairDialogs(p: BtPairer) {
                 .border(BW, pal.border, RoundedCornerShape(24.dp)).padding(horizontal = 24.dp, vertical = 22.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            val red = Color(0xFFFF5A5A)
+            val red = pal.bad
             when {
                 s.done -> SvgIcon(ICO_CHECK, pal.ok, 52.dp, stroke = 2.6f)
                 s.err != null -> SvgIcon(ICO_X, red, 48.dp, stroke = 2.6f)

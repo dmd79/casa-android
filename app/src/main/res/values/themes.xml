@@ -1,5 +1,7 @@
 <resources>
-    <style name="Theme.Casa" parent="android:Theme.Material.NoActionBar">
+    <!-- Chiaro; in tema scuro values-night/themes.xml. La WebView prende da qui
+         prefers-color-scheme: le pagine del relay seguono il tema del telefono. -->
+    <style name="Theme.Casa" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/bg</item>
         <item name="android:statusBarColor">@color/bg</item>
         <item name="android:navigationBarColor">@color/bg</item>

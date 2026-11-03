@@ -379,7 +379,7 @@ private fun SheetRow(it: Item, modifier: Modifier = Modifier.padding(bottom = 8.
 @Composable
 private fun PageCover(visible: Boolean) {
     AnimatedVisibility(visible = visible, enter = EnterTransition.None, exit = fadeOut(tween(200))) {
-        Box(Modifier.fillMaxSize().background(Color(0xFF0A0A0F)))
+        Box(Modifier.fillMaxSize().background(pal.bg))
     }
 }
 
@@ -483,7 +483,7 @@ private fun NavStrip(active: Cat?, big: Boolean, onOpen: () -> Unit) {
 private fun NavMenu(open: Boolean, cats: List<Cat>, active: Cat?, cols: Int, big: Boolean, onClose: () -> Unit, onPick: (Cat) -> Unit) {
     AnimatedVisibility(visible = open, enter = fadeIn(tween(140)), exit = fadeOut(tween(140))) {
         Box(
-            Modifier.fillMaxSize().background(Color.Black.copy(alpha = .6f))
+            Modifier.fillMaxSize().background(Color.Black.copy(alpha = if (pal.light) .35f else .6f))
                 .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClose),
             contentAlignment = Alignment.BottomCenter,
         ) {

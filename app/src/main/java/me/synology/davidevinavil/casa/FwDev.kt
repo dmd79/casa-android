@@ -177,7 +177,7 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
                     }
                     Text(if (l == null) "Scegli" else "Cambia", color = pal.accent, fontSize = 14.sp)
                 }
-                pickErr?.let { Text(it, color = Color(0xFFE7C12C), fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp)) }
+                pickErr?.let { Text(it, color = pal.warn, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp)) }
             }
             Note(if (useFile) "Nessuna rete necessaria: il file va al $word dal Wi-Fi di casa o dal suo hotspot."
                  else "Scarico prima, finché c'è la rete; poi lo carico sul $word.", center = true)
@@ -207,10 +207,10 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
                         when {
                             ok -> SvgIcon(listOf(IconPart("M5 12.5l4.5 4.5L19 7.5")), pal.ok, 16.dp, stroke = 2.4f)
                             now -> CircularProgressIndicator(Modifier.size(16.dp), color = pal.accent, strokeWidth = 2.dp)
-                            else -> Text("•", color = if (bad) Color(0xFFFF5A5A) else pal.muted, fontSize = 16.sp)
+                            else -> Text("•", color = if (bad) pal.bad else pal.muted, fontSize = 16.sp)
                         }
                     }
-                    Text(t, fontSize = 17.sp, color = when { ok -> pal.ok; bad -> Color(0xFFFF5A5A); now -> pal.text; else -> pal.muted })
+                    Text(t, fontSize = 17.sp, color = when { ok -> pal.ok; bad -> pal.bad; now -> pal.text; else -> pal.muted })
                 }
             }
         }
@@ -227,7 +227,7 @@ fun DevFwUpdate(name: String, word: String, key: String, store: Store, devOta: S
             else -> "Fatto: il $word si è riavviato (non verificato in Bluetooth)."
         }) + " Lo ritrovi in Bluetooth o sul relay." +
             if (lan) "" else " Puoi tornare sulla tua rete.", center = true)
-        err?.let { Text(it, color = Color(0xFFE7C12C), fontSize = 14.sp, modifier = Modifier.padding(top = 12.dp)) }
+        err?.let { Text(it, color = pal.warn, fontSize = 14.sp, modifier = Modifier.padding(top = 12.dp)) }
         Spacer(Modifier.height(16.dp))
         if (err != null) {
             Btn("Riprova") { go++ }

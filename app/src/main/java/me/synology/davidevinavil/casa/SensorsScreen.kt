@@ -168,7 +168,7 @@ private fun SensorsMain(app: CasaApp, openRelay: (RelayDev) -> Unit, onCharts: (
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         OrgTitle("Sensori", org, items.size > 1)
         if (loaded && !relayOk && list.isNotEmpty()) {
-            val y = Color(0xFFE7C12C)
+            val y = pal.warn
             Text(if (bts.isNotEmpty()) "Relay non raggiungibile: leggo via Bluetooth, da vicino" else "Relay non raggiungibile",
                 color = y, fontSize = 14.sp,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(12.dp))
@@ -225,10 +225,10 @@ private fun SensorCard(modifier: Modifier, name: String, t: Double?, h: Double?,
     ) {
         // stesso schema dei riquadri del Clima
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(name, color = Color(0xFFC9D1D4), fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
+            Text(name, color = pal.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, maxLines = 1,
                 overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
             // relay, Bluetooth o sensore di un termostato (fiamma)
-            if (ch == "th") SvgIcon(Icons.flame, if (off) Color(0xFF5A6266) else Color(0xFFFF8A3D), 15.dp, stroke = 2f)
+            if (ch == "th") SvgIcon(Icons.flame, if (off) pal.dim else ink(Color(0xFFFF8A3D)), 15.dp, stroke = 2f)
             else SvgIcon(if (ch == "bt") ICO_BT else ICO_WIFI, chColor(ch, off), 14.dp, stroke = 2f)
         }
         ValueRows(t, h, hasHum = true, icon = ICO_THERMO, iconColor = CH_SENS, dim = off)
@@ -304,7 +304,7 @@ private fun SensorScan(app: CasaApp, onBack: () -> Unit, onDone: () -> Unit) {
                 SignalBars(f.rssi)
             }
         }
-        if (err.isNotBlank()) Text(err, color = Color(0xFFE7C12C), fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
+        if (err.isNotBlank()) Text(err, color = pal.warn, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp))
         if (!scanning && found.isEmpty()) Note("Nessun sensore trovato. Avvicinati: il sensore ha il Bluetooth sempre acceso.", center = true)
         Spacer(Modifier.height(18.dp))
         Btn("Cerca di nuovo", secondary = true, enabled = !scanning && busy == null) { sb.startScan() }
@@ -366,7 +366,7 @@ private fun SensorDetail(app: CasaApp, addr: String, onBack: () -> Unit, onUpdat
         }
         Row(verticalAlignment = Alignment.Bottom) {
             Text(d2(s?.t), color = pal.text, fontSize = 44.sp, fontWeight = FontWeight.Light)
-            Text(" °C   ", color = Color(0xFF8A9599), fontSize = 15.sp, modifier = Modifier.padding(bottom = 9.dp))
+            Text(" °C   ", color = pal.sub, fontSize = 15.sp, modifier = Modifier.padding(bottom = 9.dp))
             Text("${d2(s?.h)} %", color = HUM_BLUE, fontSize = 20.sp, modifier = Modifier.padding(bottom = 6.dp))
         }
         if (s != null) {
@@ -376,10 +376,10 @@ private fun SensorDetail(app: CasaApp, addr: String, onBack: () -> Unit, onUpdat
                 when {
                     s.mode == 2 -> Kv("Wi-Fi", "spento", pal.muted)
                     s.wifiOn == true -> Kv("Wi-Fi", "${s.ssid} · collegato", pal.ok)
-                    s.wifiOn == false -> Kv("Wi-Fi", if (s.ssid.isBlank()) "non impostato" else "${s.ssid} · non collegato", Color(0xFFE7C12C))
+                    s.wifiOn == false -> Kv("Wi-Fi", if (s.ssid.isBlank()) "non impostato" else "${s.ssid} · non collegato", pal.warn)
                 }
                 if (s.mode != 0) Kv("Termostato", if (s.hooked) "agganciato, canale ${s.ch}" else "non agganciato",
-                    if (s.hooked) pal.ok else Color(0xFFE7C12C))
+                    if (s.hooked) pal.ok else pal.warn)
                 Kv("MAC", s.mac)
                 Kv("Firmware", s.ver.ifBlank { "--" })
             }
@@ -748,7 +748,7 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
                     }
                     Text(if (l == null) "Scegli" else "Cambia", color = pal.accent, fontSize = 14.sp)
                 }
-                pickErr?.let { Text(it, color = Color(0xFFE7C12C), fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp)) }
+                pickErr?.let { Text(it, color = pal.warn, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp)) }
             }
             Note(if (useFile) "Nessuna rete necessaria: il file va direttamente al sensore dall'hotspot."
                  else "Scarico prima, finché c'è la rete; poi ti colleghi all'hotspot del sensore.", center = true)
@@ -768,10 +768,10 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
                         when {
                             ok -> SvgIcon(listOf(IconPart("M5 12.5l4.5 4.5L19 7.5")), pal.ok, 16.dp, stroke = 2.4f)
                             now -> CircularProgressIndicator(Modifier.size(16.dp), color = pal.accent, strokeWidth = 2.dp)
-                            else -> Text("•", color = if (bad) Color(0xFFFF5A5A) else pal.muted, fontSize = 16.sp)
+                            else -> Text("•", color = if (bad) pal.bad else pal.muted, fontSize = 16.sp)
                         }
                     }
-                    Text(t, fontSize = 17.sp, color = when { ok -> pal.ok; bad -> Color(0xFFFF5A5A); now -> pal.text; else -> pal.muted })
+                    Text(t, fontSize = 17.sp, color = when { ok -> pal.ok; bad -> pal.bad; now -> pal.text; else -> pal.muted })
                 }
             }
         }
@@ -788,7 +788,7 @@ private fun SensorUpdate(app: CasaApp, addr: String, onBack: () -> Unit) {
             false -> "Il sensore si è riavviato ma non ha il firmware caricato (md5 diverso): riprova l'aggiornamento."
             else -> "Firmware caricato e sensore riavviato; non sono riuscito a verificarlo in Bluetooth. Puoi tornare sulla tua rete."
         }, center = true)
-        err?.let { Text(it, color = Color(0xFFE7C12C), fontSize = 14.sp, modifier = Modifier.padding(top = 12.dp)) }
+        err?.let { Text(it, color = pal.warn, fontSize = 14.sp, modifier = Modifier.padding(top = 12.dp)) }
         Spacer(Modifier.height(16.dp))
         if (err != null) {
             Btn("Riprova") { go++ }

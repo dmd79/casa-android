@@ -121,9 +121,10 @@ const val ORG_HINT = "Tieni premuto un riquadro e trascinalo su un altro: prende
 @Composable
 fun OrgButton(org: Organizer) {
     val on = org.editing
-    val bg = if (on) Color(0xFFF2F0EB) else Color(0xFF1B2024)
-    val bd = if (on) Color(0xFFF2F0EB) else Color(0xFF2B3236)
-    val fg = if (on) Color(0xFF111416) else Color(0xFFC9D1D4)
+    // durante la modifica: invertito (chiaro sullo scuro, scuro sul chiaro)
+    val bg = if (on) pal.text else if (pal.light) Color(0xFFF7F6F2) else Color(0xFF1B2024)
+    val bd = if (on) pal.text else pal.border
+    val fg = if (on) pal.bg else pal.name
     val sh = RoundedCornerShape(17.dp)
     Row(
         Modifier.clip(sh).background(bg).border(1.dp, bd, sh)
