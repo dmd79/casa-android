@@ -48,15 +48,18 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import android.content.res.Configuration
+import androidx.compose.animation.fadeIn
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import kotlinx.coroutines.Dispatchers
@@ -68,8 +71,8 @@ import java.util.Locale
 /** Cosa occupa lo schermo sopra la barra. */
 enum class Pane { WEB, CLIMA, SCORC, GATE, ACC, CLIMI, NEW, SENS, TERM, CAM }
 
-/** Voci della barra: una per tipo di dispositivo ([short]: nome nella barra). */
-enum class Cat(val label: String, val short: String = label) { ALL("Tutti"), DASH("Plancia"), HEAT("Termostati", "Termo"), AC("Clima"), GATE("Accessi"), SENS("Sensori"), CAM("Telecamere", "Video"), MORE("Altro") }
+/** Voci della barra: una per tipo di dispositivo. */
+enum class Cat(val label: String) { ALL("Tutti"), DASH("Plancia"), HEAT("Termostati"), AC("Clima"), GATE("Accessi"), SENS("Sensori"), CAM("Telecamere"), MORE("Altro") }
 
 /** Voce dei pannelli: un dispositivo del relay, un condizionatore Bluetooth o una pagina. */
 private class Item(
@@ -244,23 +247,31 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setVi
             }
         }
     }
-    // In orizzontale (telefono girato, autoradio) la barra va a sinistra e la
-    // pagina ha tutta l'altezza; sugli schermi grandi (autoradio) e' piu' grande.
+    // Barra: solo una striscia sottile in fondo (la pagina finisce sopra);
+    // un tocco, o un trascinamento in su, apre le pagine in griglia sopra la
+    // pagina scurita. Uguale in verticale, in orizzontale e sull'autoradio.
+    // Oppure (Altro → Barra) la colonna a sinistra sempre visibile: di base
+    // sugli schermi grandi (autoradio), dove lo spazio c'e'.
+    var menu by remember { mutableStateOf(false) }
+    LaunchedEffect(view, url) { menu = false }
+    var barMode by remember { mutableStateOf(store.barMode) }
+    var barSheet by remember { mutableStateOf(false) }
     val cfg = LocalConfiguration.current
     val land = cfg.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val big = land && cfg.screenHeightDp >= 480
-    if (land) {
+    val big = cfg.smallestScreenWidthDp >= 480      // autoradio, tablet
+    val rail = when (barMode) { "rail" -> true; "strip" -> false; else -> big }
+    if (rail) {
         Row(Modifier.fillMaxSize().background(pal.bg).statusBarsPadding()) {
             Column(
                 // sfondo anche sotto il foro della fotocamera, voci accanto
                 Modifier.fillMaxHeight().background(pal.card)
                     .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Start + WindowInsetsSides.Bottom))
-                    .width(if (big) 116.dp else 80.dp).padding(vertical = 6.dp),
+                    .width(if (big) 120.dp else 84.dp),
                 verticalArrangement = Arrangement.Center,
             ) {
-                cats.forEach { c ->
-                    NavItem(c, c == active, big, Modifier.fillMaxWidth().weight(1f, fill = false)
-                        .heightIn(max = if (big) 104.dp else 64.dp).fillMaxHeight()) { tap(c) }
+                // al centro; se non ci stanno (telefono girato) si scorrono
+                Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(vertical = 8.dp)) {
+                    cats.forEach { c -> RailItem(c, c == active, big) { tap(c) } }
                 }
             }
             Box(Modifier.width(BW).fillMaxHeight().background(pal.border))
@@ -268,19 +279,35 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setVi
         }
     } else {
         Column(Modifier.fillMaxSize().background(pal.bg).statusBarsPadding()) {
-            body(Modifier.weight(1f).fillMaxWidth())
-            Box(Modifier.fillMaxWidth().height(BW).background(pal.border))
-            Row(Modifier.fillMaxWidth().background(pal.card).navigationBarsPadding().height(64.dp)) {
-                cats.forEach { c -> NavItem(c, c == active, false, Modifier.weight(1f).fillMaxHeight()) { tap(c) } }
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                body(Modifier.fillMaxSize())
+                NavMenu(menu, cats, active, if (land) 4 else 3, big, onClose = { menu = false }) { c -> menu = false; tap(c) }
             }
+            NavStrip(active, big, onOpen = { menu = !menu })
         }
     }
+    // indietro con le pagine aperte: si chiudono e basta
+    BackHandler(enabled = menu) { menu = false }
 
     // "Abbina / Dimentica Bluetooth" chiesti dalla lista del relay
     BtPairDialogs(app.pairer)
     // scelta del sensore per la temperatura, chiesta dalla pagina del condizionatore
     val acPick by app.acSrc.pick.collectAsState()
     acPick?.let { id -> AcSrcSheet(app, id, devs.firstOrNull { it.id == id }?.name ?: "condizionatore") { app.acSrc.pick.value = null } }
+
+    // Altro → Barra: come si mostrano le pagine, scelto a mano
+    if (barSheet) {
+        val bs = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(onDismissRequest = { barSheet = false }, sheetState = bs, containerColor = pal.bg) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp).padding(bottom = 24.dp)) {
+                Text("Barra delle pagine", color = pal.muted, fontSize = 14.sp, modifier = Modifier.padding(start = 4.dp, bottom = 10.dp))
+                BAR_MODES.forEach { (k, t) ->
+                    SheetRow(Item(t.first, t.second, if (k == "rail") Icons.dash else NavIcons.more, null, selected = barMode == k,
+                        onClick = { barMode = k; store.barMode = k; barSheet = false }))
+                }
+            }
+        }
+    }
 
     val open = sheet ?: return
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -301,6 +328,7 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setVi
             add(Item("Scorciatoie", "cancelli dalle impostazioni rapide e dal widget", Icons.gate, null, onClick = pick { setView(Pane.SCORC) }))
             add(Item("Gate Bluetooth", "elenco, aggiungi, dimentica", Icons.bt, null, onClick = pick { openGate("list") }))
             add(Item("Condizionatori Bluetooth", "elenco, aggiungi, dimentica", Icons.bt, null, onClick = pick { app.climaGo.value = Scr.DEVICES; setView(Pane.CLIMA) }))
+            add(Item("Barra", BAR_MODES.first { it.first == barMode }.second.first.lowercase(), Icons.dash, null, onClick = pick { barSheet = true }))
             add(Item("Personalizza", "pagina iniziale e ordine", Icons.gear, null, onClick = pick { go("/_custom", Cat.MORE) }))
         }
     }
@@ -395,21 +423,93 @@ private fun catIcon(c: Cat) = when (c) {
     Cat.AC -> NavIcons.ac; Cat.GATE -> NavIcons.gate; Cat.SENS -> NavIcons.sens; Cat.CAM -> NavIcons.cam; Cat.MORE -> NavIcons.more
 }
 
-/**
- * Voce della barra: icona nella pillola (piena e colorata sulla voce aperta)
- * e nome corto sotto. [big]: barra laterale dell'autoradio.
- */
+/** Modi della barra (Altro → Barra): chiave, nome e spiegazione. */
+private val BAR_MODES = listOf(
+    "auto" to ("Automatica" to "colonna sugli schermi grandi, striscia sul telefono"),
+    "strip" to ("Striscia" to "sottile in fondo, le pagine si aprono con un tocco"),
+    "rail" to ("Colonna a sinistra" to "icone sempre visibili"),
+)
+
+/** Voce della colonna a sinistra: icona nella pillola (piena sulla voce aperta) e nome sotto. */
 @Composable
-private fun NavItem(c: Cat, on: Boolean, big: Boolean, modifier: Modifier, onTap: () -> Unit) {
-    val col = if (on) pal.accent else lerp(pal.muted, pal.value, .35f)
-    Column(modifier.clickable(onClick = onTap), horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center) {
-        Box(Modifier.size(if (big) 68.dp else 48.dp, if (big) 44.dp else 30.dp).clip(RoundedCornerShape(50))
+private fun RailItem(c: Cat, on: Boolean, big: Boolean, onTap: () -> Unit) {
+    val col = if (on) pal.accent else pal.value
+    Column(Modifier.fillMaxWidth().height(if (big) 88.dp else 62.dp).clickable(onClick = onTap),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+        Box(Modifier.size(if (big) 68.dp else 52.dp, if (big) 44.dp else 30.dp).clip(RoundedCornerShape(50))
             .background(if (on) pal.accent.copy(alpha = .15f) else Color.Transparent), contentAlignment = Alignment.Center) {
-            SvgIcon(catIcon(c), col, if (big) 36.dp else 26.dp, stroke = 1.8f, on = on)
+            SvgIcon(catIcon(c), col, if (big) 36.dp else 24.dp, stroke = 1.8f, on = on)
         }
-        Text(c.short, color = col, fontSize = if (big) 15.sp else 10.5.sp, maxLines = 1, softWrap = false,
+        Text(c.label, color = col, fontSize = if (big) 15.sp else 10.sp, maxLines = 1, softWrap = false,
             fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
-            modifier = Modifier.padding(top = if (big) 5.dp else 3.dp))
+            modifier = Modifier.padding(top = if (big) 5.dp else 2.dp))
+    }
+}
+
+/** Striscia in fondo: la pagina aperta (icona e nome) fra due trattini. */
+@Composable
+private fun NavStrip(active: Cat?, big: Boolean, onOpen: () -> Unit) {
+    val drag = remember { floatArrayOf(0f) }
+    Column(Modifier.fillMaxWidth().background(pal.card)) {
+        Box(Modifier.fillMaxWidth().height(BW).background(pal.border))
+        Row(
+            Modifier.fillMaxWidth().navigationBarsPadding().height(if (big) 30.dp else 22.dp)
+                .clickable(onClick = onOpen)
+                .pointerInput(Unit) {
+                    detectVerticalDragGestures(onDragStart = { drag[0] = 0f }, onDragEnd = { if (drag[0] < -24f) onOpen() }) { _, dy -> drag[0] += dy }
+                },
+            horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
+        ) {
+            val handle = Modifier.size(if (big) 44.dp else 30.dp, 3.dp).clip(RoundedCornerShape(2.dp)).background(pal.muted)
+            Box(handle)
+            Row(Modifier.padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                SvgIcon(active?.let { catIcon(it) } ?: NavIcons.more, pal.accent, if (big) 18.dp else 14.dp, stroke = 2f)
+                Text(active?.label ?: "Menu", color = pal.accent, fontSize = if (big) 14.sp else 11.sp, maxLines = 1,
+                    modifier = Modifier.padding(start = 5.dp))
+            }
+            Box(handle)
+        }
+    }
+}
+
+/** Pagine in griglia sopra la pagina scurita: [cols] per riga, quella aperta evidenziata. */
+@Composable
+private fun NavMenu(open: Boolean, cats: List<Cat>, active: Cat?, cols: Int, big: Boolean, onClose: () -> Unit, onPick: (Cat) -> Unit) {
+    AnimatedVisibility(visible = open, enter = fadeIn(tween(140)), exit = fadeOut(tween(140))) {
+        Box(
+            Modifier.fillMaxSize().background(Color.Black.copy(alpha = .6f))
+                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClose),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            val tileH = if (big) 132.dp else 100.dp
+            Column(
+                Modifier.widthIn(max = (if (big) 170.dp else 140.dp) * cols).fillMaxWidth()
+                    .padding(horizontal = 16.dp).padding(bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                cats.chunked(cols).forEach { row ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        row.forEach { c ->
+                            val on = c == active
+                            val col = if (on) pal.accent else pal.text
+                            Column(
+                                Modifier.weight(1f).height(tileH).clip(RoundedCornerShape(20.dp))
+                                    .background(if (on) pal.sel else pal.card)
+                                    .border(BW, if (on) pal.accent else pal.border, RoundedCornerShape(20.dp))
+                                    .clickable { onPick(c) },
+                                horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
+                            ) {
+                                SvgIcon(catIcon(c), col, if (big) 52.dp else 38.dp, stroke = 1.7f, on = on)
+                                Text(c.label, color = col, fontSize = if (big) 18.sp else 14.sp, maxLines = 1, softWrap = false,
+                                    fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
+                                    modifier = Modifier.padding(top = if (big) 12.dp else 9.dp))
+                            }
+                        }
+                        // riga incompleta: i riquadri restano della stessa larghezza
+                        repeat(cols - row.size) { Box(Modifier.weight(1f)) }
+                    }
+                }
+            }
+        }
     }
 }

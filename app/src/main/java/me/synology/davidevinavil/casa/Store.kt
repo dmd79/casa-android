@@ -27,12 +27,17 @@ class Store(ctx: Context) {
         get() = p.getString("who", "") ?: ""
         set(v) = p.edit().putString("who", v.trim().take(15)).apply()
 
-    /** Ultimo elenco dei dispositivi del relay: la barra compare subito all'avvio. */
     /** Il relay ha Frigate collegato: voce Telecamere nella barra (ricordato fra un avvio e l'altro). */
     var frigate: Boolean
         get() = p.getBoolean("frigate", false)
         set(v) = p.edit().putBoolean("frigate", v).apply()
 
+    /** Barra delle pagine: "auto" (colonna sugli schermi grandi, striscia sugli altri), "strip" o "rail". */
+    var barMode: String
+        get() = p.getString("barMode", "auto") ?: "auto"
+        set(v) = p.edit().putString("barMode", v).apply()
+
+    /** Ultimo elenco dei dispositivi del relay: la barra compare subito all'avvio. */
     var relayList: String
         get() = p.getString("relayList", "[]") ?: "[]"
         set(v) = p.edit().putString("relayList", v).apply()
