@@ -81,7 +81,7 @@ import java.util.Locale
 enum class Pane { WEB, CLIMA, SCORC, GATE, ACC, CLIMI, NEW, SENS, TERM, CAM }
 
 /** Voci della barra: una per tipo di dispositivo. */
-enum class Cat(val label: String) { ALL("Tutti"), DASH("Plancia"), HEAT("Termostati"), AC("Clima"), GATE("Accessi"), SENS("Sensori"), CAM("Telecamere"), MORE("Altro") }
+enum class Cat(val label: String) { ALL("Tutti"), DASH("Plancia"), HEAT("Termostati"), AC("Clima"), GATE("Accessi"), SENS("Sensori"), CAM("Telecamere"), ROBOT("Robot"), MORE("Altro") }
 
 /** Voce dei pannelli: un dispositivo del relay, un condizionatore Bluetooth o una pagina. */
 private class Item(
@@ -104,6 +104,8 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setVi
     var lastLoad by remember { mutableStateOf(0L) }
     // Frigate collegato al relay: voce Telecamere
     var hasCam by remember { mutableStateOf(store.frigate) }
+    // robot aspirapolvere in Home Assistant: voce Robot (pagina del relay)
+    var hasRobot by remember { mutableStateOf(store.robot) }
     fun refresh(force: Boolean = false) {
         if (!force && System.currentTimeMillis() - lastLoad < 20_000) return
         lastLoad = System.currentTimeMillis()
@@ -114,6 +116,7 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setVi
             store.relayList = raw
             devs = Relay.parseList(raw)
             Relay.frigate?.let { if (it != hasCam) { hasCam = it; store.frigate = it } }
+            Relay.robot?.let { if (it != hasRobot) { hasRobot = it; store.robot = it } }
         }
     }
     // Bluetooth del clima solo mentre se ne guarda la schermata (come i cancelli)
@@ -202,7 +205,7 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setVi
     val cats = Cat.entries.filter {
         when (it) {
             Cat.HEAT -> heat.isNotEmpty(); Cat.AC -> acs.isNotEmpty() || bts.isNotEmpty(); Cat.GATE -> gates.isNotEmpty() || btGates.isNotEmpty(); Cat.SENS -> sensors.isNotEmpty() || btSensors.isNotEmpty()
-            Cat.DASH -> devs.isNotEmpty(); Cat.CAM -> hasCam; else -> true
+            Cat.DASH -> devs.isNotEmpty(); Cat.CAM -> hasCam; Cat.ROBOT -> hasRobot; else -> true
         }
     }.sortedBy { c -> CAT_KEY[c]?.let { ord.indexOf(it) } ?: Int.MAX_VALUE }
     // Ordine delle voci, cambiato tenendole premute (griglia in Modifica o
@@ -232,6 +235,7 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setVi
             Cat.HEAT -> if (heat.size == 1) openDev(heat[0]) else fresh(Pane.TERM)
             Cat.AC -> fresh(Pane.CLIMI)          // tutti i condizionatori, relay o Bluetooth
             Cat.CAM -> { cam.home(); setView(Pane.CAM) }   // Frigate dal relay: il live
+            Cat.ROBOT -> go("/_robot", c)       // robot di Home Assistant, pagina del relay
             Cat.MORE -> sheet = c
         }
     }
@@ -413,10 +417,10 @@ private fun PageCover(visible: Boolean) {
 }
 
 /** Chiavi delle voci in Personalizza (relay). */
-private val DEF_ORDER = listOf("all", "dash", "thermostat", "ac", "gate", "other", "sensors", "guests", "cams", "more")
-// cams e more: voci solo dell'app (Personalizza del relay non le ha), vedi Store.setBarOrder
+private val DEF_ORDER = listOf("all", "dash", "thermostat", "ac", "gate", "other", "sensors", "guests", "cams", "robot", "more")
+// cams, robot e more: voci solo dell'app (Personalizza del relay non le ha), vedi Store.setBarOrder
 private val CAT_KEY = mapOf(Cat.ALL to "all", Cat.DASH to "dash", Cat.HEAT to "thermostat", Cat.AC to "ac", Cat.GATE to "gate",
-    Cat.SENS to "sensors", Cat.CAM to "cams", Cat.MORE to "more")
+    Cat.SENS to "sensors", Cat.CAM to "cams", Cat.ROBOT to "robot", Cat.MORE to "more")
 
 /** Ordine completo come lo calcola il relay: le voci note salvate, Plancia dopo Tutti se manca, poi le altre. */
 private fun barOrder(saved: List<String>): List<String> {
@@ -437,6 +441,7 @@ private fun webCat(url: String, dev: RelayDev?): Cat? {
         "/_cat" -> when (u.getQueryParameter("t")) { "thermostat" -> Cat.HEAT; "ac" -> Cat.AC; "gate" -> Cat.GATE; else -> Cat.MORE }
         "/_sensors" -> Cat.SENS
         "/_guests", "/_custom" -> Cat.MORE
+        "/_robot" -> Cat.ROBOT
         "/" -> when (dev?.type) { "thermostat" -> Cat.HEAT; "ac" -> Cat.AC; "gate" -> Cat.GATE; "sensor" -> Cat.SENS; null -> null; else -> Cat.MORE }
         else -> null
     }
@@ -457,7 +462,7 @@ private fun devSub(d: RelayDev): String {
 
 private fun catIcon(c: Cat) = when (c) {
     Cat.ALL -> NavIcons.house; Cat.DASH -> NavIcons.dash; Cat.HEAT -> NavIcons.heat
-    Cat.AC -> NavIcons.ac; Cat.GATE -> NavIcons.gate; Cat.SENS -> NavIcons.sens; Cat.CAM -> NavIcons.cam; Cat.MORE -> NavIcons.more
+    Cat.AC -> NavIcons.ac; Cat.GATE -> NavIcons.gate; Cat.SENS -> NavIcons.sens; Cat.CAM -> NavIcons.cam; Cat.ROBOT -> NavIcons.robot; Cat.MORE -> NavIcons.more
 }
 
 /** Modi della barra (Altro → Barra): chiave, nome e spiegazione. */

@@ -50,6 +50,8 @@ object Relay {
 
     /** Frigate collegato al relay (header X-Frigate di /_list); null = non ancora saputo. */
     @Volatile var frigate: Boolean? = null
+    /** Robot aspirapolvere in Home Assistant (header X-Robot di /_list); null = non ancora saputo. */
+    @Volatile var robot: Boolean? = null
 
     fun cookie(): String? = try { CookieManager.getInstance().getCookie(BASE) } catch (e: Exception) { null }
 
@@ -77,9 +79,12 @@ object Relay {
     fun listRaw(cookie: String?): String? = try {
         val c = conn("/_list", cookie)
         val fr = if (c.responseCode == 200) c.getHeaderField("X-Frigate") else null
+        val rb = if (c.responseCode == 200) c.getHeaderField("X-Robot") else null
         val (code, body) = text(c)
         // relay con Frigate collegato: voce Telecamere nella barra
         if (code == 200 && fr != null) frigate = fr == "1"
+        // robot in Home Assistant: voce Robot (relay vecchio senza header: niente voce)
+        if (code == 200) robot = rb == "1"
         if (code == 200 && body.trimStart().startsWith("[")) body else null
     } catch (e: Exception) { null }
 

@@ -32,6 +32,11 @@ class Store(ctx: Context) {
         get() = p.getBoolean("frigate", false)
         set(v) = p.edit().putBoolean("frigate", v).apply()
 
+    /** C'e' un robot aspirapolvere in Home Assistant: voce Robot nella barra. */
+    var robot: Boolean
+        get() = p.getBoolean("robot", false)
+        set(v) = p.edit().putBoolean("robot", v).apply()
+
     /** Barra delle pagine: "auto" (colonna sugli schermi grandi, striscia sugli altri), "strip" o "rail". */
     var barMode: String
         get() = p.getString("barMode", "auto") ?: "auto"
@@ -86,7 +91,7 @@ class Store(ctx: Context) {
     }
 
     /** Voci della barra che esistono solo nell'app (non in Personalizza del relay). */
-    private val APP_ONLY = listOf("cams", "more")
+    private val APP_ONLY = listOf("cams", "robot", "more")
 
     /** Ordine dei riquadri di una pagina (Clima, Sensori, Accessi): chiavi, vedi Order.kt. */
     fun order(name: String): List<String> = parseOrder(p.getString("ord:$name", "[]"))

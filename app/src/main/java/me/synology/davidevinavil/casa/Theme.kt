@@ -147,6 +147,7 @@ object NavIcons {
     val gate = listOf(IconPart("M4 20.5V10q8-5 16 0v10.5z", tint = true), IconPart("M8.5 7.6v12.9M12 7v13.5M15.5 7.6v12.9"))
     val sens = listOf(IconPart("M9.5 5a2.5 2.5 0 0 1 5 0v8.6a4.5 4.5 0 1 1-5 0z", tint = true), IconPart("M12 17.5v-7"), IconPart("M18 5.5h2.5M18 8.5h2.5"))
     val cam = listOf(IconPart("M3.5 7.5l13-3.5 1.6 5.8-13 3.5z", tint = true), IconPart("M18.1 9.8l2.4-.7M11 12l1.3 4.3H6.5M6.5 13.5v6"))
+    val robot = listOf(IconPart(circle(12f, 12f, 8.5f), tint = true), IconPart(circle(12f, 8.3f, 2f)), IconPart("M7 15.5h10"))
     val more = listOf(IconPart(circle(12f, 12f, 8.5f), tint = true), IconPart(circle(8.2f, 12f, 1.2f), fill = true),
         IconPart(circle(12f, 12f, 1.2f), fill = true), IconPart(circle(15.8f, 12f, 1.2f), fill = true))
 }
