@@ -82,23 +82,26 @@ fun ThermoScreen(app: CasaApp, openRelay: (RelayDev) -> Unit) {
     val shown = devs.ordered(org.order) { it.id }
     val keys = shown.map { it.id }
 
-    Column(Modifier.fillMaxSize().background(pal.bg).padding(horizontal = 20.dp, vertical = 16.dp).verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize().background(pal.bg).padding(horizontal = 20.dp, vertical = 16.dp)) {
         OrgTitle("Termostati", org, shown.size > 1)
-        if (shown.isEmpty()) Note("Nessun termostato. Entra nei termostati dalla scheda Tutti.", center = true)
-        shown.chunked(2).forEach { row ->
-            Row(Modifier.fillMaxWidth().orgRow(org, row.map { it.id }).padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                row.forEach { d -> OrgTile(org, keys, d.id) { m ->
-                    val status = when {
-                        !d.auth -> "accedi di nuovo"
-                        !relayOk || !d.online -> "non raggiungibile"
-                        else -> null
-                    }
-                    ThermoCard(m, d, status) { openRelay(d) }
-                } }
-                if (row.size == 1) Spacer(Modifier.weight(1f))
+        // titolo e Modifica fermi in alto, sotto si scorre
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+            if (shown.isEmpty()) Note("Nessun termostato. Entra nei termostati dalla scheda Tutti.", center = true)
+            shown.chunked(2).forEach { row ->
+                Row(Modifier.fillMaxWidth().orgRow(org, row.map { it.id }).padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    row.forEach { d -> OrgTile(org, keys, d.id) { m ->
+                        val status = when {
+                            !d.auth -> "accedi di nuovo"
+                            !relayOk || !d.online -> "non raggiungibile"
+                            else -> null
+                        }
+                        ThermoCard(m, d, status) { openRelay(d) }
+                    } }
+                    if (row.size == 1) Spacer(Modifier.weight(1f))
+                }
             }
+            Spacer(Modifier.height(8.dp))
         }
-        Spacer(Modifier.height(8.dp))
     }
 }
 

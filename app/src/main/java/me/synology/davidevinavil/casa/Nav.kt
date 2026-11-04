@@ -59,6 +59,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.zIndex
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -286,21 +288,28 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setVi
     val big = cfg.smallestScreenWidthDp >= 480      // autoradio, tablet
     val rail = when (barMode) { "rail" -> true; "strip" -> false; else -> big }
     if (rail) {
-        Row(Modifier.fillMaxSize().background(pal.bg).statusBarsPadding()) {
+        BoxWithConstraints(Modifier.fillMaxSize().background(pal.bg).statusBarsPadding()) {
+        // Tutte le voci sempre visibili, senza scorrere: l'altezza di ognuna e'
+        // quella che c'e' diviso il numero di voci. Schermo basso (autoradio
+        // 1024x600, telefono girato): icona e nome affiancati, colonna piu' larga.
+        val ih = ((maxHeight - 16.dp) / cats.size.coerceAtLeast(1)).coerceIn(40.dp, if (big) 96.dp else 72.dp)
+        val side = ih < 60.dp
+        Row(Modifier.fillMaxSize()) {
             Column(
                 // sfondo anche sotto il foro della fotocamera, voci accanto
                 Modifier.fillMaxHeight().background(pal.card)
                     .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Start + WindowInsetsSides.Bottom))
-                    .width(if (big) 120.dp else 84.dp),
+                    .width(if (side) 148.dp else if (big) 120.dp else 88.dp),
                 verticalArrangement = Arrangement.Center,
             ) {
-                // al centro; se non ci stanno (telefono girato) si scorrono
+                // se proprio non ci stanno (molte voci) si scorrono
                 Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(vertical = 8.dp)) {
-                    cats.forEach { c -> RailItem(c, c == active, big, navOrg, navKeys) { tap(c) } }
+                    cats.forEach { c -> RailItem(c, c == active, ih, side, navOrg, navKeys) { tap(c) } }
                 }
             }
             Box(Modifier.width(BW).fillMaxHeight().background(pal.border))
             body(Modifier.weight(1f).fillMaxHeight().navigationBarsPadding())
+        }
         }
     } else {
         Column(Modifier.fillMaxSize().background(pal.bg).statusBarsPadding()) {
@@ -460,14 +469,15 @@ private val BAR_MODES = listOf(
 
 /** Voce della colonna a sinistra: icona nella pillola (piena sulla voce aperta) e nome sotto. */
 @Composable
-private fun RailItem(c: Cat, on: Boolean, big: Boolean, org: Organizer, keys: List<String>, onTap: () -> Unit) {
+private fun RailItem(c: Cat, on: Boolean, ih: Dp, side: Boolean, org: Organizer, keys: List<String>, onTap: () -> Unit) {
     val k = CAT_KEY[c] ?: c.name
     val dragging = org.dragKey == k
     val over = org.overKey == k
     val col = if (on || dragging) pal.accent else pal.value
     // tenuta premuta: si trascina su o giu', lasciandola prende il posto di
     // quella sotto il dito (le altre scorrono)
-    Column(Modifier.fillMaxWidth().height(if (big) 88.dp else 62.dp)
+    val ico = minOf(ih * (if (side) .56f else .42f), 36.dp)
+    val mod = Modifier.fillMaxWidth().height(ih)
         .onGloballyPositioned { org.bounds[k] = it.boundsInRoot() }
         .zIndex(if (dragging) 1f else 0f)
         .graphicsLayer { if (dragging) { translationY = org.dragOff.y; scaleX = 1.06f; scaleY = 1.06f } }
@@ -480,15 +490,28 @@ private fun RailItem(c: Cat, on: Boolean, big: Boolean, org: Organizer, keys: Li
                 onDragCancel = { org.cancel() },
             )
         }
-        .clickable(onClick = onTap),
-        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        Box(Modifier.size(if (big) 68.dp else 52.dp, if (big) 44.dp else 30.dp).clip(RoundedCornerShape(50))
+        .clickable(onClick = onTap)
+    val weight = if (on) FontWeight.SemiBold else FontWeight.Normal
+    // icona nella pillola (piena sulla voce aperta)
+    val pill = @Composable { w: Dp, h: Dp ->
+        Box(Modifier.size(w, h).clip(RoundedCornerShape(50))
             .background(if (on) pal.accent.copy(alpha = .15f) else Color.Transparent), contentAlignment = Alignment.Center) {
-            SvgIcon(catIcon(c), col, if (big) 36.dp else 24.dp, stroke = 1.8f, on = on)
+            SvgIcon(catIcon(c), col, ico, stroke = 1.8f, on = on)
         }
-        Text(c.label, color = col, fontSize = if (big) 15.sp else 10.sp, maxLines = 1, softWrap = false,
-            fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
-            modifier = Modifier.padding(top = if (big) 5.dp else 2.dp))
+    }
+    if (side) {
+        // schermo basso: icona e nome affiancati, il nome si legge bene
+        Row(mod.padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            pill(ico + 18.dp, ih - 8.dp)
+            Text(c.label, color = col, fontSize = 14.sp, maxLines = 1, softWrap = false, fontWeight = weight,
+                modifier = Modifier.padding(start = 6.dp))
+        }
+    } else {
+        Column(mod, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            pill(ico + 28.dp, ico + 8.dp)
+            Text(c.label, color = col, fontSize = if (ih >= 80.dp) 15.sp else 11.sp, maxLines = 1, softWrap = false, fontWeight = weight,
+                modifier = Modifier.padding(top = 3.dp))
+        }
     }
 }
 

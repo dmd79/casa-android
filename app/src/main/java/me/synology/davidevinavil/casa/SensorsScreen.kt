@@ -165,52 +165,55 @@ private fun SensorsMain(app: CasaApp, openRelay: (RelayDev) -> Unit, onCharts: (
         .ordered(org.order) { it.key }
     val keys = items.map { it.key }
 
-    Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+    Column(Modifier.fillMaxSize()) {
         OrgTitle("Sensori", org, items.size > 1)
-        if (loaded && !relayOk && list.isNotEmpty()) {
-            val y = pal.warn
-            Text(if (bts.isNotEmpty()) "Relay non raggiungibile: leggo via Bluetooth, da vicino" else "Relay non raggiungibile",
-                color = y, fontSize = 14.sp,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(12.dp))
-                    .background(y.copy(alpha = .12f)).border(BW, y, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 10.dp))
-        }
-        if (items.isEmpty()) Note(if (loaded) "Nessun sensore. Entra nei sensori dalla scheda Tutti, oppure abbinane uno via Bluetooth qui sotto."
-                                 else "Leggo i sensori…", center = true)
-        items.chunked(2).forEach { row ->
-            Row(Modifier.fillMaxWidth().orgRow(org, row.map { it.key }).padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                row.forEach { it2 -> OrgTile(org, keys, it2.key) { m ->
-                    val o = it2.th
-                    val x = it2.sn
-                    if (o != null) {
-                        val th = ths.firstOrNull { it.id == o.key.substringBefore(":") }
-                        val nome = if (o.kind == "probe") o.name.substringAfter(" · ") else o.name
-                        SensorCard(m, nome, o.t, o.h, "th", if (th != null && !th.online) "non raggiungibile" else null,
-                            foot = if (o.kind == "thermo") "sensore del termostato" else o.sub.replace("sensore del termostato", "letto dal termostato")) {
-                            th?.let(openRelay)
-                        }
-                    } else if (x != null && viaRelay(x)) {
-                        val d = x.relay!!
-                        val on = d.online && relayOk
-                        SensorCard(m, x.name, d.cur, d.hum, "wifi", if (!d.auth) "accedi di nuovo" else if (on) null else "non raggiungibile") { openRelay(d) }
-                    } else if (x != null) {
-                        val b = x.bt!!
-                        val s = stati[b.address]
-                        val r = reach[b.address]
-                        val status = when {
-                            r == null && s == null -> "cerco…"
-                            r == false -> "non raggiungibile"
-                            else -> null
-                        }
-                        SensorCard(m, x.name, s?.t, s?.h, "bt", status) { openBt(b.address) }
-                    }
-                } }
-                if (row.size == 1) Spacer(Modifier.weight(1f))
+        // titolo e Modifica fermi in alto, sotto si scorre
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+            if (loaded && !relayOk && list.isNotEmpty()) {
+                val y = pal.warn
+                Text(if (bts.isNotEmpty()) "Relay non raggiungibile: leggo via Bluetooth, da vicino" else "Relay non raggiungibile",
+                    color = y, fontSize = 14.sp,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(12.dp))
+                        .background(y.copy(alpha = .12f)).border(BW, y, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 10.dp))
             }
+            if (items.isEmpty()) Note(if (loaded) "Nessun sensore. Entra nei sensori dalla scheda Tutti, oppure abbinane uno via Bluetooth qui sotto."
+                                     else "Leggo i sensori…", center = true)
+            items.chunked(2).forEach { row ->
+                Row(Modifier.fillMaxWidth().orgRow(org, row.map { it.key }).padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    row.forEach { it2 -> OrgTile(org, keys, it2.key) { m ->
+                        val o = it2.th
+                        val x = it2.sn
+                        if (o != null) {
+                            val th = ths.firstOrNull { it.id == o.key.substringBefore(":") }
+                            val nome = if (o.kind == "probe") o.name.substringAfter(" · ") else o.name
+                            SensorCard(m, nome, o.t, o.h, "th", if (th != null && !th.online) "non raggiungibile" else null,
+                                foot = if (o.kind == "thermo") "sensore del termostato" else o.sub.replace("sensore del termostato", "letto dal termostato")) {
+                                th?.let(openRelay)
+                            }
+                        } else if (x != null && viaRelay(x)) {
+                            val d = x.relay!!
+                            val on = d.online && relayOk
+                            SensorCard(m, x.name, d.cur, d.hum, "wifi", if (!d.auth) "accedi di nuovo" else if (on) null else "non raggiungibile") { openRelay(d) }
+                        } else if (x != null) {
+                            val b = x.bt!!
+                            val s = stati[b.address]
+                            val r = reach[b.address]
+                            val status = when {
+                                r == null && s == null -> "cerco…"
+                                r == false -> "non raggiungibile"
+                                else -> null
+                            }
+                            SensorCard(m, x.name, s?.t, s?.h, "bt", status) { openBt(b.address) }
+                        }
+                    } }
+                    if (row.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            RowCard("Grafici e storico", onClick = onCharts)
+            LinkCard("Sensori Bluetooth", "elenco, aggiungi, dimentica", onClick = onList)
+            Spacer(Modifier.height(16.dp))
         }
-        Spacer(Modifier.height(8.dp))
-        RowCard("Grafici e storico", onClick = onCharts)
-        LinkCard("Sensori Bluetooth", "elenco, aggiungi, dimentica", onClick = onList)
-        Spacer(Modifier.height(16.dp))
     }
 }
 

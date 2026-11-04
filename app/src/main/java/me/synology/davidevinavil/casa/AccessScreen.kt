@@ -153,55 +153,58 @@ fun AccessScreen(app: CasaApp, setWho: (String) -> Unit, onHistory: () -> Unit, 
     }
 
     Box(Modifier.fillMaxSize().background(pal.bg)) {
-        Column(Modifier.fillMaxSize().padding(horizontal = 22.dp, vertical = 16.dp).verticalScroll(rememberScrollState())) {
+        Column(Modifier.fillMaxSize().padding(horizontal = 22.dp, vertical = 16.dp)) {
             OrgTitle("Accessi", org, accs.size > 1)
-            if (loaded && !relayOk && accs.isNotEmpty()) {
-                val y = pal.warn
-                Text(if (btGates.isNotEmpty()) "Relay non raggiungibile: apro via Bluetooth, da vicino" else "Relay non raggiungibile",
-                    color = y, fontSize = 14.sp,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(12.dp))
-                        .background(y.copy(alpha = .12f)).border(BW, y, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 10.dp))
-            }
-            Row(
-                Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(12.dp)).background(pal.card)
-                    .border(BW, pal.border, RoundedCornerShape(12.dp)).clickable { askWho = true }
-                    .padding(horizontal = 14.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text("APRI COME", color = pal.muted, fontSize = 12.sp, letterSpacing = 1.sp)
-                Text(who.ifBlank { "scegli" }, color = if (who.isBlank()) pal.warn else pal.accent,
-                    fontSize = 15.sp, fontWeight = FontWeight.Bold)
-            }
-            // cancelli con l'accesso scaduto: restano qui, un tocco porta all'accesso
-            relay.filter { !it.auth }.forEach { g ->
-                RowCard(g.name, "accedi di nuovo") { onRelogin(g.id) }
-            }
-            if (accs.isEmpty() && relay.none { !it.auth }) Note(if (loaded) "Nessun accesso. Entra nei dispositivi dei cancelli dalla scheda Tutti, oppure abbina un cancello via Bluetooth qui sotto."
-                                     else "Leggo gli accessi…", center = true)
-            shown.chunked(2).forEach { row ->
-                Row(Modifier.fillMaxWidth().orgRow(org, row.map { it.key }).padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    row.forEach { x -> OrgTile(org, keys, x.key) { m ->
-                        val ch = channel(x)
-                        // Bluetooth: stato solo se ha appena risposto, altrimenti "cerco…" / "non raggiungibile"
-                        val r = if (ch == "bt") x.bt?.let { reach[it.address] } else true
-                        val stato = if (ch == "wifi") x.relay?.stati?.get(x.azione) else if (r == true) x.bt?.let { btStati[it.address]?.get(x.azione) } else null
-                        GateButton(m, x.azione, stato, mark[x.key], ch = ch ?: "wifi",
-                            sub = if (x.azione.lowercase() in twice) x.dev else null, off = ch == null || r == false,
-                            note = if (ch == "bt" && r == null) "cerco…" else null) { fire(x) }
-                    } }
-                    if (row.size == 1) Spacer(Modifier.weight(1f))
+            // titolo e Modifica fermi in alto, sotto si scorre
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
+                if (loaded && !relayOk && accs.isNotEmpty()) {
+                    val y = pal.warn
+                    Text(if (btGates.isNotEmpty()) "Relay non raggiungibile: apro via Bluetooth, da vicino" else "Relay non raggiungibile",
+                        color = y, fontSize = 14.sp,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(12.dp))
+                            .background(y.copy(alpha = .12f)).border(BW, y, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 10.dp))
                 }
+                Row(
+                    Modifier.fillMaxWidth().padding(bottom = 12.dp).clip(RoundedCornerShape(12.dp)).background(pal.card)
+                        .border(BW, pal.border, RoundedCornerShape(12.dp)).clickable { askWho = true }
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text("APRI COME", color = pal.muted, fontSize = 12.sp, letterSpacing = 1.sp)
+                    Text(who.ifBlank { "scegli" }, color = if (who.isBlank()) pal.warn else pal.accent,
+                        fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+                // cancelli con l'accesso scaduto: restano qui, un tocco porta all'accesso
+                relay.filter { !it.auth }.forEach { g ->
+                    RowCard(g.name, "accedi di nuovo") { onRelogin(g.id) }
+                }
+                if (accs.isEmpty() && relay.none { !it.auth }) Note(if (loaded) "Nessun accesso. Entra nei dispositivi dei cancelli dalla scheda Tutti, oppure abbina un cancello via Bluetooth qui sotto."
+                                         else "Leggo gli accessi…", center = true)
+                shown.chunked(2).forEach { row ->
+                    Row(Modifier.fillMaxWidth().orgRow(org, row.map { it.key }).padding(bottom = 10.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        row.forEach { x -> OrgTile(org, keys, x.key) { m ->
+                            val ch = channel(x)
+                            // Bluetooth: stato solo se ha appena risposto, altrimenti "cerco…" / "non raggiungibile"
+                            val r = if (ch == "bt") x.bt?.let { reach[it.address] } else true
+                            val stato = if (ch == "wifi") x.relay?.stati?.get(x.azione) else if (r == true) x.bt?.let { btStati[it.address]?.get(x.azione) } else null
+                            GateButton(m, x.azione, stato, mark[x.key], ch = ch ?: "wifi",
+                                sub = if (x.azione.lowercase() in twice) x.dev else null, off = ch == null || r == false,
+                                note = if (ch == "bt" && r == null) "cerco…" else null) { fire(x) }
+                        } }
+                        if (row.size == 1) Spacer(Modifier.weight(1f))
+                    }
+                }
+                if (accs.isNotEmpty()) Row(Modifier.padding(top = 2.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    SvgIcon(ICO_WIFI, CH_WIFI, 13.dp, stroke = 2f)
+                    Text(" via relay    ", color = pal.muted, fontSize = 12.sp)
+                    SvgIcon(ICO_BT, CH_BT, 13.dp, stroke = 2f)
+                    Text(" via Bluetooth", color = pal.muted, fontSize = 12.sp)
+                }
+                Spacer(Modifier.height(8.dp))
+                RowCard("Storico delle aperture", onClick = onHistory)
+                LinkCard("Gate Bluetooth", "elenco, aggiungi, dimentica", onClick = onBt)
+                Spacer(Modifier.height(16.dp))
             }
-            if (accs.isNotEmpty()) Row(Modifier.padding(top = 2.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                SvgIcon(ICO_WIFI, CH_WIFI, 13.dp, stroke = 2f)
-                Text(" via relay    ", color = pal.muted, fontSize = 12.sp)
-                SvgIcon(ICO_BT, CH_BT, 13.dp, stroke = 2f)
-                Text(" via Bluetooth", color = pal.muted, fontSize = 12.sp)
-            }
-            Spacer(Modifier.height(8.dp))
-            RowCard("Storico delle aperture", onClick = onHistory)
-            LinkCard("Gate Bluetooth", "elenco, aggiungi, dimentica", onClick = onBt)
-            Spacer(Modifier.height(16.dp))
         }
         SnackbarHost(snack, Modifier.align(Alignment.BottomCenter))
     }
