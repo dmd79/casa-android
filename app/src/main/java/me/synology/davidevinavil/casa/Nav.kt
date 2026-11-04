@@ -53,6 +53,12 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -196,7 +202,18 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setVi
             Cat.HEAT -> heat.isNotEmpty(); Cat.AC -> acs.isNotEmpty() || bts.isNotEmpty(); Cat.GATE -> gates.isNotEmpty() || btGates.isNotEmpty(); Cat.SENS -> sensors.isNotEmpty() || btSensors.isNotEmpty()
             Cat.DASH -> devs.isNotEmpty(); Cat.CAM -> hasCam; else -> true
         }
-    }.sortedBy { c -> CAT_KEY[c]?.let { ord.indexOf(it) } ?: Int.MAX_VALUE }   // Altro resta in fondo
+    }.sortedBy { c -> CAT_KEY[c]?.let { ord.indexOf(it) } ?: Int.MAX_VALUE }
+    // Ordine delle voci, cambiato tenendole premute (griglia in Modifica o
+    // colonna): diventa l'ordine della barra, anche di Personalizza nel relay
+    val navOrg = remember {
+        Organizer(store, "nav", ord) { o ->
+            val js = org.json.JSONArray(o).toString()
+            store.setBarOrder(js)
+            web.evaluateJavascript("try{localStorage.setItem('bt_bar_order'," + org.json.JSONObject.quote(js) + ")}catch(e){}", null)
+        }
+    }
+    LaunchedEffect(ord) { navOrg.reset(ord) }
+    val navKeys = cats.mapNotNull { CAT_KEY[it] }
 
     // Un tocco sulla barra porta sempre alla pagina iniziale della voce, mai
     // all'ultima sottopagina vista (dettaglio di un sensore, registrazioni...):
@@ -279,7 +296,7 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setVi
             ) {
                 // al centro; se non ci stanno (telefono girato) si scorrono
                 Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(vertical = 8.dp)) {
-                    cats.forEach { c -> RailItem(c, c == active, big) { tap(c) } }
+                    cats.forEach { c -> RailItem(c, c == active, big, navOrg, navKeys) { tap(c) } }
                 }
             }
             Box(Modifier.width(BW).fillMaxHeight().background(pal.border))
@@ -289,13 +306,14 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setVi
         Column(Modifier.fillMaxSize().background(pal.bg).statusBarsPadding()) {
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 body(Modifier.fillMaxSize())
-                NavMenu(menu, cats, active, if (land) 4 else 3, big, onClose = { menu = false }) { c -> menu = false; tap(c) }
+                NavMenu(menu, cats, active, if (land) 4 else 3, big, navOrg, navKeys,
+                    onClose = { navOrg.cancel(); navOrg.editing = false; menu = false }) { c -> menu = false; tap(c) }
             }
             NavStrip(active, big, onOpen = { menu = !menu })
         }
     }
     // indietro con le pagine aperte: si chiudono e basta
-    BackHandler(enabled = menu) { menu = false }
+    BackHandler(enabled = menu) { navOrg.cancel(); navOrg.editing = false; menu = false }
 
     // "Abbina / Dimentica Bluetooth" chiesti dalla lista del relay
     BtPairDialogs(app.pairer)
@@ -386,8 +404,10 @@ private fun PageCover(visible: Boolean) {
 }
 
 /** Chiavi delle voci in Personalizza (relay). */
-private val DEF_ORDER = listOf("all", "dash", "thermostat", "ac", "gate", "other", "sensors", "guests")
-private val CAT_KEY = mapOf(Cat.ALL to "all", Cat.DASH to "dash", Cat.HEAT to "thermostat", Cat.AC to "ac", Cat.GATE to "gate", Cat.SENS to "sensors")
+private val DEF_ORDER = listOf("all", "dash", "thermostat", "ac", "gate", "other", "sensors", "guests", "cams", "more")
+// cams e more: voci solo dell'app (Personalizza del relay non le ha), vedi Store.setBarOrder
+private val CAT_KEY = mapOf(Cat.ALL to "all", Cat.DASH to "dash", Cat.HEAT to "thermostat", Cat.AC to "ac", Cat.GATE to "gate",
+    Cat.SENS to "sensors", Cat.CAM to "cams", Cat.MORE to "more")
 
 /** Ordine completo come lo calcola il relay: le voci note salvate, Plancia dopo Tutti se manca, poi le altre. */
 private fun barOrder(saved: List<String>): List<String> {
@@ -440,9 +460,27 @@ private val BAR_MODES = listOf(
 
 /** Voce della colonna a sinistra: icona nella pillola (piena sulla voce aperta) e nome sotto. */
 @Composable
-private fun RailItem(c: Cat, on: Boolean, big: Boolean, onTap: () -> Unit) {
-    val col = if (on) pal.accent else pal.value
-    Column(Modifier.fillMaxWidth().height(if (big) 88.dp else 62.dp).clickable(onClick = onTap),
+private fun RailItem(c: Cat, on: Boolean, big: Boolean, org: Organizer, keys: List<String>, onTap: () -> Unit) {
+    val k = CAT_KEY[c] ?: c.name
+    val dragging = org.dragKey == k
+    val over = org.overKey == k
+    val col = if (on || dragging) pal.accent else pal.value
+    // tenuta premuta: si trascina su o giu', lasciandola prende il posto di
+    // quella sotto il dito (le altre scorrono)
+    Column(Modifier.fillMaxWidth().height(if (big) 88.dp else 62.dp)
+        .onGloballyPositioned { org.bounds[k] = it.boundsInRoot() }
+        .zIndex(if (dragging) 1f else 0f)
+        .graphicsLayer { if (dragging) { translationY = org.dragOff.y; scaleX = 1.06f; scaleY = 1.06f } }
+        .background(if (over) pal.accent.copy(alpha = .12f) else if (dragging) pal.sel else Color.Transparent, RoundedCornerShape(14.dp))
+        .pointerInput(k, keys) {
+            detectDragGesturesAfterLongPress(
+                onDragStart = { org.start(k) },
+                onDrag = { ch, d -> ch.consume(); org.drag(k, Offset(0f, d.y), keys) },
+                onDragEnd = { org.drop(k, keys) },
+                onDragCancel = { org.cancel() },
+            )
+        }
+        .clickable(onClick = onTap),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         Box(Modifier.size(if (big) 68.dp else 52.dp, if (big) 44.dp else 30.dp).clip(RoundedCornerShape(50))
             .background(if (on) pal.accent.copy(alpha = .15f) else Color.Transparent), contentAlignment = Alignment.Center) {
@@ -482,7 +520,8 @@ private fun NavStrip(active: Cat?, big: Boolean, onOpen: () -> Unit) {
 
 /** Pagine in griglia sopra la pagina scurita: [cols] per riga, quella aperta evidenziata. */
 @Composable
-private fun NavMenu(open: Boolean, cats: List<Cat>, active: Cat?, cols: Int, big: Boolean, onClose: () -> Unit, onPick: (Cat) -> Unit) {
+private fun NavMenu(open: Boolean, cats: List<Cat>, active: Cat?, cols: Int, big: Boolean, org: Organizer, keys: List<String>,
+                    onClose: () -> Unit, onPick: (Cat) -> Unit) {
     AnimatedVisibility(visible = open, enter = fadeIn(tween(140)), exit = fadeOut(tween(140))) {
         Box(
             Modifier.fillMaxSize().background(Color.Black.copy(alpha = if (pal.light) .35f else .6f))
@@ -492,16 +531,26 @@ private fun NavMenu(open: Boolean, cats: List<Cat>, active: Cat?, cols: Int, big
             val tileH = if (big) 132.dp else 100.dp
             Column(
                 Modifier.widthIn(max = (if (big) 170.dp else 140.dp) * cols).fillMaxWidth()
-                    .padding(horizontal = 16.dp).padding(bottom = 12.dp),
+                    .padding(horizontal = 16.dp).padding(bottom = 12.dp)
+                    // tocchi fra i riquadri: non chiudono (solo fuori dalla griglia)
+                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {},
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                // Modifica: tenere premuto un riquadro e trascinarlo (come la Plancia)
+                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(pal.card)
+                    .border(BW, pal.border, RoundedCornerShape(20.dp)).padding(start = 14.dp, end = 8.dp, top = 8.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Text(if (org.editing) "Tieni premuto e trascina per cambiare l'ordine" else "Pagine",
+                        color = pal.value, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                    OrgButton(org)
+                }
                 cats.chunked(cols).forEach { row ->
-                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        row.forEach { c ->
-                            val on = c == active
+                    Row(Modifier.fillMaxWidth().orgRow(org, row.mapNotNull { CAT_KEY[it] }), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        row.forEach { c -> OrgTile(org, keys, CAT_KEY[c] ?: c.name) { m ->
+                            val on = c == active && !org.editing
                             val col = if (on) pal.accent else pal.text
                             Column(
-                                Modifier.weight(1f).height(tileH).clip(RoundedCornerShape(20.dp))
+                                m.height(tileH).clip(RoundedCornerShape(20.dp))
                                     .background(if (on) pal.sel else pal.card)
                                     .border(BW, if (on) pal.accent else pal.border, RoundedCornerShape(20.dp))
                                     .clickable { onPick(c) },
@@ -512,7 +561,7 @@ private fun NavMenu(open: Boolean, cats: List<Cat>, active: Cat?, cols: Int, big
                                     fontWeight = if (on) FontWeight.SemiBold else FontWeight.Normal,
                                     modifier = Modifier.padding(top = if (big) 12.dp else 9.dp))
                             }
-                        }
+                        } }
                         // riga incompleta: i riquadri restano della stessa larghezza
                         repeat(cols - row.size) { Box(Modifier.weight(1f)) }
                     }

@@ -63,10 +63,18 @@ fun <T> List<T>.ordered(order: List<String>, key: (T) -> String): List<T> {
     return withIndex().sortedWith(compareBy({ pos[key(it.value)] ?: Int.MAX_VALUE }, { it.index })).map { it.value }
 }
 
-class Organizer(private val store: Store, private val name: String) {
+/**
+ * [save]: dove va l'ordine nuovo (di base Store, "ord:<name>"); la barra delle
+ * pagine lo salva come ordine della barra, insieme a Personalizza del relay.
+ */
+class Organizer(private val store: Store, private val name: String, initial: List<String>? = null,
+                private val save: ((List<String>) -> Unit)? = null) {
     var editing by mutableStateOf(false)
-    var order by mutableStateOf(store.order(name))
+    var order by mutableStateOf(initial ?: store.order(name))
         private set
+
+    /** Ordine cambiato da fuori (per esempio da Personalizza), fuori dalla modifica. */
+    fun reset(o: List<String>) { if (dragKey == null) order = o }
 
     // trascinamento in corso
     var dragKey by mutableStateOf<String?>(null)
@@ -98,7 +106,7 @@ class Organizer(private val store: Store, private val name: String) {
         m.add(j, k)
         // le chiavi dei riquadri che ora non ci sono restano, in fondo
         order = m + order.filter { it !in m }
-        store.setOrder(name, order)
+        if (save != null) save.invoke(order) else store.setOrder(name, order)
     }
 
     /** Riga della griglia sopra le altre mentre un suo riquadro e' trascinato. */

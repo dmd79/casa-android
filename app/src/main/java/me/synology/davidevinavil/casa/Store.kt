@@ -70,11 +70,23 @@ class Store(ctx: Context) {
     val barOrder: StateFlow<List<String>> = _barOrder
 
     fun setBarOrder(json: String?) {
-        val o = parseOrder(json)
-        if (o.isEmpty() || o == _barOrder.value) return
+        var o = parseOrder(json)
+        if (o.isEmpty()) return
+        // Personalizza del relay non conosce le voci solo dell'app (Telecamere,
+        // Altro): salvando le toglie. Si rimettono dove erano, dopo la voce che
+        // le precedeva.
+        val cur = _barOrder.value
+        for (k in APP_ONLY) if (k !in o && k in cur) {
+            val prev = cur.subList(0, cur.indexOf(k)).lastOrNull { it in o }
+            o = o.toMutableList().apply { add(if (prev == null) 0 else indexOf(prev) + 1, k) }
+        }
+        if (o == _barOrder.value) return
         _barOrder.value = o
         p.edit().putString("barOrder", JSONArray(o).toString()).apply()
     }
+
+    /** Voci della barra che esistono solo nell'app (non in Personalizza del relay). */
+    private val APP_ONLY = listOf("cams", "more")
 
     /** Ordine dei riquadri di una pagina (Clima, Sensori, Accessi): chiavi, vedi Order.kt. */
     fun order(name: String): List<String> = parseOrder(p.getString("ord:$name", "[]"))
