@@ -46,6 +46,14 @@ class CamWeb(private val act: Activity) {
         if (!loaded) { loaded = true; web.loadUrl(START) }
     }
 
+    /** Una telecamera sola (riquadro della Plancia): il suo live in Frigate. */
+    fun openAt(name: String) {
+        if (full != null) hideFull()
+        web.onResume()
+        loaded = true
+        web.loadUrl("$START#$name")
+    }
+
     /** Tocco su Telecamere nella barra: sempre il live, non l'ultima pagina di Frigate. */
     fun home() {
         if (full != null) hideFull()

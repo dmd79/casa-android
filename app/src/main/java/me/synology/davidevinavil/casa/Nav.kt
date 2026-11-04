@@ -136,6 +136,8 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setVi
             delay(30_000)
         }
     }
+    // riquadro di una telecamera nella Plancia: la scheda Telecamere su quella
+    LaunchedEffect(Unit) { nav.openCam = { c -> cam.openAt(c); setView(Pane.CAM) } }
     LaunchedEffect(Unit) {
         nav.onLoaded = { refresh() }
         while (true) { refresh(); delay(60_000) }

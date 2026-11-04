@@ -69,6 +69,8 @@ class WebNav {
     @Volatile var loading = false
     /** Pagina finita di caricare: occasione per riaggiornare l'elenco. */
     var onLoaded: () -> Unit = {}
+    /** Riquadro di una telecamera nella Plancia: apre la scheda Telecamere su quella. */
+    var openCam: (String) -> Unit = {}
     /** Prima pagina al posto di /_start (app aperta da un link, es. il QR di un dispositivo). */
     var startPath: String? = null
     fun firstUrl(): String = Relay.BASE + (startPath ?: "/_start").also { startPath = null }
@@ -276,6 +278,13 @@ class Bridge(private val ctx: Context, private val store: Store, private val web
             val js = "window.__btDone&&window.__btDone(" + org.json.JSONObject.quote(id) + "," + r + ")"
             web.post { web.evaluateJavascript(js, null) }
         }
+    }
+
+    /** Riquadro di una telecamera nella Plancia (nome della telecamera in Frigate). */
+    @JavascriptInterface
+    fun openCam(cam: String) {
+        val c = cam.filter { it.isLetterOrDigit() || it == '_' || it == '-' }.take(64)
+        if (c.isNotEmpty()) web.post { nav.openCam(c) }
     }
 
     /** Personalizza ha salvato un nuovo ordine della barra. */
