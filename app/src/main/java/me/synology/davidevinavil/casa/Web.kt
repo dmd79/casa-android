@@ -1,7 +1,6 @@
 package me.synology.davidevinavil.casa
 
 import android.annotation.SuppressLint
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
@@ -15,11 +14,10 @@ import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
@@ -136,6 +134,7 @@ fun makeWeb(ctx: Context, store: Store, nav: WebNav): WebView = WebView(ctx).app
             nav.loading = false
             v.postDelayed({ nav.busy.value = false }, 180)
             cm.flush()
+            v.evaluateJavascript(Diag.JS, null)   // DIAGNOSI (provvisoria)
             if (!early) {
                 v.evaluateJavascript(START_JS, null)
                 // senza script anticipati la prima volta puo' finire su "Installa l'app"
@@ -184,6 +183,9 @@ private fun WebView.loadWhenSized(nav: WebNav) {
 
 /** Da JavaScript ad Android. */
 class Bridge(private val ctx: Context, private val store: Store, private val web: WebView, private val nav: WebNav) {
+    /** DIAGNOSI (provvisoria): eventi della pagina. */
+    @JavascriptInterface
+    fun dbg(s: String) = Diag.log("J " + s)
     private val gb get() = (ctx as CasaApp).gates
     private val pairer get() = (ctx as CasaApp).pairer
 
@@ -307,15 +309,25 @@ p{color:#b3afa8;font-size:17px;line-height:1.5}button{margin-top:20px;border:0;b
 
 @Composable
 fun CasaWeb(web: WebView, visible: Boolean) {
-    val act = LocalContext.current as? Activity
-    BackHandler(enabled = visible) { if (web.canGoBack()) web.goBack() else act?.moveTaskToBack(true) }
+    // l'indietro della WebView lo gestisce Root (Nav.kt), insieme alle altre schede
     // Resta sempre al suo posto, con la sua misura: sulle altre schede e' solo
     // nascosta. Cosi' la pagina non viene mai ridimensionata a zero (il
     // quadrante del termostato non si rompe) e non si ricarica.
-    AndroidView(modifier = Modifier.fillMaxSize(), factory = {
+    // Nascosta va sotto alle altre: in Compose i tocchi vanno alla vista piu'
+    // in alto anche se e' invisibile. Tornando con "indietro" dalle Telecamere
+    // alla Plancia, la WebView delle telecamere (nascosta ma sopra) prendeva il
+    // primo tocco e serviva toccare due volte.
+    AndroidView(modifier = Modifier.fillMaxSize().zIndex(if (visible) 1f else -1f), factory = {
         (web.parent as? ViewGroup)?.removeView(web)
+        Diag.watch(web, "W")   // DIAGNOSI (provvisoria)
         web
-    }, update = { it.visibility = if (visible) View.VISIBLE else View.INVISIBLE })
+    }, update = {
+        it.visibility = if (visible) View.VISIBLE else View.INVISIBLE
+        // tornando sulla pagina (es. indietro dalle Telecamere) il fuoco era
+        // rimasto all'altra WebView: il primo tocco serviva solo a riprenderlo
+        // e non apriva niente. Lo si ridà subito.
+        if (visible && !it.hasFocus()) it.post { it.requestFocus() }
+    })
 }
 
 /** Telefono in tema scuro. */

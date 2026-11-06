@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -41,9 +42,30 @@ class CamWeb(private val act: Activity) {
 
     val web: WebView get() = view ?: make().also { view = it }
 
+    /**
+     * Punto della cronologia da cui e' cominciata questa visita: indietro
+     * torna fra le pagine di Frigate solo fino a qui, poi alla scheda di prima
+     * (prima, aperta una telecamera dalla Plancia, indietro portava a quella
+     * aperta la volta precedente).
+     */
+    private var entry = 0
+    /**
+     * Telecamera aperta dal suo riquadro (Plancia): indietro torna subito alla
+     * scheda di prima. Mentre il live si collega Frigate aggiunge da solo
+     * pagine alla cronologia, e indietro le ripercorreva (serviva premerlo due
+     * volte se l'immagine non era ancora arrivata).
+     */
+    var direct = false
+        private set
+    private fun idx(): Int = try { web.copyBackForwardList().currentIndex } catch (e: Exception) { -1 }
+    private fun go(u: String) {
+        entry = if (web.url == u) idx() else idx() + 1
+        web.loadUrl(u)
+    }
+
     fun open() {
         web.onResume()
-        if (!loaded) { loaded = true; web.loadUrl(START) }
+        if (!loaded) { loaded = true; direct = false; go(START) }
     }
 
     /** Una telecamera sola (riquadro della Plancia): il suo live in Frigate. */
@@ -51,14 +73,16 @@ class CamWeb(private val act: Activity) {
         if (full != null) hideFull()
         web.onResume()
         loaded = true
-        web.loadUrl("$START#$name")
+        direct = true
+        go("$START#$name")
     }
 
     /** Tocco su Telecamere nella barra: sempre il live, non l'ultima pagina di Frigate. */
     fun home() {
         if (full != null) hideFull()
         val w = view ?: return
-        if (loaded && w.url?.trimEnd('/') != START.trimEnd('/')) w.loadUrl(START)
+        direct = false
+        if (loaded && w.url?.trimEnd('/') != START.trimEnd('/')) go(START) else entry = idx()
     }
 
     /** Scheda lasciata: si ferma il video, la pagina resta. */
@@ -76,7 +100,8 @@ class CamWeb(private val act: Activity) {
     fun back(): Boolean {
         if (full != null) { hideFull(); return true }
         val w = view ?: return false
-        if (w.canGoBack() && w.url?.startsWith(START) == true) {
+        if (direct) return false
+        if (w.canGoBack() && w.url?.startsWith(START) == true && idx() > entry) {
             // non si torna sulla pagina vuota della chiusura
             val prev = w.copyBackForwardList().let { l -> l.getItemAtIndex(l.currentIndex - 1)?.url }
             if (prev != null && prev != "about:blank") { w.goBack(); return true }
@@ -169,8 +194,17 @@ fun CamPane(cam: CamWeb, visible: Boolean) {
         else if (cam.loaded) { cam.pause(); delay(CamWeb.KEEP_MS); cam.close() }
     }
     if (!visible && !cam.loaded) return
-    AndroidView(modifier = Modifier.fillMaxSize(), factory = {
+    // Nascosta va sotto alle altre: in Compose i tocchi vanno alla vista piu'
+    // in alto anche se e' invisibile. Tornando con "indietro" dalle Telecamere
+    // alla Plancia, la WebView delle telecamere (nascosta ma sopra) prendeva il
+    // primo tocco e serviva toccare due volte.
+    AndroidView(modifier = Modifier.fillMaxSize().zIndex(if (visible) 1f else -1f), factory = {
         (cam.web.parent as? ViewGroup)?.removeView(cam.web)
+        Diag.watch(cam.web, "C")   // DIAGNOSI (provvisoria)
         cam.web
-    }, update = { it.visibility = if (visible) View.VISIBLE else View.INVISIBLE })
+    }, update = {
+        it.visibility = if (visible) View.VISIBLE else View.INVISIBLE
+        // il fuoco a questa WebView (era della pagina): primo tocco subito valido
+        if (visible && !it.hasFocus()) it.post { it.requestFocus() }
+    })
 }

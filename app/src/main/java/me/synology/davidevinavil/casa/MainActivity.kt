@@ -3,6 +3,8 @@ package me.synology.davidevinavil.casa
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.webkit.WebView
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -33,8 +35,19 @@ class MainActivity : ComponentActivity() {
             ClimaTheme {
                 val p by pane.collectAsState()
                 Root(app, web, cam, nav, p) { pane.value = it }
+                DiagOverlay()   // DIAGNOSI (provvisoria)
             }
         }
+    }
+
+    // DIAGNOSI (provvisoria): tocchi e tasti che arrivano all'app
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        Diag.touch("A", ev)
+        return super.dispatchTouchEvent(ev)
+    }
+    override fun dispatchKeyEvent(ev: KeyEvent): Boolean {
+        if (ev.keyCode == KeyEvent.KEYCODE_BACK) Diag.log("K back " + (if (ev.action == KeyEvent.ACTION_DOWN) "giu" else "su"))
+        return super.dispatchKeyEvent(ev)
     }
 
     // da riquadro o widget non configurati: apre le Scorciatoie

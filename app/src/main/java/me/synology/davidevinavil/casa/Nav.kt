@@ -91,7 +91,7 @@ private class Item(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setView: (Pane) -> Unit) {
+fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setPane: (Pane) -> Unit) {
     val holder = rememberSaveableStateHolder()
     val act = LocalContext.current as? Activity
     val scope = rememberCoroutineScope()
@@ -120,6 +120,7 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setVi
         }
     }
     // Bluetooth del clima solo mentre se ne guarda la schermata (come i cancelli)
+    LaunchedEffect(view) { Diag.log("P " + view) }   // DIAGNOSI (provvisoria)
     LaunchedEffect(view) {
         ble.active = view == Pane.CLIMA
         if (view == Pane.CLIMA) ble.resume() else ble.disconnect()
@@ -128,6 +129,30 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setVi
     // si riprova finche' il relay non li accetta (dopo il loro primo collegamento)
     val pendingLogins by store.pending.collectAsState()
     val viewNow by rememberUpdatedState(view)
+
+    // Indietro come in un browser: le schede aperte una dopo l'altra (pagine
+    // del relay e schermate dell'app) si ripercorrono a ritroso, e nelle
+    // pagine web prima la loro cronologia. L'app va in secondo piano solo
+    // quando non c'e' piu' niente dietro. Per ogni scheda lasciata si ricorda
+    // anche, se era la WebView, da che punto della sua cronologia era
+    // cominciata la visita (le pagine prima appartengono a visite precedenti).
+    val back = remember { ArrayDeque<Pair<Pane, Int>>() }
+    val webEntry = remember { intArrayOf(0) }
+    fun webIdx(): Int = try { web.copyBackForwardList().currentIndex } catch (e: Exception) { 0 }
+    fun setView(p: Pane) {
+        val cur = viewNow
+        if (p == cur) return
+        back.addLast(cur to webEntry[0])
+        while (back.size > 40) back.removeFirst()
+        if (p == Pane.WEB) webEntry[0] = webIdx()
+        setPane(p)
+    }
+    fun popBack(): Boolean {
+        val (p, i) = back.removeLastOrNull() ?: return false
+        if (p == Pane.WEB) webEntry[0] = i
+        setPane(p)
+        return true
+    }
     LaunchedEffect(pendingLogins.isNotEmpty()) {
         while (store.pending.value.isNotEmpty()) {
             for ((id, pw, _) in store.pending.value) {
@@ -176,8 +201,11 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setVi
     // pagina a pagina invece resta quella dove si era, come in un browser.
     fun go(path: String, c: Cat) {
         pending = c
-        if (view != Pane.WEB) nav.busy.value = true
+        val fromApp = viewNow != Pane.WEB
+        if (fromApp) nav.busy.value = true
         setView(Pane.WEB)
+        // da un'altra scheda: la visita comincia con la pagina che si apre adesso
+        if (fromApp) webEntry[0] = webIdx() + 1
         web.loadUrl(Relay.BASE + path)
     }
     val busy by nav.busy.collectAsState()
@@ -240,15 +268,21 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setVi
         }
     }
 
-    // indietro: da Clima BT o Scorciatoie si torna alle pagine; dalle pagine
-    // (senza altro da chiudere) l'app va in secondo piano
+    // Indietro (tasto o gesto dal bordo). Le sottoschermate (dettaglio di un
+    // sensore, impostazioni del clima, menu della barra...) hanno il loro
+    // indietro, che viene prima di questo.
     BackHandler {
-        when (view) {
-            Pane.WEB -> act?.moveTaskToBack(true)
-            Pane.CAM -> if (!cam.back()) act?.moveTaskToBack(true)
-            Pane.GATE -> setView(Pane.ACC)      // dai cancelli Bluetooth alla scheda Accessi
-            Pane.CLIMA -> setView(Pane.CLIMI)   // dal condizionatore Bluetooth alla pagina Clima
-            else -> setView(Pane.WEB)
+        when (viewNow) {
+            Pane.WEB -> when {
+                webIdx() > webEntry[0] && web.canGoBack() -> web.goBack()   // pagina prima, in questa visita
+                popBack() -> {}                                              // scheda di prima
+                web.canGoBack() -> web.goBack()
+                else -> act?.moveTaskToBack(true)                            // niente dietro: in secondo piano
+            }
+            Pane.CAM -> if (!cam.back() && !popBack()) setPane(Pane.WEB)
+            Pane.GATE -> if (!popBack()) setPane(Pane.ACC)      // cancelli Bluetooth: scheda Accessi
+            Pane.CLIMA -> if (!popBack()) setPane(Pane.CLIMI)   // condizionatore Bluetooth: pagina Clima
+            else -> if (!popBack()) setPane(Pane.WEB)
         }
     }
 
@@ -411,7 +445,8 @@ private fun SheetRow(it: Item, modifier: Modifier = Modifier.padding(bottom = 8.
  */
 @Composable
 private fun PageCover(visible: Boolean) {
-    AnimatedVisibility(visible = visible, enter = EnterTransition.None, exit = fadeOut(tween(200))) {
+    // sopra la WebView della pagina (che, visibile, sta a zIndex 1)
+    AnimatedVisibility(visible = visible, modifier = Modifier.zIndex(2f), enter = EnterTransition.None, exit = fadeOut(tween(200))) {
         Box(Modifier.fillMaxSize().background(pal.bg))
     }
 }
