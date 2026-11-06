@@ -200,7 +200,7 @@ fun CamPane(cam: CamWeb, visible: Boolean) {
     // primo tocco e serviva toccare due volte.
     AndroidView(modifier = Modifier.fillMaxSize().zIndex(if (visible) 1f else -1f), factory = {
         (cam.web.parent as? ViewGroup)?.removeView(cam.web)
-        Diag.watch(cam.web, "C")   // DIAGNOSI (provvisoria)
+        Diag.watch(cam.web, "C")
         cam.web
     }, update = {
         it.visibility = if (visible) View.VISIBLE else View.INVISIBLE

@@ -120,7 +120,7 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setPa
         }
     }
     // Bluetooth del clima solo mentre se ne guarda la schermata (come i cancelli)
-    LaunchedEffect(view) { Diag.log("P " + view) }   // DIAGNOSI (provvisoria)
+    LaunchedEffect(view) { Diag.log("P " + view) }   // Altro → Diagnosi tocchi
     LaunchedEffect(view) {
         ble.active = view == Pane.CLIMA
         if (view == Pane.CLIMA) ble.resume() else ble.disconnect()
@@ -321,6 +321,8 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setPa
     LaunchedEffect(view, url) { menu = false }
     var barMode by remember { mutableStateOf(store.barMode) }
     var barSheet by remember { mutableStateOf(false) }
+    var themeSheet by remember { mutableStateOf(false) }
+    val diagOn by Diag.on.collectAsState()
     val cfg = LocalConfiguration.current
     val land = cfg.orientation == Configuration.ORIENTATION_LANDSCAPE
     val big = cfg.smallestScreenWidthDp >= 480      // autoradio, tablet
@@ -381,6 +383,23 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setPa
             }
         }
     }
+    // Altro → Tema: l'app si riapre col tema nuovo (anche le pagine del relay)
+    if (themeSheet) {
+        val ts = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        val cur = store.theme
+        ModalBottomSheet(onDismissRequest = { themeSheet = false }, sheetState = ts, containerColor = pal.bg) {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp).padding(bottom = 24.dp)) {
+                Text("Tema", color = pal.muted, fontSize = 14.sp, modifier = Modifier.padding(start = 4.dp, bottom = 10.dp))
+                THEMES.forEach { (k, t) ->
+                    SheetRow(Item(t.first, t.second, when (k) { "light" -> Icons.heat; "dark" -> Icons.moon; else -> Icons.theme }, null, selected = cur == k,
+                        onClick = {
+                            themeSheet = false
+                            if (k != cur) { store.theme = k; act?.recreate() }
+                        }))
+                }
+            }
+        }
+    }
 
     val open = sheet ?: return
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -403,6 +422,9 @@ fun Root(app: CasaApp, web: WebView, cam: CamWeb, nav: WebNav, view: Pane, setPa
             add(Item("Condizionatori Bluetooth", "elenco, aggiungi, dimentica", Icons.bt, null, onClick = pick { app.climaGo.value = Scr.DEVICES; setView(Pane.CLIMA) }))
             add(Item("Barra", BAR_MODES.first { it.first == barMode }.second.first.lowercase(), Icons.dash, null, onClick = pick { barSheet = true }))
             add(Item("Personalizza", "pagina iniziale e ordine", Icons.gear, null, onClick = pick { go("/_custom", Cat.MORE) }))
+            add(Item("Tema", THEMES.first { it.first == store.theme }.second.first.lowercase(), Icons.theme, null, onClick = pick { themeSheet = true }))
+            add(Item("Diagnosi tocchi", if (diagOn) "accesa: striscia in alto" else "spenta", Icons.touch, null,
+                onClick = pick { val v = !diagOn; store.diag = v; Diag.set(v) }))
         }
     }
     ModalBottomSheet(onDismissRequest = { sheet = null }, sheetState = state, containerColor = pal.bg) {
@@ -501,6 +523,12 @@ private fun catIcon(c: Cat) = when (c) {
 }
 
 /** Modi della barra (Altro → Barra): chiave, nome e spiegazione. */
+private val THEMES = listOf(
+    "auto" to ("Sistema" to "come il telefono"),
+    "light" to ("Chiaro" to "sempre chiaro"),
+    "dark" to ("Scuro" to "sempre scuro"),
+)
+
 private val BAR_MODES = listOf(
     "auto" to ("Automatica" to "colonna sugli schermi grandi, striscia sul telefono"),
     "strip" to ("Striscia" to "sottile in fondo, le pagine si aprono con un tocco"),

@@ -172,6 +172,10 @@ object Icons {
     val heat = listOf(IconPart(circle(12f, 12f, 4.5f), fill = true),
         IconPart("M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3M4.6 4.6l2.1 2.1M17.3 17.3l2.1 2.1M4.6 19.4l2.1-2.1M17.3 6.7l2.1-2.1"))
     val dry = listOf(IconPart("M12 2C9 7 6 10 6 14a6 6 0 0 0 12 0c0-4-3-7-6-12z", fill = true))
+    val theme = listOf(IconPart(circle(12f, 12f, 8.5f)), IconPart("M12 3.5a8.5 8.5 0 0 1 0 17z", fill = true))
+    val moon = listOf(IconPart("M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"))
+    val touch = listOf(IconPart(circle(12f, 12f, 6.5f)), IconPart(circle(12f, 12f, 2f), fill = true),
+        IconPart("M12 2v3.5M12 18.5V22M2 12h3.5M18.5 12H22"))
     fun fan(hole: Color) = listOf(
         IconPart(circle(12f, 6.5f, 4.2f), fill = true), IconPart(circle(6.5f, 15.5f, 4.2f), fill = true),
         IconPart(circle(17.5f, 15.5f, 4.2f), fill = true), IconPart(circle(12f, 12f, 1.8f), fill = true, color = hole))

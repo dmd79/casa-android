@@ -134,7 +134,7 @@ fun makeWeb(ctx: Context, store: Store, nav: WebNav): WebView = WebView(ctx).app
             nav.loading = false
             v.postDelayed({ nav.busy.value = false }, 180)
             cm.flush()
-            v.evaluateJavascript(Diag.JS, null)   // DIAGNOSI (provvisoria)
+            if (Diag.on.value) v.evaluateJavascript(Diag.JS, null)   // Altro → Diagnosi tocchi
             if (!early) {
                 v.evaluateJavascript(START_JS, null)
                 // senza script anticipati la prima volta puo' finire su "Installa l'app"
@@ -183,7 +183,7 @@ private fun WebView.loadWhenSized(nav: WebNav) {
 
 /** Da JavaScript ad Android. */
 class Bridge(private val ctx: Context, private val store: Store, private val web: WebView, private val nav: WebNav) {
-    /** DIAGNOSI (provvisoria): eventi della pagina. */
+    /** Altro → Diagnosi tocchi: eventi della pagina. */
     @JavascriptInterface
     fun dbg(s: String) = Diag.log("J " + s)
     private val gb get() = (ctx as CasaApp).gates
@@ -319,7 +319,7 @@ fun CasaWeb(web: WebView, visible: Boolean) {
     // primo tocco e serviva toccare due volte.
     AndroidView(modifier = Modifier.fillMaxSize().zIndex(if (visible) 1f else -1f), factory = {
         (web.parent as? ViewGroup)?.removeView(web)
-        Diag.watch(web, "W")   // DIAGNOSI (provvisoria)
+        TouchFix.watch(web)   // anche la riga W della diagnosi
         web
     }, update = {
         it.visibility = if (visible) View.VISIBLE else View.INVISIBLE

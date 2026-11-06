@@ -5,8 +5,10 @@ import android.os.SystemClock
 import android.view.MotionEvent
 import android.view.View
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -22,40 +24,42 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
- * DIAGNOSI PROVVISORIA (da togliere): dove si perde il primo tocco tornando
- * dalle Telecamere col gesto indietro. In alto sullo schermo le ultime righe:
+ * Altro → Diagnosi tocchi: in alto sullo schermo le ultime righe di dove
+ * arrivano tocchi e tasti. Spenta non registra niente.
  *  A = tocco arrivato all'app, W = alla WebView delle pagine, C = alla
  *  WebView delle telecamere, J = evento nella pagina, K = tasto indietro,
- *  P = scheda mostrata. Il numero davanti sono i millisecondi.
+ *  P = scheda mostrata, F = primo tocco consegnato a mano (TouchFix).
+ *  Il numero davanti sono i millisecondi.
  */
 object Diag {
+    val on = MutableStateFlow(false)
     val lines = MutableStateFlow(listOf<String>())
 
-    fun log(s: String) {
-        val t = SystemClock.uptimeMillis() % 100000
-        val l = (lines.value + "$t $s").takeLast(14)
-        lines.value = l
+    fun set(v: Boolean) {
+        on.value = v
+        lines.value = emptyList()
     }
 
-    private fun act(e: MotionEvent) = when (e.actionMasked) {
-        MotionEvent.ACTION_DOWN -> "giu"
-        MotionEvent.ACTION_UP -> "su"
-        MotionEvent.ACTION_CANCEL -> "ANNULLATO"
-        else -> null
+    fun log(s: String) {
+        if (!on.value) return
+        val t = SystemClock.uptimeMillis() % 100000
+        lines.value = (lines.value + "$t $s").takeLast(14)
     }
 
     fun touch(tag: String, e: MotionEvent) {
-        val a = act(e) ?: return
+        if (!on.value) return
+        val a = when (e.actionMasked) {
+            MotionEvent.ACTION_DOWN -> "giu"
+            MotionEvent.ACTION_UP -> "su"
+            MotionEvent.ACTION_CANCEL -> "ANNULLATO"
+            else -> return
+        }
         log("$tag $a ${e.x.toInt()},${e.y.toInt()}")
     }
 
     @SuppressLint("ClickableViewAccessibility")
     fun watch(v: View, tag: String) {
-        v.setOnTouchListener { _, e ->
-            touch(tag, e)
-            if (tag == "W" && e.actionMasked == MotionEvent.ACTION_DOWN) TouchFix.got = true
-            false
-        }
+        v.setOnTouchListener { _, e -> touch(tag, e); false }
     }
 
     /** Nella pagina: pointerdown, pointerup, pointercancel e click, prima di tutto il resto. */
@@ -68,9 +72,17 @@ document.addEventListener('visibilitychange',function(){try{CasaApp.dbg('visibil
 
 @Composable
 fun DiagOverlay() {
+    val on by Diag.on.collectAsState()
+    if (!on) return
     val l by Diag.lines.collectAsState()
     Box(Modifier.fillMaxWidth().statusBarsPadding().padding(top = 40.dp)) {
         Column(Modifier.background(Color(0xB0000000)).padding(4.dp)) {
+            // solo la ✕ prende il tocco: sotto la striscia la pagina resta usabile
+            Row {
+                Text("diagnosi tocchi", color = Color(0xFF7CFC00), fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                Text("  ✕ svuota", color = Color.White, fontSize = 12.sp,
+                    modifier = Modifier.clickable { Diag.lines.value = emptyList() }.padding(horizontal = 6.dp))
+            }
             for (s in l) Text(s, color = Color(0xFF7CFC00), fontSize = 10.sp, lineHeight = 11.sp, fontFamily = FontFamily.Monospace)
         }
     }

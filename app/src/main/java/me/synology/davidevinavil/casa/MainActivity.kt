@@ -2,6 +2,8 @@ package me.synology.davidevinavil.casa
 
 import android.content.Intent
 import android.net.Uri
+import android.content.Context
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -21,8 +23,24 @@ class MainActivity : ComponentActivity() {
     private val nav = WebNav()
     private val pane = MutableStateFlow(Pane.WEB)
 
+    // Tema scelto in Altro → Tema: chiaro o scuro anche se il telefono e'
+    // impostato diversamente. Cambia la configurazione della schermata, cosi'
+    // lo seguono l'app, le pagine del relay e Frigate (prefers-color-scheme).
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(base)
+        val night = when (base.getSharedPreferences("clima", Context.MODE_PRIVATE).getString("theme", "auto")) {
+            "light" -> Configuration.UI_MODE_NIGHT_NO
+            "dark" -> Configuration.UI_MODE_NIGHT_YES
+            else -> return
+        }
+        applyOverrideConfiguration(Configuration().apply {
+            uiMode = (base.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or night
+        })
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Diag.on.value = app.store.diag
         // barre di sistema come il tema del telefono (icone scure sul chiaro)
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
@@ -39,12 +57,12 @@ class MainActivity : ComponentActivity() {
                     if (pane.value == Pane.CAM && it == Pane.WEB) TouchFix.armed = true
                     pane.value = it
                 }
-                DiagOverlay()   // DIAGNOSI (provvisoria)
+                DiagOverlay()   // Altro → Diagnosi tocchi
             }
         }
     }
 
-    // DIAGNOSI (provvisoria): tocchi e tasti che arrivano all'app
+    // primo tocco dopo il ritorno dalle Telecamere: vedi TouchFix
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         Diag.touch("A", ev)
         if (ev.actionMasked == MotionEvent.ACTION_DOWN) { TouchFix.got = false; fwd = false }
@@ -64,7 +82,7 @@ class MainActivity : ComponentActivity() {
     }
     private var fwd = false
     override fun dispatchKeyEvent(ev: KeyEvent): Boolean {
-        if (ev.keyCode == KeyEvent.KEYCODE_BACK) Diag.log("K back " + (if (ev.action == KeyEvent.ACTION_DOWN) "giu" else "su"))
+        if (ev.keyCode == KeyEvent.KEYCODE_BACK) Diag.log("K indietro " + (if (ev.action == KeyEvent.ACTION_DOWN) "giu" else "su"))
         return super.dispatchKeyEvent(ev)
     }
 

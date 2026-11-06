@@ -42,6 +42,16 @@ class Store(ctx: Context) {
         get() = p.getString("barMode", "auto") ?: "auto"
         set(v) = p.edit().putString("barMode", v).apply()
 
+    /** Tema dell'app e delle pagine: "auto" (come il telefono), "light" o "dark". */
+    var theme: String
+        get() = p.getString("theme", "auto") ?: "auto"
+        set(v) = p.edit().putString("theme", v).apply()
+
+    /** Altro → Diagnosi tocchi: striscia in alto con tocchi e schede. */
+    var diag: Boolean
+        get() = p.getBoolean("diag", false)
+        set(v) = p.edit().putBoolean("diag", v).apply()
+
     /** Ultimo elenco dei dispositivi del relay: la barra compare subito all'avvio. */
     var relayList: String
         get() = p.getString("relayList", "[]") ?: "[]"

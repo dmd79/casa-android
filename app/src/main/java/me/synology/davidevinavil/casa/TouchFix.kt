@@ -1,5 +1,6 @@
 package me.synology.davidevinavil.casa
 
+import android.annotation.SuppressLint
 import android.view.MotionEvent
 import android.view.View
 
@@ -15,6 +16,16 @@ object TouchFix {
     @Volatile var armed = false
     /** La WebView delle pagine ha ricevuto il "dito giu'" del tocco in corso. */
     @Volatile var got = false
+
+    /** Sulla WebView delle pagine: segna se il "dito giu'" le arriva. */
+    @SuppressLint("ClickableViewAccessibility")
+    fun watch(v: View) {
+        v.setOnTouchListener { _, e ->
+            Diag.touch("W", e)
+            if (e.actionMasked == MotionEvent.ACTION_DOWN) got = true
+            false
+        }
+    }
 
     fun inside(v: View, ev: MotionEvent): Boolean {
         if (!v.isShown) return false
