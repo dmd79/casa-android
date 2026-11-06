@@ -51,7 +51,11 @@ object Diag {
 
     @SuppressLint("ClickableViewAccessibility")
     fun watch(v: View, tag: String) {
-        v.setOnTouchListener { _, e -> touch(tag, e); false }
+        v.setOnTouchListener { _, e ->
+            touch(tag, e)
+            if (tag == "W" && e.actionMasked == MotionEvent.ACTION_DOWN) TouchFix.got = true
+            false
+        }
     }
 
     /** Nella pagina: pointerdown, pointerup, pointercancel e click, prima di tutto il resto. */

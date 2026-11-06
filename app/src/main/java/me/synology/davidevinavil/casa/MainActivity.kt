@@ -34,7 +34,11 @@ class MainActivity : ComponentActivity() {
         setContent {
             ClimaTheme {
                 val p by pane.collectAsState()
-                Root(app, web, cam, nav, p) { pane.value = it }
+                Root(app, web, cam, nav, p) {
+                    // dalle Telecamere alle pagine: si controlla il primo tocco (TouchFix)
+                    if (pane.value == Pane.CAM && it == Pane.WEB) TouchFix.armed = true
+                    pane.value = it
+                }
                 DiagOverlay()   // DIAGNOSI (provvisoria)
             }
         }
@@ -43,8 +47,22 @@ class MainActivity : ComponentActivity() {
     // DIAGNOSI (provvisoria): tocchi e tasti che arrivano all'app
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
         Diag.touch("A", ev)
-        return super.dispatchTouchEvent(ev)
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN) { TouchFix.got = false; fwd = false }
+        val r = super.dispatchTouchEvent(ev)
+        if (fwd) {
+            TouchFix.forward(web, ev)
+            if (ev.actionMasked == MotionEvent.ACTION_UP || ev.actionMasked == MotionEvent.ACTION_CANCEL) fwd = false
+        } else if (ev.actionMasked == MotionEvent.ACTION_DOWN && TouchFix.armed) {
+            TouchFix.armed = false
+            if (!TouchFix.got && pane.value == Pane.WEB && TouchFix.inside(web, ev)) {
+                Diag.log("F inoltro alla pagina")
+                fwd = true
+                TouchFix.forward(web, ev)
+            }
+        }
+        return r
     }
+    private var fwd = false
     override fun dispatchKeyEvent(ev: KeyEvent): Boolean {
         if (ev.keyCode == KeyEvent.KEYCODE_BACK) Diag.log("K back " + (if (ev.action == KeyEvent.ACTION_DOWN) "giu" else "su"))
         return super.dispatchKeyEvent(ev)
